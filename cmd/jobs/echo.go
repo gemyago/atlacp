@@ -6,9 +6,9 @@ import (
 	"fmt"
 	"log/slog"
 
-	"github.com/gemyago/golang-backend-boilerplate/internal/api/http"
-	"github.com/gemyago/golang-backend-boilerplate/internal/api/http/server"
-	"github.com/gemyago/golang-backend-boilerplate/internal/app"
+	"github.com/gemyago/atlacp/internal/api/http"
+	"github.com/gemyago/atlacp/internal/api/http/server"
+	"github.com/gemyago/atlacp/internal/app"
 	"github.com/spf13/cobra"
 	"go.uber.org/dig"
 )

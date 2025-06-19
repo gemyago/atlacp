@@ -3,7 +3,7 @@ package config
 import (
 	"fmt"
 
-	"github.com/gemyago/golang-backend-boilerplate/internal/di"
+	"github.com/gemyago/atlacp/internal/di"
 	"github.com/spf13/viper"
 	"go.uber.org/dig"
 )

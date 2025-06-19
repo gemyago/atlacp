@@ -6,9 +6,9 @@ import (
 	"log/slog"
 	"time"
 
-	httpserver "github.com/gemyago/golang-backend-boilerplate/internal/api/http/server"
-	"github.com/gemyago/golang-backend-boilerplate/internal/diag"
-	"github.com/gemyago/golang-backend-boilerplate/internal/services"
+	httpserver "github.com/gemyago/atlacp/internal/api/http/server"
+	"github.com/gemyago/atlacp/internal/diag"
+	"github.com/gemyago/atlacp/internal/services"
 	"github.com/gofrs/uuid/v5"
 	"github.com/mark3labs/mcp-go/mcp"
 	mcpserver "github.com/mark3labs/mcp-go/server"

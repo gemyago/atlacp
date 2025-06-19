@@ -51,14 +51,16 @@ find . -name "*.go" -o -name "go.mod" | xargs sed -i "s|github.com/gemyago/golan
 1. Update project title from "golang-backend-boilerplate" to actual project name
 2. Update GitHub badge URLs to point to the new repository
 3. Ask user for initial project description and add it after the badges
-4. **Remove all template/boilerplate content**: Remove "Starting a new project" section and all template-specific content
-5. Keep only "Project Structure" section and everything after it
-6. Update any repository-specific links and references
+4. **Remove the "Key features" section** entirely to avoid template-specific feature lists
+5. **Remove all template/boilerplate content**: Remove "Starting a new project" section and all template-specific content
+6. Keep only "Project Structure" section and everything after it
+7. Update any repository-specific links and references
 
 **Verification**:
 - [ ] Project title reflects the actual project name
 - [ ] Badge URLs point to the correct repository
 - [ ] Description is relevant to the new project
+- [ ] "Key features" section has been removed
 - [ ] No references to the template repository remain
 - [ ] Links to internal files are still valid
 

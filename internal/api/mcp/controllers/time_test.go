@@ -5,7 +5,7 @@ import (
 	"log/slog"
 	"testing"
 
-	"github.com/gemyago/golang-backend-boilerplate/internal/app"
+	"github.com/gemyago/atlacp/internal/app"
 	"github.com/go-faker/faker/v4"
 	"github.com/mark3labs/mcp-go/mcp"
 	"github.com/stretchr/testify/assert"

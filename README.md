@@ -1,60 +1,9 @@
-# golang-backend-boilerplate
+# atlacp
 
-[![Build](https://github.com/gemyago/golang-backend-boilerplate/actions/workflows/build-flow.yml/badge.svg)](https://github.com/gemyago/golang-backend-boilerplate/actions/workflows/build-flow.yml)
-[![Coverage](https://raw.githubusercontent.com/gemyago/golang-backend-boilerplate/test-artifacts/coverage/golang-coverage.svg)](https://htmlpreview.github.io/?https://raw.githubusercontent.com/gemyago/golang-backend-boilerplate/test-artifacts/coverage/golang-coverage.html)
+[![Build](https://github.com/gemyago/atlacp/actions/workflows/build-flow.yml/badge.svg)](https://github.com/gemyago/atlacp/actions/workflows/build-flow.yml)
+[![Coverage](https://raw.githubusercontent.com/gemyago/atlacp/test-artifacts/coverage/golang-coverage.svg)](https://htmlpreview.github.io/?https://raw.githubusercontent.com/gemyago/atlacp/test-artifacts/coverage/golang-coverage.html)
 
-Basic golang boilerplate for backend projects.
-
-Key features:
-* [cobra](github.com/spf13/cobra) - CLI interactions
-* [viper](github.com/spf13/viper) - Configuration management
-* [apigen](github.com/gemyago/apigen) - API layer generator
-* uber [dig](go.uber.org/dig) is used as DI framework
-  * for small projects it may make sense to setup dependencies manually
-* `slog` is used for logs
-* [slog-http](github.com/samber/slog-http) is used to produce access logs
-* [testify](github.com/stretchr/testify) and [mockery](github.com/vektra/mockery) are used for tests
-* [gow](github.com/mitranim/gow) is used to watch and restart tests or server
-
-## Starting a new project
-
-Initial cleanup step:
-* Clone the repo with a new name
-* Replace module name with desired one. Example:
-
-  ```bash
-  # Manually specify desired module name
-  find . -name "*.go" -o -name "go.mod" | xargs sed -i 's|github.com/gemyago/golang-backend-boilerplate|<YOUR-MODULE-PATH>|g';
-
-  # Or optionally get module name matching repo
-  export module_name=$(git remote get-url origin | sed -E \
-    -e 's|^git@([^:]+):|\1/|' \
-    -e 's|^https?://||' \
-    -e 's|\.git$||')
-  
-  # and specify module name matching repo name
-  find . -name "*.go" -o -name "go.mod" | xargs gsed -i "s|github.com/gemyago/golang-backend-boilerplate|${module_name}|g";
-  ```
-  Note: on osx you may have to install and use [gnu sed](https://formulae.brew.sh/formula/gnu-sed). In such case you may need to replace `sed` with `gsed` above.
-* Review and actualize deployment related files:
-  * [deploy/README.md](deploy/README.md)
-  * [deploy/helm/api-service/values.yaml](deploy/helm/api-service/values.yaml)
-* Adjust docker images cleanup to list your images [cleanup-docker-images.yml](.github/workflows/cleanup-docker-images.yml)
-* Review and actualize [README.md](/README.md) to match your project
-  * Make sure to update status badge links at the top o this file to include your repo path.
-
-Some test artifacts (like coverage and badges) are pushed to a separate orphan branch. Please follow steps below to prepare such a branch:
-```sh
-git checkout --orphan test-artifacts
-git rm -rf .
-rm -f .gitignore
-echo $'# Test Artifacts\n' > README.md
-echo 'This is an orphan branch that holds test artifacts produced by CI' >> README.md
-git add README.md
-git commit -m 'init'
-git push origin test-artifacts
-```
-Feel free to use any other branch name. In this case please make sure to update all references and [push-test-artifact.yml](.github/workflows/push-test-artifacts.yml) action.
+An MCP (Model Context Protocol) interface for Atlassian products (Jira and Bitbucket).
 
 ## Project structure
 

@@ -7,7 +7,7 @@ replicaCount: 1
 
 # This sets the container image more information can be found here: https://kubernetes.io/docs/concepts/containers/images/
 image:
-  repository: ghcr.io/gemyago/golang-backend-boilerplate-server
+  repository: ghcr.io/gemyago/atlacp-server
   # This sets the pull policy for images.
   pullPolicy: IfNotPresent
   # Overrides the image tag whose default is the chart appVersion.
@@ -17,8 +17,8 @@ image:
 imagePullSecrets:
   - name: ghcr-registry
 # This is to override the chart name.
-nameOverride: "golang-backend-boilerplate-api"
-fullnameOverride: "golang-backend-boilerplate-api"
+nameOverride: "atlacp-api"
+fullnameOverride: "atlacp-api"
 
 container:
   args:
@@ -80,7 +80,7 @@ serviceGatewayRoutes:
       # - matches:
       #   - path:
       #       type: PathPrefix
-      #       value: /golang-backend-boilerplate-api
+      #       value: /atlacp-api
       #   filters:
       #   - type: URLRewrite
       #     urlRewrite:
@@ -93,7 +93,7 @@ serviceGatewayRoutes:
         - headers:
             - name: host
               type: RegularExpression
-              value: ^golang-backend-boilerplate-api\..*$
+              value: ^atlacp-api\..*$
 resources: {}
   # We usually recommend not to specify default resources and to leave this as a conscious
   # choice for the user. This also increases chances charts run on environments with little

@@ -6,8 +6,8 @@ import (
 	"log/slog"
 	"testing"
 
-	"github.com/gemyago/golang-backend-boilerplate/internal/diag"
-	"github.com/gemyago/golang-backend-boilerplate/internal/services"
+	"github.com/gemyago/atlacp/internal/diag"
+	"github.com/gemyago/atlacp/internal/services"
 	"github.com/go-faker/faker/v4"
 	"github.com/mark3labs/mcp-go/mcp"
 	mcpserver "github.com/mark3labs/mcp-go/server"

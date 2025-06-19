@@ -11,7 +11,7 @@
     "accessLogsLevel": ""
   },
   "mcpServer": {
-    "name": "golang-backend-boilerplate-mcp",
+    "name": "atlacp-mcp",
     "version": "1.0.0",
     "httpHost": "localhost",
     "httpPort": 8080
