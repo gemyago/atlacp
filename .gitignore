@@ -1,0 +1,11 @@
+.go/
+go/
+bin
+tmp
+.DS_Store
+.cover
+test.log
+.venv
+
+# Ignore MCP config file for now
+.cursor/mcp.json

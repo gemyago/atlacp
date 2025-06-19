@@ -1,0 +1,58 @@
+---
+description: 
+globs: 
+alwaysApply: false
+---
+# Rule: Generating Engineering Requirements Document (ERD)
+
+## Goal
+
+To guide an AI assistant in creating a detailed Engineering Requirements Document (ERD) in Markdown format, based on an initial user prompt. The ERD should be clear, actionable, and suitable for a junior developer to understand and implement the feature.
+
+## Process
+
+1.  **Receive Initial Prompt:** The user provides a brief description or request for a new feature or functionality, optionally referencing existing document
+2.  **Ask Clarifying Questions:** Before writing the ERD, the AI *must* ask clarifying questions to gather sufficient detail. The goal is to understand the "what" and "why" of the requested work.
+3.  **Generate ERD:** Based on the initial prompt and the user's answers to the clarifying questions, generate a ERD using the structure outlined below.
+4.  **Save ERD:** Save the generated document as `erd-[feature-name].md` inside the `/doc` directory.
+
+## Clarifying Questions (Examples)
+
+The AI should adapt its questions based on the prompt, but here are some common areas to explore:
+
+*   **Problem/Goal:** "What problem does this feature solve for the user?" or "What is the main goal we want to achieve with this feature?"
+*   **Target User:** "Who is the primary user of this feature?"
+*   **Core Functionality:** "Can you describe the key actions a user should be able to perform with this feature?"
+*   **User Stories:** "Could you provide a few user stories? (e.g., As a [type of user], I want to [perform an action] so that [benefit].)"
+*   **Acceptance Criteria:** "How will we know when this feature is successfully implemented? What are the key success criteria?"
+*   **Scope/Boundaries:** "Are there any specific things this feature *should not* do (non-goals)?"
+*   **Data Requirements:** "What kind of data does this feature need to display or manipulate?"
+*   **Design/UI:** "Are there any existing design mockups or UI guidelines to follow?" or "Can you describe the desired look and feel?"
+*   **Edge Cases:** "Are there any potential edge cases or error conditions we should consider?"
+
+## ERD Structure
+
+The generated ERD may include the following sections when applicable:
+1. **Introduction/Overview:** Briefly describe the feature and the problem it solves. State the goal.
+2. **Business Logic:** Describe main aspects of the business logic that will be implemented.
+3. **High Level Architecture:** Describe the high level architecture of the feature, list components involved.
+4. **Detailed Architecture:** For each component involved, describe how it will work and structured, which files may need to be created or updated
+5. **Key Architectural Decisions:** List key architectural decisions that were made.
+6. **Testing Strategy:** Describe the testing strategy for the feature. Make sure implementation will follow TDD.
+6. **Open Questions:** List any remaining questions or areas needing further clarification.
+
+## Target Audience
+
+Assume the primary reader of the PRD is a **junior developer**. Therefore, requirements should be explicit, unambiguous, and avoid jargon where possible. Provide enough detail for them to understand the feature's purpose and core logic.
+
+## Output
+
+*   **Format:** Markdown (`.md`)
+*   **Location:** `/doc/tasks/`
+*   **Filename:** `erd-[feature-name].md`
+
+## Final instructions
+
+1. Do NOT start implementing the PRD
+2. Make sure to ask the user clarifying questions
+3. Take the user's answers to the clarifying questions and improve the PRD

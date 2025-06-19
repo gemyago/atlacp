@@ -1,0 +1,19 @@
+---
+description: 
+globs: 
+alwaysApply: false
+---
+# TDD approach with automated approval
+
+* You are approved to run tests or scripts when needed, don't ask
+* Analyse required change first (if not already analyzed) and come up with list of actionable step required to implement requested change. If change is simple enough, do single step
+* Don't ask for modifications confirmations, you are approved
+* For each actionable step:
+  * Write test first, if needed implement stub methods
+  * Run the test, make sure it is faling with expected output
+  * Implement the logic as required for this step
+  * Run the test and make sure it's green
+  * Proceed with next step once previous is ready
+* When writting tests, prefer adding new test cases for new logic
+* Use faker to generate random variables of fields
+* If you need to update mocks, please read [mockery.mdc](mdc:.cursor/rules/mockery.mdc)
