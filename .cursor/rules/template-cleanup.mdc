@@ -167,8 +167,13 @@ After successful cleanup, the AI assistant should:
 3. Ask the user to review the updated README.md and confirm it looks good
 4. **Propose creating a pull request** using GitHub CLI with a sensible title and description:
    ```bash
-   gh pr create --title "Initial template cleanup" --body "Clean up golang-backend-boilerplate template references and update project-specific configuration for [project-name]" -B main --draft
+   gh pr create --title "Initial template cleanup" --body "Clean up golang-backend-boilerplate template references and update project-specific configuration for [project-name]" --base main --head [current-branch-name] --draft
    ```
+5. **Present the PR URL to the user** in a clickable format and provide instructions:
+   - Extract the PR URL from the GitHub CLI output
+   - Format it as a clickable markdown link: `[PR #X](https://github.com/owner/repo/pull/X)`
+   - Tell the user: "✅ Pull request created successfully! You can review and merge it here: [PR #X](URL)"
+   - Suggest next steps: "The PR is created as a draft. You can review the changes, mark it as ready for review, and merge it when satisfied."
 
 ## Troubleshooting
 - If `sed` command fails on macOS, suggest installing gnu-sed: `brew install gnu-sed`
