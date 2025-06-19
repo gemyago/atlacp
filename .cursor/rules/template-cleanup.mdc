@@ -169,10 +169,13 @@ After successful cleanup, the AI assistant should:
    ```bash
    gh pr create --title "Initial template cleanup" --body "Clean up golang-backend-boilerplate template references and update project-specific configuration for [project-name]" --base main --head [current-branch-name] --draft
    ```
-5. **Present the PR URL to the user** in a clickable format and provide instructions:
+5. **Present the PR URL to the user** in both clickable and copyable formats:
    - Extract the PR URL from the GitHub CLI output
-   - Format it as a clickable markdown link: `[PR #X](https://github.com/owner/repo/pull/X)`
+   - Show both formats:
+     - Clickable markdown link: `[PR #X](https://github.com/owner/repo/pull/X)`
+     - Full URL for copying: `https://github.com/owner/repo/pull/X`
    - Tell the user: "✅ Pull request created successfully! You can review and merge it here: [PR #X](URL)"
+   - Follow with: "Full URL: https://github.com/owner/repo/pull/X"
    - Suggest next steps: "The PR is created as a draft. You can review the changes, mark it as ready for review, and merge it when satisfied."
 
 ## Troubleshooting
