@@ -268,11 +268,34 @@ MCP Server (existing)
   - Projects: `/project`
 - **Dynamic URL Parameters**: The `{domain}` parameter is taken from the user's account configuration (not from main config), as it varies per user account
 
-### HTTP Client Implementation
-- **Request/Response Handling**: Custom JSON marshaling/unmarshaling for API structures
+### HTTP Client Infrastructure Foundation
+**Note**: The codebase currently lacks base infrastructure for external API calls. This implementation will establish foundational patterns for future API integrations.
+
+#### Core HTTP Client Architecture
+- **Standard Go Foundation**: All HTTP clients must be built on standard Go `http.Client` and `http.RoundTripper` types
+- **Wrapper-Based Design**: Authentication, logging, and other cross-cutting concerns implemented as middleware wrappers around standard HTTP components
+- **Composable Architecture**: Individual concerns (auth, logging, error handling) can be composed together via wrapping pattern
+- **Standard Client Usage**: Actual API client implementations use standard `http.Client` instances with composed middleware stack
+
+#### Infrastructure Components to Implement
+1. **Authentication Middleware**: `http.RoundTripper` wrapper that adds authentication headers
+2. **Logging Middleware**: `http.RoundTripper` wrapper for structured request/response logging
+3. **Error Handling Middleware**: `http.RoundTripper` wrapper for consistent error response handling
+4. **Client Factory**: Utility to compose middleware stack and create configured `http.Client` instances
+
+**Note**: Rate limiting is out of scope for initial implementation and can be added later if needed.
+
+#### API Client Implementation Pattern
+- **Type Definitions**: Each API client defines Go structs corresponding to API request/response models
+- **Method Definitions**: Each API client implements methods that correspond to specific REST API endpoints
+- **Standard HTTP Usage**: Clients use standard `http.Client.Do()` with proper request construction and response parsing
+- **JSON Marshaling**: Standard `encoding/json` for request/response serialization
+- **Error Mapping**: Convert HTTP errors to domain-specific error types
+
+### Atlassian HTTP Client Implementation
+- **Request/Response Handling**: Custom JSON marshaling/unmarshaling for Atlassian API structures
 - **Error Handling**: Atlassian-specific error response parsing and meaningful error messages
-- **Rate Limiting**: Respect API rate limits with exponential backoff
-- **Authentication**: Pluggable auth system supporting both Basic Auth and OAuth flows
+- **Authentication**: HTTP Basic Auth implementation using middleware wrapper
 - **Logging**: Structured logging for API requests/responses for debugging
 
 ## Testing Strategy
@@ -311,11 +334,21 @@ internal/services/
 ## Implementation Phases
 
 ### Phase 1: Foundation (Week 1-2)
-1. Implement Atlassian HTTP client with multi-account authentication
-2. Extend existing configuration system for Atlassian accounts file path
-3. Create accounts repository in services layer with `GetDefaultAccount` and `GetAccountByName` methods
-4. Design account structure to support separate Bitbucket and Jira credentials
-5. Create application layer services and registration infrastructure
+1. **HTTP Client Infrastructure**: Implement base HTTP client infrastructure with middleware pattern
+   - Create authentication, logging, and error handling middleware
+   - Implement client factory for composing middleware stack
+   - Establish patterns for API client implementation
+2. **AI Client Generation Instructions**: Develop comprehensive instructions for AI models to generate API clients
+   - Create templates and patterns for type definitions and method implementations
+   - Document how to use OpenAPI specifications to generate client code
+   - Establish guidelines for error handling and response parsing
+3. **Atlassian HTTP Client**: Implement Atlassian-specific HTTP client using established infrastructure
+   - Use OpenAPI specifications for Bitbucket and Jira APIs to generate initial client structure
+   - Implement multi-account authentication using middleware pattern
+4. Extend existing configuration system for Atlassian accounts file path
+5. Create accounts repository in services layer with `GetDefaultAccount` and `GetAccountByName` methods
+6. Design account structure to support separate Bitbucket and Jira credentials
+7. Create application layer services and registration infrastructure
 
 ### Phase 2: Bitbucket Core (Week 3-4)
 1. Implement `bitbucket_create_pr` MCP controller and app level component
@@ -335,28 +368,61 @@ internal/services/
 3. Implement `jira_manage_labels` controller and app level component
 4. Complete test coverage and integration validation
 
+## AI Model Client Generation Strategy
+
+### OpenAPI Specification Usage
+- **Bitbucket Cloud API**: Use official Bitbucket Cloud OpenAPI specification to generate client types and method signatures
+- **Jira Cloud API**: Use official Jira Cloud OpenAPI specification to generate client types and method signatures
+- **Code Generation Approach**: Develop instructions that allow AI models to generate client code by referencing OpenAPI specs
+- **Type Safety**: Ensure generated clients provide strong typing for request/response models
+
+### AI Model Instructions Development
+As part of Phase 1 implementation, create comprehensive instructions for AI models that include:
+
+#### Client Generation Templates
+- **Struct Definition Patterns**: Templates for converting OpenAPI schemas to Go structs
+- **Method Implementation Patterns**: Templates for implementing API endpoint methods
+- **Error Handling Patterns**: Standard error handling and mapping approaches
+- **Authentication Integration**: How to integrate with middleware authentication system
+
+#### OpenAPI Processing Guidelines
+- **Schema Mapping**: Instructions for converting OpenAPI schemas to Go types
+- **Endpoint Mapping**: Instructions for converting OpenAPI paths to Go methods
+- **Parameter Handling**: Guidelines for handling query parameters, path parameters, and request bodies
+- **Response Processing**: Patterns for handling different response types and status codes
+
+#### Quality Assurance Instructions
+- **Testing Requirements**: Guidelines for generating comprehensive test coverage
+- **Documentation Standards**: Requirements for code documentation and examples
+- **Validation Logic**: Instructions for implementing request/response validation
+- **Error Scenarios**: Guidelines for handling various error conditions
+
+### Implementation Deliverables
+1. **Base Infrastructure**: HTTP client infrastructure with middleware pattern
+2. **AI Instructions Document**: Comprehensive guide for AI models to generate API clients
+3. **Reference Implementation**: Atlassian clients generated using the AI instructions
+4. **Validation Process**: Testing and validation of AI-generated client code
+
 ## Open Questions
 
 ### Technical Implementation
-1. **Rate Limiting Strategy**: How should we handle Atlassian API rate limits? Should we implement exponential backoff or queue requests?
+1. **Configuration Security**: Should API tokens be encrypted at rest, or is environment variable storage sufficient for MVP?
 
-2. **Configuration Security**: Should API tokens be encrypted at rest, or is environment variable storage sufficient for MVP?
-
-3. **Error Context**: How much detail should we include in error responses to help users troubleshoot issues without exposing sensitive information?
+2. **Error Context**: How much detail should we include in error responses to help users troubleshoot issues without exposing sensitive information?
 
 ### User Experience
-4. **Default Repository Detection**: If no repository is specified, should we attempt to detect it from git remote or require explicit specification?
+3. **Default Repository Detection**: If no repository is specified, should we attempt to detect it from git remote or require explicit specification?
 
-5. **Reviewer Auto-Detection**: Should we implement simple reviewer detection based on git history or CODEOWNERS files, even though it's marked as non-goal?
+4. **Reviewer Auto-Detection**: Should we implement simple reviewer detection based on git history or CODEOWNERS files, even though it's marked as non-goal?
 
-6. **Branch Naming Conventions**: Should tools validate or enforce branch naming conventions, or accept any valid git branch name?
+5. **Branch Naming Conventions**: Should tools validate or enforce branch naming conventions, or accept any valid git branch name?
 
 ### Future Considerations
-7. **Migration Path**: How should we design the authentication system to easily migrate from API tokens to OAuth 2.0 in future versions?
+6. **Migration Path**: How should we design the authentication system to easily migrate from API tokens to OAuth 2.0 in future versions?
 
-8. **Multi-Workspace Support**: Should the configuration support multiple Atlassian workspaces from the beginning, or add this later?
+7. **Multi-Workspace Support**: Should the configuration support multiple Atlassian workspaces from the beginning, or add this later?
 
-9. **Caching Strategy**: Should we implement any caching for frequently accessed data (PR details, ticket information) to improve performance?
+8. **Caching Strategy**: Should we implement any caching for frequently accessed data (PR details, ticket information) to improve performance?
 
 ---
 
