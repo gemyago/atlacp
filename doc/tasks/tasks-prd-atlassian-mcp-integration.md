@@ -9,9 +9,9 @@ Please read referenced files to understand the problem:
 ## Relevant Files
 
 ### Source Files
-- `internal/services/http/middleware/auth.go` - Authentication middleware for HTTP client
-- `internal/services/http/middleware/logging.go` - Logging middleware for HTTP client
-- `internal/services/http/middleware/error_handling.go` - Error handling middleware for HTTP client
+- `internal/services/http/middleware/auth.go` - Authentication middleware for HTTP client (✓ created)
+- `internal/services/http/middleware/logging.go` - Logging middleware for HTTP client (✓ created)
+- `internal/services/http/middleware/error_handling.go` - Error handling middleware for HTTP client (✓ created)
 - `internal/services/http/client_factory.go` - HTTP client factory with middleware composition
 - `internal/services/atlassian_client.go` - Atlassian-specific HTTP client implementation
 - `internal/services/atlassian_accounts.go` - Accounts repository for managing multiple named Atlassian accounts
@@ -25,9 +25,9 @@ Please read referenced files to understand the problem:
 - `internal/config/load.go` - Configuration loading (modified)
 
 ### Test Files
-- `internal/services/http/middleware/auth_test.go` - Unit tests for authentication middleware
-- `internal/services/http/middleware/logging_test.go` - Unit tests for logging middleware
-- `internal/services/http/middleware/error_handling_test.go` - Unit tests for error handling middleware
+- `internal/services/http/middleware/auth_test.go` - Unit tests for authentication middleware (✓ created)
+- `internal/services/http/middleware/logging_test.go` - Unit tests for logging middleware (✓ created)
+- `internal/services/http/middleware/error_handling_test.go` - Unit tests for error handling middleware (✓ created)
 - `internal/services/http/client_factory_test.go` - Unit tests for client factory
 - `internal/services/atlassian_client_test.go` - Unit tests for Atlassian HTTP client
 - `internal/services/atlassian_accounts_test.go` - Unit tests for accounts repository
@@ -71,26 +71,26 @@ Please read referenced files to understand the problem:
 ## Tasks
 
 - [ ] 1.0 HTTP Client Infrastructure Foundation
-  - [ ] 1.1 Create `internal/services/http/middleware/` directory structure for HTTP middleware components
-  - [ ] 1.2 Create unit tests for authentication middleware in `internal/services/http/middleware/auth_test.go` (TDD: write tests first)
-  - [ ] 1.3 Implement `internal/services/http/middleware/auth.go` - Authentication middleware as `http.RoundTripper` wrapper
-  - [ ] 1.4 Create unit tests for logging middleware in `internal/services/http/middleware/logging_test.go` (TDD: write tests first)
-  - [ ] 1.5 Implement `internal/services/http/middleware/logging.go` - Structured logging middleware as `http.RoundTripper` wrapper
-  - [ ] 1.6 Create unit tests for error handling middleware in `internal/services/http/middleware/error_handling_test.go` (TDD: write tests first)
-  - [ ] 1.7 Implement `internal/services/http/middleware/error_handling.go` - Error handling middleware as `http.RoundTripper` wrapper
-  - [ ] 1.8 Create unit tests for client factory in `internal/services/http/client_factory_test.go` (TDD: write tests first)
-  - [ ] 1.9 Create `internal/services/http/client_factory.go` - Factory for composing middleware stack and creating configured `http.Client` instances
-  - [ ] 1.10 Establish patterns and interfaces for API client implementation using standard Go HTTP types
-  - [ ] 1.11 Register HTTP client infrastructure components in `internal/services/register.go`
-- [ ] 2.0 Client Generation Instructions
-  - [ ] 2.1 Create `doc/instructions/` directory for client generation instruction documentation
-  - [ ] 2.2 Develop `doc/instructions/creating-http-clients.md` with comprehensive templates for struct definitions
-  - [ ] 2.3 Add method implementation patterns for converting OpenAPI endpoints to Go methods
-  - [ ] 2.4 Document error handling patterns and authentication integration guidelines
-  - [ ] 2.5 Create OpenAPI processing guidelines for schema mapping and parameter handling
-  - [ ] 2.6 Establish quality assurance instructions for testing, documentation, and validation
-  - [ ] 2.7 Define templates for converting OpenAPI schemas to Go structs with proper JSON tags
-  - [ ] 2.8 Document response processing patterns for different HTTP status codes and content types
+  - [x] 1.1 Create `internal/services/http/middleware/` directory structure for HTTP middleware components
+  - [x] 1.2 Create unit tests for authentication middleware in `internal/services/http/middleware/auth_test.go` (TDD: write tests first)
+  - [x] 1.3 Implement `internal/services/http/middleware/auth.go` - Authentication middleware as `http.RoundTripper` wrapper
+  - [x] 1.4 Create unit tests for logging middleware in `internal/services/http/middleware/logging_test.go` (TDD: write tests first)
+  - [x] 1.5 Implement `internal/services/http/middleware/logging.go` - Structured logging middleware as `http.RoundTripper` wrapper
+  - [x] 1.6 Create unit tests for error handling middleware in `internal/services/http/middleware/error_handling_test.go` (TDD: write tests first)
+  - [x] 1.7 Implement `internal/services/http/middleware/error_handling.go` - Error handling middleware as `http.RoundTripper` wrapper
+  - [x] 1.8 Create unit tests for client factory in `internal/services/http/client_factory_test.go` (TDD: write tests first)
+  - [x] 1.9 Create `internal/services/http/client_factory.go` - Factory for composing middleware stack and creating configured `http.Client` instances
+  - [x] 1.10 Register HTTP client infrastructure components in `internal/services/register.go`
+- [ ] 2.0 Client Generation Instructions & Patterns
+  - [ ] 2.1 Establish patterns and interfaces for API client implementation using standard Go HTTP types
+  - [ ] 2.2 Create `doc/instructions/` directory for client generation instruction documentation
+  - [ ] 2.3 Develop `doc/instructions/creating-http-clients.md` with comprehensive templates for struct definitions
+  - [ ] 2.4 Add method implementation patterns for converting OpenAPI endpoints to Go methods
+  - [ ] 2.5 Document error handling patterns and authentication integration guidelines
+  - [ ] 2.6 Create OpenAPI processing guidelines for schema mapping and parameter handling
+  - [ ] 2.7 Establish quality assurance instructions for testing, documentation, and validation
+  - [ ] 2.8 Define templates for converting OpenAPI schemas to Go structs with proper JSON tags
+  - [ ] 2.9 Document response processing patterns for different HTTP status codes and content types
 - [ ] 3.0 Configuration System Extension
   - [ ] 3.1 Extend `internal/config/load.go` to support Atlassian accounts file path configuration
   - [ ] 3.2 Add base URLs for Atlassian REST API endpoints in configuration schema
