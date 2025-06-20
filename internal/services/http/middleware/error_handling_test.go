@@ -2,8 +2,10 @@ package middleware
 
 import (
 	"errors"
+	"io"
 	"net/http"
 	"net/url"
+	"strings"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
@@ -12,6 +14,59 @@ import (
 
 	"github.com/gemyago/atlacp/internal/diag"
 )
+
+func TestHTTPError(t *testing.T) {
+	t.Run("Error() should return message with underlying error", func(t *testing.T) {
+		// Arrange
+		underlyingErr := errors.New("connection timeout")
+		httpErr := &HTTPError{
+			StatusCode: 500,
+			Method:     "GET",
+			URL:        "https://api.example.com/test",
+			Message:    "HTTP server error",
+			Err:        underlyingErr,
+		}
+
+		// Act
+		result := httpErr.Error()
+
+		// Assert
+		assert.Contains(t, result, "HTTP server error")
+		assert.Contains(t, result, "connection timeout")
+		assert.Contains(t, result, ": ")
+	})
+
+	t.Run("Error() should return message without underlying error", func(t *testing.T) {
+		// Arrange
+		httpErr := &HTTPError{
+			StatusCode: 404,
+			Method:     "GET",
+			URL:        "https://api.example.com/test",
+			Message:    "HTTP client error",
+			Err:        nil,
+		}
+
+		// Act
+		result := httpErr.Error()
+
+		// Assert
+		assert.Equal(t, "HTTP client error", result)
+	})
+
+	t.Run("Unwrap() should return underlying error", func(t *testing.T) {
+		// Arrange
+		underlyingErr := errors.New("network error")
+		httpErr := &HTTPError{
+			Err: underlyingErr,
+		}
+
+		// Act
+		result := httpErr.Unwrap()
+
+		// Assert
+		assert.Equal(t, underlyingErr, result)
+	})
+}
 
 func TestErrorHandlingMiddleware(t *testing.T) {
 	makeMockDeps := func() ErrorHandlingMiddlewareDeps {
@@ -44,11 +99,13 @@ func TestErrorHandlingMiddleware(t *testing.T) {
 		mockTransport.AssertExpectations(t)
 	})
 
-	t.Run("should wrap 4xx client errors in HTTPError", func(t *testing.T) {
+	t.Run("should wrap 4xx client errors in HTTPError and close response body", func(t *testing.T) {
 		// Arrange
+		body := io.NopCloser(strings.NewReader(`{"error": "not found"}`))
 		clientErrorResp := &http.Response{
 			StatusCode: http.StatusNotFound,
 			Status:     "404 Not Found",
+			Body:       body,
 		}
 		mockTransport := &MockRoundTripper{}
 		mockTransport.On("RoundTrip", mock.Anything).Return(clientErrorResp, nil)

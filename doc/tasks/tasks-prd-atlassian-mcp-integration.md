@@ -80,7 +80,7 @@ Please read referenced files to understand the problem:
   - [x] 1.7 Implement `internal/services/http/middleware/error_handling.go` - Error handling middleware as `http.RoundTripper` wrapper
   - [x] 1.8 Create unit tests for client factory in `internal/services/http/client_factory_test.go` (TDD: write tests first)
   - [x] 1.9 Create `internal/services/http/client_factory.go` - Factory for composing middleware stack and creating configured `http.Client` instances
-  - [ ] 1.10 Register HTTP client infrastructure components in `internal/services/register.go`
+  - [x] 1.10 Register HTTP client infrastructure components in `internal/services/register.go`
 - [ ] 2.0 Client Generation Instructions & Patterns
   - [ ] 2.1 Establish patterns and interfaces for API client implementation using standard Go HTTP types
   - [ ] 2.2 Create `doc/instructions/` directory for client generation instruction documentation

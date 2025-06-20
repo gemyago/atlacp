@@ -6,6 +6,7 @@ import (
 	"time"
 
 	"github.com/gemyago/atlacp/internal/services/http/middleware"
+	"go.uber.org/dig"
 )
 
 const (
@@ -15,6 +16,8 @@ const (
 
 // ClientFactoryDeps contains dependencies for the client factory.
 type ClientFactoryDeps struct {
+	dig.In
+
 	RootLogger *slog.Logger
 }
 
