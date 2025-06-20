@@ -80,17 +80,17 @@ Please read referenced files to understand the problem:
   - [x] 1.7 Implement `internal/services/http/middleware/error_handling.go` - Error handling middleware as `http.RoundTripper` wrapper
   - [x] 1.8 Create unit tests for client factory in `internal/services/http/client_factory_test.go` (TDD: write tests first)
   - [x] 1.9 Create `internal/services/http/client_factory.go` - Factory for composing middleware stack and creating configured `http.Client` instances
-  - [ ] 1.10 Establish patterns and interfaces for API client implementation using standard Go HTTP types
-  - [ ] 1.11 Register HTTP client infrastructure components in `internal/services/register.go`
-- [ ] 2.0 Client Generation Instructions
-  - [ ] 2.1 Create `doc/instructions/` directory for client generation instruction documentation
-  - [ ] 2.2 Develop `doc/instructions/creating-http-clients.md` with comprehensive templates for struct definitions
-  - [ ] 2.3 Add method implementation patterns for converting OpenAPI endpoints to Go methods
-  - [ ] 2.4 Document error handling patterns and authentication integration guidelines
-  - [ ] 2.5 Create OpenAPI processing guidelines for schema mapping and parameter handling
-  - [ ] 2.6 Establish quality assurance instructions for testing, documentation, and validation
-  - [ ] 2.7 Define templates for converting OpenAPI schemas to Go structs with proper JSON tags
-  - [ ] 2.8 Document response processing patterns for different HTTP status codes and content types
+  - [ ] 1.10 Register HTTP client infrastructure components in `internal/services/register.go`
+- [ ] 2.0 Client Generation Instructions & Patterns
+  - [ ] 2.1 Establish patterns and interfaces for API client implementation using standard Go HTTP types
+  - [ ] 2.2 Create `doc/instructions/` directory for client generation instruction documentation
+  - [ ] 2.3 Develop `doc/instructions/creating-http-clients.md` with comprehensive templates for struct definitions
+  - [ ] 2.4 Add method implementation patterns for converting OpenAPI endpoints to Go methods
+  - [ ] 2.5 Document error handling patterns and authentication integration guidelines
+  - [ ] 2.6 Create OpenAPI processing guidelines for schema mapping and parameter handling
+  - [ ] 2.7 Establish quality assurance instructions for testing, documentation, and validation
+  - [ ] 2.8 Define templates for converting OpenAPI schemas to Go structs with proper JSON tags
+  - [ ] 2.9 Document response processing patterns for different HTTP status codes and content types
 - [ ] 3.0 Configuration System Extension
   - [ ] 3.1 Extend `internal/config/load.go` to support Atlassian accounts file path configuration
   - [ ] 3.2 Add base URLs for Atlassian REST API endpoints in configuration schema
