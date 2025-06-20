@@ -8,9 +8,9 @@ import (
 	"os/signal"
 	"time"
 
-	mcpserver "github.com/gemyago/golang-backend-boilerplate/internal/api/mcp/server"
-	"github.com/gemyago/golang-backend-boilerplate/internal/diag"
-	"github.com/gemyago/golang-backend-boilerplate/internal/services"
+	mcpserver "github.com/gemyago/atlacp/internal/api/mcp/server"
+	"github.com/gemyago/atlacp/internal/diag"
+	"github.com/gemyago/atlacp/internal/services"
 	"github.com/spf13/cobra"
 	"go.uber.org/dig"
 	"golang.org/x/sys/unix"

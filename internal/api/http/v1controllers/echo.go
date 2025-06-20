@@ -4,9 +4,9 @@ import (
 	"context"
 	"net/http"
 
-	"github.com/gemyago/golang-backend-boilerplate/internal/api/http/v1routes/handlers"
-	"github.com/gemyago/golang-backend-boilerplate/internal/api/http/v1routes/models"
-	"github.com/gemyago/golang-backend-boilerplate/internal/app"
+	"github.com/gemyago/atlacp/internal/api/http/v1routes/handlers"
+	"github.com/gemyago/atlacp/internal/api/http/v1routes/models"
+	"github.com/gemyago/atlacp/internal/app"
 )
 
 type EchoController struct {

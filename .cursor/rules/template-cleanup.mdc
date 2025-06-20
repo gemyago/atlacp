@@ -1,0 +1,186 @@
+---
+description: 
+globs: 
+alwaysApply: false
+---
+# Template Cleanup Instructions for AI Assistant
+
+## Overview
+This document provides step-by-step instructions for an AI coding assistant to clean up a golang-backend-boilerplate project after initial cloning. Each step includes clear goals, specific actions, and verification criteria.
+
+## Prerequisites
+- A new GitHub project has been created from the golang-backend-boilerplate template
+- The project has been cloned locally
+- Git remote origin is configured for the new project
+- The new project name will generally match the new repository name
+
+## Cleanup Steps
+
+### Step 1: Update Go Module Name
+**Goal**: Replace all references to the template module name with the new project's module name.
+
+**Actions**:
+1. Determine the new module name from git remote URL or ask user to specify
+2. Search and replace `github.com/gemyago/golang-backend-boilerplate` in all Go files and go.mod
+3. Use appropriate sed command based on OS (gsed for macOS, sed for Linux)
+
+**Commands to run**:
+```bash
+# Get module name from git remote (automatic detection)
+export module_name=$(git remote get-url origin | sed -E \
+  -e 's|^git@([^:]+):|\1/|' \
+  -e 's|^https?://||' \
+  -e 's|\.git$||')
+
+# Replace module name in all relevant files
+find . -name "*.go" -o -name "go.mod" | xargs sed -i "s|github.com/gemyago/golang-backend-boilerplate|${module_name}|g"
+```
+
+**Verification**:
+- [ ] `go.mod` contains the new module name
+- [ ] No Go files contain references to `github.com/gemyago/golang-backend-boilerplate`
+- [ ] `go mod tidy` runs without errors
+- [ ] Project builds successfully with `go build ./...`
+- [ ] `make lint` runs without errors
+- [ ] `make test` runs without errors
+
+### Step 2: Update README.md
+**Goal**: Replace template-specific content with project-specific information.
+
+**Actions**:
+1. Update project title from "golang-backend-boilerplate" to actual project name
+2. Update GitHub badge URLs to point to the new repository
+3. Ask user for initial project description and add it after the badges
+4. **Remove the "Key features" section** entirely to avoid template-specific feature lists
+5. **Remove all template/boilerplate content**: Remove "Starting a new project" section and all template-specific content
+6. Keep only "Project Structure" section and everything after it
+7. Update any repository-specific links and references
+
+**Verification**:
+- [ ] Project title reflects the actual project name
+- [ ] Badge URLs point to the correct repository
+- [ ] Description is relevant to the new project
+- [ ] "Key features" section has been removed
+- [ ] No references to the template repository remain
+- [ ] Links to internal files are still valid
+
+### Step 3: Update Deployment Configuration
+**Goal**: Update deployment-related files to use the new project's container images and configurations.
+
+**Actions**:
+1. Update `deploy/helm/api-service/values.yaml`:
+   - Change image repository references
+   - Update service names if needed
+   - Review and update any template-specific configurations
+2. Update `deploy/README.md` with project-specific deployment instructions
+3. Update container image references to match new project
+
+**Verification**:
+- [ ] Helm values.yaml contains correct image repository
+- [ ] Deploy README reflects actual project deployment needs
+- [ ] No references to template repository in deployment files
+
+### Step 4: Update GitHub Workflows
+**Goal**: Update CI/CD workflows to work with the new project's images and artifacts.
+
+**Actions**:
+1. Update `.github/workflows/cleanup-docker-images.yml`:
+   - Replace image names to match new project
+   - Update repository references
+2. Update `.github/workflows/push-test-artifacts.yml` if using different artifact branch name
+3. Review other workflow files for any template-specific hardcoded values
+
+**Verification**:
+- [ ] Docker cleanup workflow targets correct images
+- [ ] Test artifacts workflow pushes to correct branch/repository
+- [ ] All workflow files use correct repository context
+- [ ] No hardcoded references to template repository
+
+### Step 5: Update Project Metadata
+**Goal**: Ensure all project metadata reflects the new project.
+
+**Actions**:
+1. Update `LICENSE` if needed (check if template license is appropriate)
+2. Review and update any other configuration files with project-specific values
+3. Check for any remaining template references in configuration files
+
+**Verification**:
+- [ ] LICENSE is appropriate for the new project
+- [ ] Configuration files contain project-specific values
+- [ ] No remaining template references in any files
+
+### Step 6: Setup Test Artifacts Branch (Optional)
+**Goal**: Create test artifacts branch if using CI/CD test artifact publishing.
+
+**Actions**:
+1. Ask user if they want to set up test artifacts branch
+2. **IMPORTANT**: Before proceeding, ensure all current work is committed to avoid losing changes
+3. If yes, create orphan branch for test artifacts:
+   ```bash
+   # First, save current branch name
+   current_branch=$(git branch --show-current)
+   
+   # Ensure all work is committed (AI should verify this first)
+   git status --porcelain
+   
+   # Create and switch to orphan branch
+   git checkout --orphan test-artifacts
+   git rm -rf .
+   rm -f .gitignore
+   echo $'# Test Artifacts\n' > README.md
+   echo 'This is an orphan branch that holds test artifacts produced by CI' >> README.md
+   git add README.md
+   git commit -m 'init'
+   git push origin test-artifacts
+   
+   # Return to the original branch
+   git checkout $current_branch
+   ```
+
+**Verification**:
+- [ ] All current work was committed before starting (git status clean)
+- [ ] Test artifacts branch exists (if user opted in)
+- [ ] Test artifacts branch has correct README
+- [ ] Successfully returned to original branch
+- [ ] All original files are still present and unchanged
+
+### Step 7: Final Verification
+**Goal**: Ensure the project is fully functional after cleanup.
+
+**Actions**:
+1. Run `go mod tidy` to clean up dependencies
+2. Run `go build ./...` to ensure project builds
+3. Run tests if they exist: `go test ./...`
+4. Verify git status is clean (or only expected changes)
+
+**Verification**:
+- [ ] `go mod tidy` completes successfully
+- [ ] `go build ./...` completes successfully  
+- [ ] `go test ./...` passes (if tests exist)
+- [ ] Git status shows only expected changes
+- [ ] No compilation errors or warnings
+
+## Post-Cleanup Actions
+After successful cleanup, the AI assistant should:
+1. **Commit all changes** with a meaningful commit message like "chore: cleanup template for [project-name]"
+2. **Create test artifacts branch** (if requested by user)
+3. Ask the user to review the updated README.md and confirm it looks good
+4. **Propose creating a pull request** using GitHub CLI with a sensible title and description:
+   ```bash
+   gh pr create --title "Initial template cleanup" --body "Clean up golang-backend-boilerplate template references and update project-specific configuration for [project-name]" --base main --head [current-branch-name] --draft
+   ```
+5. **Present the PR URL to the user** in both clickable and copyable formats:
+   - Extract the PR URL from the GitHub CLI output
+   - Show both formats:
+     - Clickable markdown link: `[PR #X](https://github.com/owner/repo/pull/X)`
+     - Full URL for copying: `https://github.com/owner/repo/pull/X`
+   - Tell the user: "✅ Pull request created successfully! You can review and merge it here: [PR #X](URL)"
+   - Follow with: "Full URL: https://github.com/owner/repo/pull/X"
+   - Suggest next steps: "The PR is created as a draft. You can review the changes, mark it as ready for review, and merge it when satisfied."
+
+## Troubleshooting
+- If `sed` command fails on macOS, suggest installing gnu-sed: `brew install gnu-sed`
+- If module replacement fails, check for special characters in the module path
+- If tests fail after cleanup, verify all import paths were updated correctly
+- If build fails, check for any missed references to the old module name
+

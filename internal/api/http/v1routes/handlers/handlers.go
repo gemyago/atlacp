@@ -14,7 +14,7 @@ import (
 	"strings"
 	"time"
 
-	"github.com/gemyago/golang-backend-boilerplate/internal/api/http/v1routes/internal"
+	"github.com/gemyago/atlacp/internal/api/http/v1routes/internal"
 	"golang.org/x/exp/constraints"
 )
 

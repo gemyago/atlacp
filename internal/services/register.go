@@ -3,7 +3,7 @@ package services
 import (
 	"time"
 
-	"github.com/gemyago/golang-backend-boilerplate/internal/di"
+	"github.com/gemyago/atlacp/internal/di"
 	"go.uber.org/dig"
 )
 

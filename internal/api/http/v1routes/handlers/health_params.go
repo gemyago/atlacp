@@ -6,8 +6,8 @@ import (
 	"net/http"
 	"time"
 
-	. "github.com/gemyago/golang-backend-boilerplate/internal/api/http/v1routes/models"
-	. "github.com/gemyago/golang-backend-boilerplate/internal/api/http/v1routes/internal"
+	. "github.com/gemyago/atlacp/internal/api/http/v1routes/models"
+	. "github.com/gemyago/atlacp/internal/api/http/v1routes/internal"
 )
 
 // Below is to workaround unused imports if that happens.
