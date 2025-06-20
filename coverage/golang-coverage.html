@@ -3400,7 +3400,7 @@ func (s *testMCPServer) Start(
                 stdioServer := mcpserver.NewStdioServer(mcpServer)
                 stdioServer.SetErrorLogger(logger)
 
-                if err := stdioServer.Listen(ctx, s.serverReader, s.serverWriter); err != nil </span><span class="cov10" title="4">{
+                if err := stdioServer.Listen(ctx, s.serverReader, s.serverWriter); err != nil </span><span class="cov8" title="3">{
                         logger.Println("StdioServer.Listen failed:", err)
                 }</span>
         }()
