@@ -101,10 +101,11 @@ MCP Server (existing)
 
 #### 3. HTTP Client Layer
 **File: `internal/services/atlassian_client.go`**
-- HTTP client for Bitbucket and Jira API communication
+- HTTP client for Bitbucket and Jira API communication using direct REST API calls
 - Handles multi-account authentication and switching
 - Implements rate limiting and error response handling
 - Follows existing service patterns in `internal/services/`
+- Uses standard Go HTTP client with custom authentication and request/response handling
 
 **File: `internal/services/atlassian_accounts.go`**
 - Implements accounts repository pattern (infrastructure layer)
@@ -163,8 +164,7 @@ MCP Server (existing)
 
 #### 4. Configuration Schema
 **File: `internal/config/load.go`** and config JSON files
-- Extend existing configuration to include path to Atlassian accounts file
-- Add validation for accounts file path configuration
+- Extend existing configuration. Include base URLs for Atlassian REST API endpoints (initially only base URLs, may be extended with additional options like timeouts, retries, etc. in future iterations)
 
 #### 5. Accounts File Structure
 **Separate accounts configuration file** (JSON format)
@@ -174,6 +174,16 @@ MCP Server (existing)
 - Account structure supports workspace ID, usernames, API tokens, and default repositories per service
 
 ### Configuration Design
+
+#### Main Configuration
+- Application configuration will include base URLs for Atlassian REST API endpoints
+- Initially contains only base URLs (e.g., `https://api.bitbucket.org/2.0`, `https://{domain}.atlassian.net/rest/api/3`)
+- Designed for future extension with additional HTTP client options such as:
+  - Request timeouts
+  - Retry policies and exponential backoff settings
+  - Rate limiting configuration
+  - Connection pooling options
+  - Custom headers or user agents
 
 #### Account Configuration
 - Separate accounts file contains multiple named Atlassian accounts (e.g., "user", "merge-bot", "review-bot")
@@ -193,7 +203,18 @@ MCP Server (existing)
 
 ## Key Architectural Decisions
 
-### 1. Layered Architecture
+### 1. Atlassian API Integration Approach
+**Decision**: Use direct REST API calls instead of third-party Go SDKs
+**Rationale**: 
+- **No Official SDK**: Atlassian does not provide official Go SDKs for Bitbucket Cloud or Jira Cloud APIs
+- **Third-party Options**: While community SDKs exist (like `ktrysmt/go-bitbucket` and `ctreminiom/go-atlassian`), they add external dependencies and may not cover all required functionality
+- **API Completeness**: Direct REST API access ensures we can use all features and stay current with API updates
+- **Control**: Direct HTTP client implementation gives us full control over authentication, error handling, retry logic, and rate limiting
+- **Maintainability**: Reduces dependency on external packages that may become outdated or unmaintained
+- **Performance**: Custom implementation can be optimized for our specific use cases
+- **Security**: Direct implementation allows for better security controls and audit trails
+
+### 2. Layered Architecture
 **Decision**: MCP controllers handle protocol, application layer contains business logic
 **Rationale**: Follows existing codebase patterns, separates concerns properly, enables better testing and code reuse
 
@@ -224,6 +245,35 @@ MCP Server (existing)
 ### 8. Template Reading Approach
 **Decision**: Simple template reading from repository settings via API
 **Rationale**: Sufficient for MVP, avoids complex template management, can be enhanced later
+
+## REST API Implementation Details
+
+### Bitbucket Cloud REST API
+- **Base URL**: `https://api.bitbucket.org/2.0`
+- **Authentication**: HTTP Basic Auth with App Password or OAuth 2.0
+- **Key Endpoints**:
+  - Pull Requests: `/repositories/{workspace}/{repo_slug}/pullrequests`
+  - Branches: `/repositories/{workspace}/{repo_slug}/refs/branches`
+  - Repositories: `/repositories/{workspace}/{repo_slug}`
+  - Users: `/user`, `/workspaces/{workspace}/members`
+- **Dynamic URL Parameters**: The `{workspace}` parameter is taken from the user's account configuration (not from main config), as it varies per user account
+
+### Jira Cloud REST API  
+- **Base URL**: `https://{domain}.atlassian.net/rest/api/3`
+- **Authentication**: HTTP Basic Auth with API Token or OAuth 2.0
+- **Key Endpoints**:
+  - Issues: `/issue/{issueIdOrKey}`
+  - Transitions: `/issue/{issueIdOrKey}/transitions`
+  - Labels: `/issue/{issueIdOrKey}`
+  - Projects: `/project`
+- **Dynamic URL Parameters**: The `{domain}` parameter is taken from the user's account configuration (not from main config), as it varies per user account
+
+### HTTP Client Implementation
+- **Request/Response Handling**: Custom JSON marshaling/unmarshaling for API structures
+- **Error Handling**: Atlassian-specific error response parsing and meaningful error messages
+- **Rate Limiting**: Respect API rate limits with exponential backoff
+- **Authentication**: Pluggable auth system supporting both Basic Auth and OAuth flows
+- **Logging**: Structured logging for API requests/responses for debugging
 
 ## Testing Strategy
 
