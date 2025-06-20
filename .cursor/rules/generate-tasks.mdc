@@ -38,6 +38,18 @@ The implementation should follow incremental TDD approach (when applicable):
 The generated task list _must_ follow this structure:
 
 ```markdown
+## Requirements
+
+_include this if user provided file(s)_
+Please read referenced files to understand the problem:
+- `requirements/file/path1`
+- `requirements/file/path2`
+- `requirements/file/path3`
+
+_include this if user provided verbal description. In this case include as is from the user_
+Please review user provided requirements:
+_Implement feature XYZ..._
+
 ## Relevant Files
 
 This section lists example structure for relevant files section
