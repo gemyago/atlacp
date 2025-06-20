@@ -31,20 +31,23 @@
 
 - Avoid static variables shared across tests
 - Use random data when possible, use faker (github.com/go-faker/faker/v4)
+- Don't pollute testing namespace - if helper functions are only used within one test, nest them inside that test function
 
 ### Use makeMockDeps()
 
 If your component has dependencies, use pattern below:
 ```go
-func makeMockDeps() MyServiceDeps {
-    return MyServiceDeps{
-        RootLogger: diag.RootTestLogger(),
-    }
-}
-
 func TestMyService(t *testing.T) {
-    deps := makeMockDeps()
-    // ... use deps in test
+    makeMockDeps := func() MyServiceDeps {
+        return MyServiceDeps{
+            RootLogger: diag.RootTestLogger(),
+        }
+    }
+    
+    t.Run("some test", func(t *testing.T) {
+        deps := makeMockDeps()
+        // ... use deps
+    })
 }
 ```
 
