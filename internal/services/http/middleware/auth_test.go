@@ -7,6 +7,7 @@ import (
 	"strings"
 	"testing"
 
+	"github.com/gemyago/atlacp/internal/diag"
 	"github.com/go-faker/faker/v4"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/mock"
@@ -24,12 +25,19 @@ func (m *MockRoundTripper) RoundTrip(req *http.Request) (*http.Response, error) 
 	return res, args.Error(1)
 }
 
+func makeMockDeps() AuthenticationMiddlewareDeps {
+	return AuthenticationMiddlewareDeps{
+		RootLogger: diag.RootTestLogger(),
+	}
+}
+
 func TestAuthenticationMiddleware(t *testing.T) {
 	t.Run("should add Bearer token when token is in context", func(t *testing.T) {
 		// Arrange
+		deps := makeMockDeps()
 		token := faker.Word()
 		mockTransport := &MockRoundTripper{}
-		authMiddleware := NewAuthenticationMiddleware(mockTransport)
+		authMiddleware := NewAuthenticationMiddleware(mockTransport, deps)
 
 		ctx := WithAuthToken(t.Context(), token)
 		req := httptest.NewRequest(http.MethodGet, "https://api.example.com/test", nil)
@@ -55,8 +63,9 @@ func TestAuthenticationMiddleware(t *testing.T) {
 
 	t.Run("should pass through unchanged when no token in context", func(t *testing.T) {
 		// Arrange
+		deps := makeMockDeps()
 		mockTransport := &MockRoundTripper{}
-		authMiddleware := NewAuthenticationMiddleware(mockTransport)
+		authMiddleware := NewAuthenticationMiddleware(mockTransport, deps)
 
 		req := httptest.NewRequest(http.MethodGet, "https://api.example.com/test", nil)
 
@@ -80,9 +89,10 @@ func TestAuthenticationMiddleware(t *testing.T) {
 
 	t.Run("should not modify original request", func(t *testing.T) {
 		// Arrange
+		deps := makeMockDeps()
 		token := faker.Word()
 		mockTransport := &MockRoundTripper{}
-		authMiddleware := NewAuthenticationMiddleware(mockTransport)
+		authMiddleware := NewAuthenticationMiddleware(mockTransport, deps)
 
 		ctx := WithAuthToken(t.Context(), token)
 		originalReq := httptest.NewRequest(http.MethodGet, "https://api.example.com/test", nil)
