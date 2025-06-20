@@ -10,7 +10,7 @@ Please read referenced files to understand the problem:
 
 ### Source Files
 - `internal/services/http/middleware/auth.go` - Authentication middleware for HTTP client (✓ created)
-- `internal/services/http/middleware/logging.go` - Logging middleware for HTTP client
+- `internal/services/http/middleware/logging.go` - Logging middleware for HTTP client (✓ created)
 - `internal/services/http/middleware/error_handling.go` - Error handling middleware for HTTP client
 - `internal/services/http/client_factory.go` - HTTP client factory with middleware composition
 - `internal/services/atlassian_client.go` - Atlassian-specific HTTP client implementation
@@ -75,7 +75,7 @@ Please read referenced files to understand the problem:
   - [x] 1.2 Create unit tests for authentication middleware in `internal/services/http/middleware/auth_test.go` (TDD: write tests first)
   - [x] 1.3 Implement `internal/services/http/middleware/auth.go` - Authentication middleware as `http.RoundTripper` wrapper
   - [x] 1.4 Create unit tests for logging middleware in `internal/services/http/middleware/logging_test.go` (TDD: write tests first)
-  - [ ] 1.5 Implement `internal/services/http/middleware/logging.go` - Structured logging middleware as `http.RoundTripper` wrapper
+  - [x] 1.5 Implement `internal/services/http/middleware/logging.go` - Structured logging middleware as `http.RoundTripper` wrapper
   - [ ] 1.6 Create unit tests for error handling middleware in `internal/services/http/middleware/error_handling_test.go` (TDD: write tests first)
   - [ ] 1.7 Implement `internal/services/http/middleware/error_handling.go` - Error handling middleware as `http.RoundTripper` wrapper
   - [ ] 1.8 Create unit tests for client factory in `internal/services/http/client_factory_test.go` (TDD: write tests first)
