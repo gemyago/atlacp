@@ -1,0 +1,19 @@
+# Bitbucket Cloud API OpenAPI Specification
+#
+# Note: Bitbucket Cloud does not provide a single downloadable OpenAPI 3.x specification.
+# Their API documentation is available at:
+# https://developer.atlassian.com/cloud/bitbucket/rest/
+#
+# The documentation is built using OpenAPI 2.0 (Swagger 2.0) but is rendered as web pages
+# rather than being available as a downloadable specification file.
+#
+# For implementation purposes, we will need to:
+# 1. Generate client code using existing community tools or 
+# 2. Create manual HTTP client implementations based on the documentation
+# 3. Use the community-maintained OpenAPI spec from projects like:
+#    - https://github.com/magmax/bitbucket-openapi
+#
+# Base URL: https://api.bitbucket.org/2.0
+# Documentation: https://developer.atlassian.com/cloud/bitbucket/rest/
+# 
+# TODO: Integrate with community OpenAPI specification or generate HTTP clients manually 
