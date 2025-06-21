@@ -100,7 +100,7 @@ Please read referenced files to understand the problem:
   - [x] 3.2 Inject Atlassian client configuration into DI as per `internal/config/provide.go`
   - [x] 3.3 Find official Bitbucket Cloud OpenAPI specification and add it to `internal/services/bitbucket/openapi.yaml` (Used community-maintained spec from magmax/atlassian-openapi)
   - [x] 3.4 Find official Jira Cloud OpenAPI specification and add it to `internal/services/jira/openapi.yaml`
-  - [ ] 3.5 Create Bitbucket client based on the openapi and `doc/instructions/creating-http-clients.md` instruction. Add methods for following Bitbucket API calls only: `CreatePR`, `GetPR`, `UpdatePR`, `ApprovePR`, `MergePR`
+  - [x] 3.5 Create Bitbucket client based on the openapi and `doc/instructions/creating-http-clients.md` instruction. Add methods for following Bitbucket API calls only: `CreatePR`, `GetPR`, `UpdatePR`, `ApprovePR`, `MergePR`
   - [ ] 3.6 Create Jira client based on the openapi and `doc/instructions/creating-http-clients.md` instruction. Add methods for following Jira API calls only: `GetTicket`, `TransitionTicket`, `ManageLabels`
   - [ ] 3.7 Add Atlassian-specific error response parsing and meaningful error messages (research if needed)
   - [ ] 3.8 Register Atlassian HTTP clients in `internal/services/register.go`
