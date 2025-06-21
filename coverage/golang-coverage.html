@@ -157,13 +157,15 @@
 				
 				<option value="file50">github.com/gemyago/atlacp/internal/services/http/middleware/logging.go (100.0%)</option>
 				
-				<option value="file51">github.com/gemyago/atlacp/internal/services/register.go (100.0%)</option>
+				<option value="file51">github.com/gemyago/atlacp/internal/services/http/send_request.go (94.1%)</option>
 				
-				<option value="file52">github.com/gemyago/atlacp/internal/services/shutdown.go (95.8%)</option>
+				<option value="file52">github.com/gemyago/atlacp/internal/services/register.go (100.0%)</option>
 				
-				<option value="file53">github.com/gemyago/atlacp/internal/services/testing.go (12.5%)</option>
+				<option value="file53">github.com/gemyago/atlacp/internal/services/shutdown.go (95.8%)</option>
 				
-				<option value="file54">github.com/gemyago/atlacp/internal/services/time.go (100.0%)</option>
+				<option value="file54">github.com/gemyago/atlacp/internal/services/testing.go (12.5%)</option>
+				
+				<option value="file55">github.com/gemyago/atlacp/internal/services/time.go (100.0%)</option>
 				
 				</select>
 			</div>
@@ -3408,7 +3410,7 @@ func (s *testMCPServer) Start(
                 stdioServer := mcpserver.NewStdioServer(mcpServer)
                 stdioServer.SetErrorLogger(logger)
 
-                if err := stdioServer.Listen(ctx, s.serverReader, s.serverWriter); err != nil </span><span class="cov8" title="3">{
+                if err := stdioServer.Listen(ctx, s.serverReader, s.serverWriter); err != nil </span><span class="cov10" title="4">{
                         logger.Println("StdioServer.Listen failed:", err)
                 }</span>
         }()
@@ -4321,25 +4323,25 @@ type diagLogHandler struct {
         target slog.Handler
 }
 
-func (h *diagLogHandler) Enabled(ctx context.Context, lvl slog.Level) bool <span class="cov10" title="118">{
+func (h *diagLogHandler) Enabled(ctx context.Context, lvl slog.Level) bool <span class="cov10" title="122">{
         return h.target.Enabled(ctx, lvl)
 }</span>
 
-func (h *diagLogHandler) Handle(ctx context.Context, rec slog.Record) error <span class="cov9" title="112">{
+func (h *diagLogHandler) Handle(ctx context.Context, rec slog.Record) error <span class="cov9" title="114">{
         if diagAttributes, ok := ctx.Value(contextDiagAttrs).(LogAttributes); ok </span><span class="cov5" title="10">{
                 rec.AddAttrs(
                         slog.Attr{Key: "correlationId", Value: diagAttributes.CorrelationID},
                 )
         }</span>
 
-        <span class="cov9" title="112">return h.target.Handle(ctx, rec)</span>
+        <span class="cov9" title="114">return h.target.Handle(ctx, rec)</span>
 }
 
-func (h *diagLogHandler) WithAttrs(attrs []slog.Attr) slog.Handler <span class="cov9" title="88">{
+func (h *diagLogHandler) WithAttrs(attrs []slog.Attr) slog.Handler <span class="cov9" title="92">{
         return &amp;diagLogHandler{target: h.target.WithAttrs(attrs)}
 }</span>
 
-func (h *diagLogHandler) WithGroup(name string) slog.Handler <span class="cov9" title="87">{
+func (h *diagLogHandler) WithGroup(name string) slog.Handler <span class="cov9" title="91">{
         // Using WithAttrs here since group will nest all the attributes
         // inside of it (including correlationId), which makes it harder to
         // filter logs by the correlationId.
@@ -4368,7 +4370,7 @@ func (opts *RootLoggerOpts) WithLogLevel(logLevel slog.Level) *RootLoggerOpts <s
         return opts
 }</span>
 
-func (opts *RootLoggerOpts) WithOutput(output io.Writer) *RootLoggerOpts <span class="cov8" title="65">{
+func (opts *RootLoggerOpts) WithOutput(output io.Writer) *RootLoggerOpts <span class="cov8" title="66">{
         opts.output = output
         return opts
 }</span>
@@ -4385,21 +4387,21 @@ func (opts *RootLoggerOpts) WithOptionalOutputFile(outputFile string) *RootLogge
         return opts</span>
 }
 
-func NewRootLoggerOpts() *RootLoggerOpts <span class="cov9" title="71">{
+func NewRootLoggerOpts() *RootLoggerOpts <span class="cov9" title="72">{
         return &amp;RootLoggerOpts{
                 output: os.Stdout,
         }
 }</span>
 
-func SetupRootLogger(opts *RootLoggerOpts) *slog.Logger <span class="cov9" title="71">{
+func SetupRootLogger(opts *RootLoggerOpts) *slog.Logger <span class="cov9" title="72">{
         logHandlerOpts := &amp;slog.HandlerOptions{Level: opts.logLevel}
         var logHandler slog.Handler
         if opts.jsonLogs </span><span class="cov1" title="1">{
                 logHandler = slog.NewJSONHandler(opts.output, logHandlerOpts)
-        }</span> else<span class="cov9" title="70"> {
+        }</span> else<span class="cov8" title="71"> {
                 logHandler = slog.NewTextHandler(opts.output, logHandlerOpts)
         }</span>
-        <span class="cov9" title="71">return slog.New(&amp;diagLogHandler{target: logHandler})</span>
+        <span class="cov9" title="72">return slog.New(&amp;diagLogHandler{target: logHandler})</span>
 }
 </pre>
 		
@@ -4432,7 +4434,7 @@ func openTestLogFile() *os.File <span class="cov6" title="13">{
 
 var testOutput = openTestLogFile() //nolint:gochecknoglobals //it's ok for tests
 
-func RootTestLogger() *slog.Logger <span class="cov10" title="64">{
+func RootTestLogger() *slog.Logger <span class="cov10" title="65">{
         return SetupRootLogger(
                 NewRootLoggerOpts().WithOutput(testOutput),
         )
@@ -4507,7 +4509,7 @@ type ClientFactory struct {
 }
 
 // NewClientFactory creates a new client factory.
-func NewClientFactory(deps ClientFactoryDeps) *ClientFactory <span class="cov5" title="2">{
+func NewClientFactory(deps ClientFactoryDeps) *ClientFactory <span class="cov8" title="3">{
         return &amp;ClientFactory{
                 logger: deps.RootLogger.WithGroup("http-client-factory"),
         }
@@ -4516,7 +4518,7 @@ func NewClientFactory(deps ClientFactoryDeps) *ClientFactory <span class="cov5" 
 // CreateClient creates a new HTTP client with the specified options.
 // Middleware is applied in the order: Logging -&gt; Auth -&gt; ErrorHandling -&gt; BaseTransport
 // This ensures logging captures the full request lifecycle, auth adds headers, and error handling catches issues.
-func (f *ClientFactory) CreateClient(options ...ClientOption) *http.Client <span class="cov5" title="2">{
+func (f *ClientFactory) CreateClient(options ...ClientOption) *http.Client <span class="cov8" title="3">{
         config := &amp;clientConfig{
                 timeout:             defaultClientTimeout,
                 enableAuth:          true, // Default: enabled
@@ -4529,31 +4531,31 @@ func (f *ClientFactory) CreateClient(options ...ClientOption) *http.Client <span
         }</span>
 
         // Start with the base transport
-        <span class="cov5" title="2">transport := http.DefaultTransport
+        <span class="cov8" title="3">transport := http.DefaultTransport
 
         // Apply middleware in reverse order (innermost to outermost)
         // Error handling middleware is applied closest to the base transport
-        if config.enableErrorHandling </span><span class="cov1" title="1">{
+        if config.enableErrorHandling </span><span class="cov5" title="2">{
                 transport = middleware.NewErrorHandlingMiddleware(transport, middleware.ErrorHandlingMiddlewareDeps{
                         RootLogger: f.logger,
                 })
         }</span>
 
         // Auth middleware wraps error handling
-        <span class="cov5" title="2">if config.enableAuth </span><span class="cov1" title="1">{
+        <span class="cov8" title="3">if config.enableAuth </span><span class="cov5" title="2">{
                 transport = middleware.NewAuthenticationMiddleware(transport, middleware.AuthenticationMiddlewareDeps{
                         RootLogger: f.logger,
                 })
         }</span>
 
         // Logging middleware is outermost to capture full request lifecycle
-        <span class="cov5" title="2">if config.enableLogging </span><span class="cov1" title="1">{
+        <span class="cov8" title="3">if config.enableLogging </span><span class="cov5" title="2">{
                 transport = middleware.NewLoggingMiddleware(transport, middleware.LoggingMiddlewareDeps{
                         RootLogger: f.logger,
                 })
         }</span>
 
-        <span class="cov5" title="2">return &amp;http.Client{
+        <span class="cov8" title="3">return &amp;http.Client{
                 Transport: transport,
                 Timeout:   config.timeout,
         }</span>
@@ -4572,12 +4574,12 @@ import (
 type authTokenKey struct{}
 
 // WithAuthToken adds an authentication token to the context.
-func WithAuthToken(ctx context.Context, token string) context.Context <span class="cov8" title="3">{
+func WithAuthToken(ctx context.Context, token string) context.Context <span class="cov7" title="3">{
         return context.WithValue(ctx, authTokenKey{}, token)
 }</span>
 
 // AuthTokenFromContext extracts the authentication token from the context.
-func AuthTokenFromContext(ctx context.Context) (string, bool) <span class="cov10" title="4">{
+func AuthTokenFromContext(ctx context.Context) (string, bool) <span class="cov10" title="5">{
         token, ok := ctx.Value(authTokenKey{}).(string)
         return token, ok
 }</span>
@@ -4595,7 +4597,7 @@ type AuthenticationMiddleware struct {
 
 // NewAuthenticationMiddleware creates a new authentication middleware
 // Tokens are injected via context using WithAuthToken.
-func NewAuthenticationMiddleware(transport http.RoundTripper, deps AuthenticationMiddlewareDeps) http.RoundTripper <span class="cov10" title="4">{
+func NewAuthenticationMiddleware(transport http.RoundTripper, deps AuthenticationMiddlewareDeps) http.RoundTripper <span class="cov10" title="5">{
         return &amp;AuthenticationMiddleware{
                 transport: transport,
                 logger:    deps.RootLogger.WithGroup("http-auth-middleware"),
@@ -4604,18 +4606,18 @@ func NewAuthenticationMiddleware(transport http.RoundTripper, deps Authenticatio
 
 // RoundTrip implements http.RoundTripper interface
 // Extracts token from context and adds Bearer Authorization header.
-func (a *AuthenticationMiddleware) RoundTrip(req *http.Request) (*http.Response, error) <span class="cov10" title="4">{
+func (a *AuthenticationMiddleware) RoundTrip(req *http.Request) (*http.Response, error) <span class="cov10" title="5">{
         // Extract token from context
         token, hasToken := AuthTokenFromContext(req.Context())
 
         // If no token in context, log and pass request through unchanged
-        if !hasToken </span><span class="cov1" title="1">{
+        if !hasToken </span><span class="cov4" title="2">{
                 a.logger.DebugContext(req.Context(), "No authentication token found in context, passing request through unchanged")
                 return a.transport.RoundTrip(req)
         }</span>
 
         // Clone the request to avoid modifying the original
-        <span class="cov8" title="3">clonedReq := req.Clone(req.Context())
+        <span class="cov7" title="3">clonedReq := req.Clone(req.Context())
 
         // Add Bearer authorization header
         clonedReq.Header.Set("Authorization", "Bearer "+token)
@@ -4649,11 +4651,11 @@ type HTTPError struct {
 }
 
 // Error implements the error interface.
-func (e *HTTPError) Error() string <span class="cov4" title="2">{
+func (e *HTTPError) Error() string <span class="cov7" title="4">{
         if e.Err != nil </span><span class="cov1" title="1">{
                 return fmt.Sprintf("%s: %v", e.Message, e.Err)
         }</span>
-        <span class="cov1" title="1">return e.Message</span>
+        <span class="cov6" title="3">return e.Message</span>
 }
 
 // Unwrap implements error unwrapping for error chain support.
@@ -4673,7 +4675,7 @@ type ErrorHandlingMiddleware struct {
 }
 
 // NewErrorHandlingMiddleware creates a new error handling middleware.
-func NewErrorHandlingMiddleware(transport http.RoundTripper, deps ErrorHandlingMiddlewareDeps) http.RoundTripper <span class="cov10" title="6">{
+func NewErrorHandlingMiddleware(transport http.RoundTripper, deps ErrorHandlingMiddlewareDeps) http.RoundTripper <span class="cov10" title="7">{
         return &amp;ErrorHandlingMiddleware{
                 transport: transport,
                 logger:    deps.RootLogger.WithGroup("http-error-middleware"),
@@ -4682,7 +4684,7 @@ func NewErrorHandlingMiddleware(transport http.RoundTripper, deps ErrorHandlingM
 
 // RoundTrip implements http.RoundTripper interface.
 // Handles HTTP errors by wrapping non-2xx responses and transport errors in HTTPError.
-func (e *ErrorHandlingMiddleware) RoundTrip(req *http.Request) (*http.Response, error) <span class="cov10" title="6">{
+func (e *ErrorHandlingMiddleware) RoundTrip(req *http.Request) (*http.Response, error) <span class="cov10" title="7">{
         // Call next transport
         resp, err := e.transport.RoundTrip(req)
 
@@ -4704,15 +4706,15 @@ func (e *ErrorHandlingMiddleware) RoundTrip(req *http.Request) (*http.Response, 
         }</span>
 
         // Handle HTTP error status codes
-        <span class="cov9" title="5">if resp.StatusCode &gt;= httpStatusClientErrorMin </span><span class="cov4" title="2">{
+        <span class="cov9" title="6">if resp.StatusCode &gt;= httpStatusClientErrorMin </span><span class="cov6" title="3">{
                 var message string
-                if resp.StatusCode &gt;= httpStatusServerErrorMin </span><span class="cov1" title="1">{
+                if resp.StatusCode &gt;= httpStatusServerErrorMin </span><span class="cov4" title="2">{
                         message = fmt.Sprintf("HTTP server error (%d %s)", resp.StatusCode, resp.Status)
                 }</span> else<span class="cov1" title="1"> {
                         message = fmt.Sprintf("HTTP client error (%d %s)", resp.StatusCode, resp.Status)
                 }</span>
 
-                <span class="cov4" title="2">httpErr := &amp;HTTPError{
+                <span class="cov6" title="3">httpErr := &amp;HTTPError{
                         StatusCode: resp.StatusCode,
                         Method:     req.Method,
                         URL:        req.URL.String(),
@@ -4728,11 +4730,11 @@ func (e *ErrorHandlingMiddleware) RoundTrip(req *http.Request) (*http.Response, 
                 )
 
                 // Close response body to prevent resource leaks
-                if resp.Body != nil </span><span class="cov1" title="1">{
+                if resp.Body != nil </span><span class="cov4" title="2">{
                         resp.Body.Close()
                 }</span>
 
-                <span class="cov4" title="2">return nil, httpErr</span>
+                <span class="cov6" title="3">return nil, httpErr</span>
         }
 
         // Success case - pass through unchanged
@@ -4760,7 +4762,7 @@ type LoggingMiddleware struct {
 }
 
 // NewLoggingMiddleware creates a new logging middleware.
-func NewLoggingMiddleware(transport http.RoundTripper, deps LoggingMiddlewareDeps) http.RoundTripper <span class="cov10" title="4">{
+func NewLoggingMiddleware(transport http.RoundTripper, deps LoggingMiddlewareDeps) http.RoundTripper <span class="cov10" title="5">{
         return &amp;LoggingMiddleware{
                 transport: transport,
                 logger:    deps.RootLogger.WithGroup("http-logging-middleware"),
@@ -4769,7 +4771,7 @@ func NewLoggingMiddleware(transport http.RoundTripper, deps LoggingMiddlewareDep
 
 // RoundTrip implements http.RoundTripper interface.
 // Logs request and response details with structured logging.
-func (l *LoggingMiddleware) RoundTrip(req *http.Request) (*http.Response, error) <span class="cov10" title="4">{
+func (l *LoggingMiddleware) RoundTrip(req *http.Request) (*http.Response, error) <span class="cov10" title="5">{
         start := time.Now()
 
         // Log request
@@ -4784,7 +4786,7 @@ func (l *LoggingMiddleware) RoundTrip(req *http.Request) (*http.Response, error)
         duration := time.Since(start)
 
         // Log response
-        if err != nil </span><span class="cov1" title="1">{
+        if err != nil </span><span class="cov4" title="2">{
                 l.logger.ErrorContext(req.Context(), "HTTP request failed",
                         slog.String("method", req.Method),
                         slog.String("url", req.URL.String()),
@@ -4794,7 +4796,7 @@ func (l *LoggingMiddleware) RoundTrip(req *http.Request) (*http.Response, error)
                 return nil, err
         }</span>
 
-        <span class="cov8" title="3">l.logger.DebugContext(req.Context(), "HTTP request completed",
+        <span class="cov7" title="3">l.logger.DebugContext(req.Context(), "HTTP request completed",
                 slog.String("method", req.Method),
                 slog.String("url", req.URL.String()),
                 slog.Int("status_code", resp.StatusCode),
@@ -4805,7 +4807,72 @@ func (l *LoggingMiddleware) RoundTrip(req *http.Request) (*http.Response, error)
 }
 </pre>
 		
-		<pre class="file" id="file51" style="display: none">package services
+		<pre class="file" id="file51" style="display: none">package http
+
+import (
+        "bytes"
+        "context"
+        "encoding/json"
+        "fmt"
+        "net/http"
+)
+
+// Use interface{} if no body and or target are needed.
+type SendRequestParams[TBody any, TTarget any] struct {
+        // HTTP method (GET, POST, PUT, DELETE, etc.)
+        Method string
+
+        // Full URL for the request
+        URL string
+
+        // Request body to be JSON marshaled (can be nil for GET requests)
+        Body *TBody
+
+        // Target to unmarshal response into (can be nil if response not needed)
+        Target *TTarget
+}
+
+// SendRequest performs an HTTP request with generic body and target types.
+// This is a shared function that can be used by all API clients for consistent
+// request handling, error processing, and response unmarshaling.
+func SendRequest[TBody any, TTarget any](
+        ctx context.Context,
+        client *http.Client,
+        params SendRequestParams[TBody, TTarget],
+) error <span class="cov10" title="7">{
+        var reqBody bytes.Buffer
+        if params.Body != nil </span><span class="cov4" title="2">{
+                if err := json.NewEncoder(&amp;reqBody).Encode(params.Body); err != nil </span><span class="cov1" title="1">{
+                        return fmt.Errorf("failed to marshal request body: %w", err)
+                }</span>
+        }
+
+        <span class="cov9" title="6">req, err := http.NewRequestWithContext(ctx, params.Method, params.URL, &amp;reqBody)
+        if err != nil </span><span class="cov0" title="0">{
+                return fmt.Errorf("failed to create HTTP request: %w", err)
+        }</span>
+
+        <span class="cov9" title="6">if params.Body != nil </span><span class="cov1" title="1">{
+                req.Header.Set("Content-Type", "application/json")
+        }</span>
+
+        <span class="cov9" title="6">resp, err := client.Do(req)
+        if err != nil </span><span class="cov4" title="2">{
+                return fmt.Errorf("HTTP request failed: %w", err)
+        }</span>
+        <span class="cov7" title="4">defer resp.Body.Close()
+
+        if params.Target != nil </span><span class="cov6" title="3">{
+                if err = json.NewDecoder(resp.Body).Decode(params.Target); err != nil </span><span class="cov1" title="1">{
+                        return fmt.Errorf("failed to unmarshal response into target: %w", err)
+                }</span>
+        }
+
+        <span class="cov6" title="3">return nil</span>
+}
+</pre>
+		
+		<pre class="file" id="file52" style="display: none">package services
 
 import (
         "time"
@@ -4825,7 +4892,7 @@ func Register(container *dig.Container) error <span class="cov10" title="4">{
 }</span>
 </pre>
 		
-		<pre class="file" id="file52" style="display: none">// ShutdownHooks are used to implement a graceful shutdown
+		<pre class="file" id="file53" style="display: none">// ShutdownHooks are used to implement a graceful shutdown
 // of the application. This may include closing database connections, flushing pending
 // events to the queue, shutting down the http server, etc.
 
@@ -4920,7 +4987,7 @@ func NewShutdownHooks(deps ShutdownHooksRegistryDeps) *ShutdownHooks <span class
 }</span>
 </pre>
 		
-		<pre class="file" id="file53" style="display: none">//go:build !release
+		<pre class="file" id="file54" style="display: none">//go:build !release
 
 package services
 
@@ -4969,7 +5036,7 @@ func NewTestShutdownHooks() *ShutdownHooks <span class="cov10" title="5">{
 }</span>
 </pre>
 		
-		<pre class="file" id="file54" style="display: none">package services
+		<pre class="file" id="file55" style="display: none">package services
 
 import "time"
 
