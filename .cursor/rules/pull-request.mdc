@@ -40,3 +40,9 @@ gh pr create --title "<PR title>" --body "<PR description>" --base <base branch>
 ```bash
 gh pr checks --watch
 ```
+
+Once checks are either succeeded or any of them failed, use command similar below to notify the user:
+```bash
+say "Checks for PR in <project> are <status>"
+```
+Replace <project> with current github repo name and status with actual status of checks.
