@@ -100,55 +100,42 @@ func NewServiceClient(deps ServiceClientDeps) *ServiceClient {
     }
 }
 
-// TODO: doRequest should be moved to a shared function/utility
-// doRequest performs an HTTP request with proper error handling.
+// doRequest performs an HTTP request using the shared SendRequest function.
 func (c *ServiceClient) doRequest(ctx context.Context, method, path string, body interface{}, target interface{}) error {
-    // Build URL
+    // Build full URL
     fullURL := c.baseURL + path
     
-    // Prepare request body
-    var reqBody io.Reader
+    // Use the shared SendRequest function
+    params := httpservices.SendRequestParams[interface{}, interface{}]{
+        Method: method,
+        URL:    fullURL,
+        Body:   nil,
+        Target: nil,
+    }
+    
+    // Set body if provided
     if body != nil {
-        jsonData, err := json.Marshal(body)
-        if err != nil {
-            return fmt.Errorf("failed to marshal request body: %w", err)
+        params.Body = &body
+    }
+    
+    // Set target if provided
+    if target != nil {
+        params.Target = &target
+    }
+    
+    err := httpservices.SendRequest(ctx, c.httpClient, params)
+    if err != nil {
+        // Convert to APIError if it's not already
+        if apiErr, ok := err.(*APIError); ok {
+            return apiErr
         }
-        reqBody = bytes.NewReader(jsonData)
-    }
-    
-    // Create HTTP request
-    req, err := http.NewRequestWithContext(ctx, method, fullURL, reqBody)
-    if err != nil {
-        return fmt.Errorf("failed to create HTTP request: %w", err)
-    }
-    
-    // Set content type for POST/PUT requests
-    if body != nil {
-        req.Header.Set("Content-Type", "application/json")
-    }
-    
-    // Execute request
-    resp, err := c.httpClient.Do(req)
-    if err != nil {
-        return fmt.Errorf("HTTP request failed: %w", err)
-    }
-    defer resp.Body.Close()
-    
-    // Read response body
-    respBody, err := io.ReadAll(resp.Body)
-    if err != nil {
-        return fmt.Errorf("failed to read response body: %w", err)
-    }
-    
-    // Handle error responses
-    if resp.StatusCode >= 400 {
-        return c.handleErrorResponse(resp, respBody, method, fullURL)
-    }
-    
-    // Parse successful response
-    if target != nil && len(respBody) > 0 {
-        if err := json.Unmarshal(respBody, target); err != nil {
-            return fmt.Errorf("failed to unmarshal response: %w", err)
+        
+        // Handle other errors by creating APIError
+        return &APIError{
+            Message:     err.Error(),
+            Endpoint:    fullURL,
+            HTTPMethod:  method,
+            OriginalErr: err,
         }
     }
     
@@ -322,24 +309,53 @@ package services
 
 import (
     "context"
+    "fmt"
+    "net/http"
+    "net/http/httptest"
     "testing"
     
+    "github.com/gemyago/atlacp/internal/diag"
+    httpservices "github.com/gemyago/atlacp/internal/services/http"
     "github.com/stretchr/testify/assert"
     "github.com/stretchr/testify/require"
 )
 
 func TestServiceClient(t *testing.T) {
-    makeMockDeps := func() ServiceClientDeps {
+    makeMockDeps := func(baseURL string) ServiceClientDeps {
         return ServiceClientDeps{
-            ClientFactory: &mockClientFactory{},
-            RootLogger:    diag.RootTestLogger(),
-            BaseURL:       "https://api.example.com",
+            ClientFactory: httpservices.NewClientFactory(httpservices.ClientFactoryDeps{
+                RootLogger: diag.RootTestLogger(),
+            }),
+            RootLogger: diag.RootTestLogger(),
+            BaseURL:    baseURL,
         }
     }
     
     t.Run("CreateResource", func(t *testing.T) {
         t.Run("successful creation", func(t *testing.T) {
-            deps := makeMockDeps()
+            // Create test server that simulates successful API response
+            server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+                // Verify request details
+                assert.Equal(t, "POST", r.Method)
+                assert.Equal(t, "/resources", r.URL.Path)
+                assert.Equal(t, "application/json", r.Header.Get("Content-Type"))
+                assert.Equal(t, "Bearer test-token", r.Header.Get("Authorization"))
+                
+                // Return successful response
+                w.Header().Set("Content-Type", "application/json")
+                w.WriteHeader(http.StatusCreated)
+                fmt.Fprint(w, `{
+                    "id": "resource-123",
+                    "name": "test-resource",
+                    "description": "Test description",
+                    "status": "active",
+                    "created_at": "2023-01-01T00:00:00Z",
+                    "updated_at": "2023-01-01T00:00:00Z"
+                }`)
+            }))
+            defer server.Close()
+            
+            deps := makeMockDeps(server.URL)
             client := NewServiceClient(deps)
             
             req := &CreateResourceRequest{
@@ -347,25 +363,187 @@ func TestServiceClient(t *testing.T) {
                 Description: "Test description",
             }
             
-            resource, err := client.CreateResource(context.Background(), "test-token", req)
+            resource, err := client.CreateResource(t.Context(), "test-token", req)
             
             require.NoError(t, err)
+            assert.Equal(t, "resource-123", resource.ID)
             assert.Equal(t, "test-resource", resource.Name)
+            assert.Equal(t, "Test description", resource.Description)
+            assert.Equal(t, "active", resource.Status)
         })
         
         t.Run("handles API error", func(t *testing.T) {
-            deps := makeMockDeps()
+            // Create test server that simulates API error
+            server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+                w.Header().Set("Content-Type", "application/json")
+                w.WriteHeader(http.StatusBadRequest)
+                fmt.Fprint(w, `{
+                    "error": "INVALID_REQUEST",
+                    "message": "Name is required",
+                    "details": {
+                        "field": "name"
+                    }
+                }`)
+            }))
+            defer server.Close()
+            
+            deps := makeMockDeps(server.URL)
+            client := NewServiceClient(deps)
+            
+            req := &CreateResourceRequest{
+                Description: "Missing name",
+            }
+            
+            _, err := client.CreateResource(t.Context(), "test-token", req)
+            
+            require.Error(t, err)
+            
+            // Verify error details
+            apiErr, ok := err.(*APIError)
+            require.True(t, ok, "Expected APIError type")
+            assert.Equal(t, 400, apiErr.StatusCode)
+            assert.Equal(t, "INVALID_REQUEST", apiErr.ErrorCode)
+            assert.Equal(t, "Name is required", apiErr.Message)
+            assert.Equal(t, "name", apiErr.Details["field"])
+        })
+        
+        t.Run("handles authentication error", func(t *testing.T) {
+            server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) {
+                w.WriteHeader(http.StatusUnauthorized)
+                fmt.Fprint(w, `{"error": "UNAUTHORIZED", "message": "Invalid token"}`)
+            }))
+            defer server.Close()
+            
+            deps := makeMockDeps(server.URL)
             client := NewServiceClient(deps)
             
             req := &CreateResourceRequest{
                 Name: "test-resource",
             }
             
-            _, err := client.CreateResource(context.Background(), "invalid-token", req)
+            _, err := client.CreateResource(t.Context(), "invalid-token", req)
             
             require.Error(t, err)
-            assert.Contains(t, err.Error(), "create resource failed")
+            apiErr, ok := err.(*APIError)
+            require.True(t, ok)
+            assert.Equal(t, 401, apiErr.StatusCode)
         })
+    })
+    
+    t.Run("GetResource", func(t *testing.T) {
+        t.Run("successful retrieval", func(t *testing.T) {
+            server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+                assert.Equal(t, "GET", r.Method)
+                assert.Equal(t, "/resources/resource-123", r.URL.Path)
+                
+                w.Header().Set("Content-Type", "application/json")
+                w.WriteHeader(http.StatusOK)
+                fmt.Fprint(w, `{
+                    "id": "resource-123",
+                    "name": "existing-resource",
+                    "status": "active"
+                }`)
+            }))
+            defer server.Close()
+            
+            deps := makeMockDeps(server.URL)
+            client := NewServiceClient(deps)
+            
+            resource, err := client.GetResource(t.Context(), "test-token", "resource-123")
+            
+            require.NoError(t, err)
+            assert.Equal(t, "resource-123", resource.ID)
+            assert.Equal(t, "existing-resource", resource.Name)
+        })
+        
+        t.Run("handles not found", func(t *testing.T) {
+            server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) {
+                w.WriteHeader(http.StatusNotFound)
+                fmt.Fprint(w, `{"error": "NOT_FOUND", "message": "Resource not found"}`)
+            }))
+            defer server.Close()
+            
+            deps := makeMockDeps(server.URL)
+            client := NewServiceClient(deps)
+            
+            _, err := client.GetResource(t.Context(), "test-token", "nonexistent")
+            
+            require.Error(t, err)
+            apiErr, ok := err.(*APIError)
+            require.True(t, ok)
+            assert.Equal(t, 404, apiErr.StatusCode)
+        })
+    })
+}
+
+### Integration Test Template
+
+```go
+func TestServiceClientIntegration(t *testing.T) {
+    if testing.Short() {
+        t.Skip("Skipping integration tests in short mode")
+    }
+    
+    t.Run("full CRUD operations", func(t *testing.T) {
+        // Create test server that handles multiple endpoints
+        server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+            switch {
+            case r.Method == "POST" && r.URL.Path == "/resources":
+                // Handle CREATE
+                w.Header().Set("Content-Type", "application/json")
+                w.WriteHeader(http.StatusCreated)
+                fmt.Fprint(w, `{"id": "test-id", "name": "test-resource", "status": "active"}`)
+                
+            case r.Method == "GET" && r.URL.Path == "/resources/test-id":
+                // Handle READ
+                w.Header().Set("Content-Type", "application/json")
+                w.WriteHeader(http.StatusOK)
+                fmt.Fprint(w, `{"id": "test-id", "name": "test-resource", "status": "active"}`)
+                
+            case r.Method == "PUT" && r.URL.Path == "/resources/test-id":
+                // Handle UPDATE
+                w.Header().Set("Content-Type", "application/json")
+                w.WriteHeader(http.StatusOK)
+                fmt.Fprint(w, `{"id": "test-id", "name": "updated-resource", "status": "active"}`)
+                
+            case r.Method == "DELETE" && r.URL.Path == "/resources/test-id":
+                // Handle DELETE
+                w.WriteHeader(http.StatusNoContent)
+                
+            default:
+                w.WriteHeader(http.StatusNotFound)
+            }
+        }))
+        defer server.Close()
+        
+        deps := makeMockDeps(server.URL)
+        client := NewServiceClient(deps)
+        ctx := t.Context()
+        token := "test-token"
+        
+        // CREATE
+        createReq := &CreateResourceRequest{
+            Name:        "test-resource",
+            Description: "Test description",
+        }
+        resource, err := client.CreateResource(ctx, token, createReq)
+        require.NoError(t, err)
+        require.NotEmpty(t, resource.ID)
+        
+        // READ
+        retrieved, err := client.GetResource(ctx, token, resource.ID)
+        require.NoError(t, err)
+        assert.Equal(t, resource.ID, retrieved.ID)
+        
+        // UPDATE
+        updateReq := &UpdateResourceRequest{
+            Title: "updated-resource",
+        }
+        updated, err := client.UpdateResource(ctx, token, resource.ID, updateReq)
+        require.NoError(t, err)
+        assert.Equal(t, "updated-resource", updated.Name)
+        
+        // DELETE would be tested here if the method exists
     })
 }
 ```
