@@ -98,7 +98,7 @@ Please read referenced files to understand the problem:
 - [ ] 3.0 Atlassian HTTP Clients Implementation
   - [x] 3.1 Update `internal/config/default.json` with Atlassian configuration section including base URLs
   - [x] 3.2 Inject Atlassian client configuration into DI as per `internal/config/provide.go`
-  - [x] 3.3 Find official Bitbucket Cloud OpenAPI specification and add it to `internal/services/bitbucket/openapi.yaml`
+  - [x] 3.3 Find official Bitbucket Cloud OpenAPI specification and add it to `internal/services/bitbucket/openapi.yaml` (Used community-maintained spec from magmax/atlassian-openapi)
   - [x] 3.4 Find official Jira Cloud OpenAPI specification and add it to `internal/services/jira/openapi.yaml`
   - [ ] 3.5 Create Bitbucket client based on the openapi and `doc/instructions/creating-http-clients.md` instruction. Add methods for following Bitbucket API calls only: `CreatePR`, `GetPR`, `UpdatePR`, `ApprovePR`, `MergePR`
   - [ ] 3.6 Create Jira client based on the openapi and `doc/instructions/creating-http-clients.md` instruction. Add methods for following Jira API calls only: `GetTicket`, `TransitionTicket`, `ManageLabels`
