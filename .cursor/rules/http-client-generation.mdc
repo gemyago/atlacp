@@ -1,0 +1,25 @@
+---
+description: 
+globs: 
+alwaysApply: false
+---
+# HTTP Client Generation from OpenAPI
+
+## When User Requests API Client Generation
+
+When user provides an OpenAPI specification and asks to generate an API client, follow this pattern:
+
+1. **Reference Documentation**: Follow `@creating-http-clients.md` and `@testing-best-practices.md`
+
+2. **Work Step-by-Step**: Always work in step-by-step mode and wait for confirmation before proceeding to next operation
+
+3. **Key Corrections**: 
+   - Use `Client` not `ServiceClient` (accessed as `packagename.Client`)
+   - Always use params struct in operation signatures: `(ctx, tokenProvider, params)`
+   - Always include 4 test cases per operation: success-all-fields, success-required-only, api-error, token-error
+
+4. **Process Per Operation**:
+   - Stub → Test → Implementation → Run Test
+
+## Example User Request
+<!-- "Given the @openapi.yaml generate client as per [http-client-generation.mdc](mdc:.cursor/rules/http-client-generation.mdc) instruction." -->
