@@ -96,8 +96,8 @@ Please read referenced files to understand the problem:
   - [x] 2.10 Create shared doRequest function for common HTTP request handling  
   - [x] 2.11 Create shared mockClientFactory implementation for testing - not required. The test server will be used instead.
 - [ ] 3.0 Atlassian HTTP Clients Implementation
-  - [ ] 3.1 Update `internal/config/default.json` with Atlassian configuration section including base URLs
-  - [ ] 3.2 Inject Atlassian client configuration into DI as per `internal/config/provide.go`
+  - [x] 3.1 Update `internal/config/default.json` with Atlassian configuration section including base URLs
+  - [x] 3.2 Inject Atlassian client configuration into DI as per `internal/config/provide.go`
   - [ ] 3.3 Find official Bitbucket Cloud OpenAPI specification and add it to `internal/services/bitbucket/openapi.yaml`
   - [ ] 3.4 Find official Jira Cloud OpenAPI specification and add it to `internal/services/jira/openapi.yaml`
   - [ ] 3.5 Create Bitbucket client based on the openapi and `doc/instructions/creating-http-clients.md` instruction. Add methods for following Bitbucket API calls only: `CreatePR`, `GetPR`, `UpdatePR`, `ApprovePR`, `MergePR`

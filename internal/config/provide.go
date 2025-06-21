@@ -59,5 +59,9 @@ func Provide(container *dig.Container, cfg *viper.Viper) error {
 		provideConfigValue(cfg, "mcpServer.version").asString(),
 		provideConfigValue(cfg, "mcpServer.httpHost").asString(),
 		provideConfigValue(cfg, "mcpServer.httpPort").asInt(),
+
+		// atlassian config
+		provideConfigValue(cfg, "atlassian.bitbucket.baseUrl").asString(),
+		provideConfigValue(cfg, "atlassian.jira.baseUrl").asString(),
 	)
 }
