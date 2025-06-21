@@ -94,7 +94,7 @@ Please read referenced files to understand the problem:
   - [x] 2.8 Define templates for converting OpenAPI schemas to Go structs with proper JSON tags
   - [x] 2.9 Document response processing patterns for different HTTP status codes and content types
   - [x] 2.10 Create shared doRequest function for common HTTP request handling  
-  - [ ] 2.11 Create shared mockClientFactory implementation for testing
+  - [x] 2.11 Create shared mockClientFactory implementation for testing - not required. The test server will be used instead.
 - [ ] 3.0 Configuration System Extension
   - [ ] 3.1 Extend `internal/config/load.go` to support Atlassian accounts file path configuration
   - [ ] 3.2 Add base URLs for Atlassian REST API endpoints in configuration schema
