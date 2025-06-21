@@ -13,6 +13,7 @@ Please read referenced files to understand the problem:
 - `internal/services/http/middleware/logging.go` - Logging middleware for HTTP client (✓ created)
 - `internal/services/http/middleware/error_handling.go` - Error handling middleware for HTTP client (✓ created)
 - `internal/services/http/client_factory.go` - HTTP client factory with middleware composition (✓ created)
+- `internal/services/http/send_request.go` - Shared SendRequest function with generic body and target types (✓ created)
 - `doc/instructions/creating-http-clients.md` - Comprehensive instructions for API client implementation patterns (✓ created)
 - `internal/services/atlassian_client.go` - Atlassian-specific HTTP client implementation
 - `internal/services/atlassian_accounts.go` - Accounts repository for managing multiple named Atlassian accounts
@@ -92,7 +93,7 @@ Please read referenced files to understand the problem:
   - [x] 2.7 Establish quality assurance instructions for testing, documentation, and validation
   - [x] 2.8 Define templates for converting OpenAPI schemas to Go structs with proper JSON tags
   - [x] 2.9 Document response processing patterns for different HTTP status codes and content types
-  - [ ] 2.10 Create shared doRequest function for common HTTP request handling  
+  - [x] 2.10 Create shared doRequest function for common HTTP request handling  
   - [ ] 2.11 Create shared mockClientFactory implementation for testing
 - [ ] 3.0 Configuration System Extension
   - [ ] 3.1 Extend `internal/config/load.go` to support Atlassian accounts file path configuration
