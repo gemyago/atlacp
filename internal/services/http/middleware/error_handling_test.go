@@ -99,7 +99,7 @@ func TestErrorHandlingMiddleware(t *testing.T) {
 		mockTransport.AssertExpectations(t)
 	})
 
-	t.Run("should wrap 4xx client errors in HTTPError and close response body", func(t *testing.T) {
+	t.Run("should wrap 4xx client errors in HTTPError and preserve response body", func(t *testing.T) {
 		// Arrange
 		body := io.NopCloser(strings.NewReader(`{"error": "not found"}`))
 		clientErrorResp := &http.Response{
@@ -121,7 +121,7 @@ func TestErrorHandlingMiddleware(t *testing.T) {
 
 		// Assert
 		require.Error(t, err)
-		assert.Nil(t, resp)
+		require.NotNil(t, resp, "Response should be preserved for inspection")
 
 		var httpErr *HTTPError
 		require.ErrorAs(t, err, &httpErr)
@@ -130,6 +130,14 @@ func TestErrorHandlingMiddleware(t *testing.T) {
 		assert.Equal(t, "https://api.example.com/missing", httpErr.URL)
 		assert.Contains(t, httpErr.Message, "client error")
 		assert.Contains(t, httpErr.Message, "404")
+
+		// Verify body can still be read
+		if resp != nil && resp.Body != nil {
+			bodyBytes, readErr := io.ReadAll(resp.Body)
+			require.NoError(t, readErr)
+			assert.Contains(t, string(bodyBytes), "not found")
+		}
+
 		mockTransport.AssertExpectations(t)
 	})
 
@@ -138,6 +146,7 @@ func TestErrorHandlingMiddleware(t *testing.T) {
 		serverErrorResp := &http.Response{
 			StatusCode: http.StatusInternalServerError,
 			Status:     "500 Internal Server Error",
+			Body:       io.NopCloser(strings.NewReader(`{"error": "server error"}`)),
 		}
 		mockTransport := &MockRoundTripper{}
 		mockTransport.On("RoundTrip", mock.Anything).Return(serverErrorResp, nil)
@@ -153,7 +162,7 @@ func TestErrorHandlingMiddleware(t *testing.T) {
 
 		// Assert
 		require.Error(t, err)
-		assert.Nil(t, resp)
+		require.NotNil(t, resp, "Response should be preserved for inspection")
 
 		var httpErr *HTTPError
 		require.ErrorAs(t, err, &httpErr)
@@ -162,6 +171,14 @@ func TestErrorHandlingMiddleware(t *testing.T) {
 		assert.Equal(t, "https://api.example.com/action", httpErr.URL)
 		assert.Contains(t, httpErr.Message, "server error")
 		assert.Contains(t, httpErr.Message, "500")
+
+		// Verify body can still be read
+		if resp != nil && resp.Body != nil {
+			bodyBytes, readErr := io.ReadAll(resp.Body)
+			require.NoError(t, readErr)
+			assert.Contains(t, string(bodyBytes), "server error")
+		}
+
 		mockTransport.AssertExpectations(t)
 	})
 

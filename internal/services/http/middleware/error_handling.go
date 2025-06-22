@@ -1,7 +1,9 @@
 package middleware
 
 import (
+	"bytes"
 	"fmt"
+	"io"
 	"log/slog"
 	"net/http"
 )
@@ -93,19 +95,27 @@ func (e *ErrorHandlingMiddleware) RoundTrip(req *http.Request) (*http.Response, 
 			Err:        nil, // No underlying error for HTTP status errors
 		}
 
+		// Read response body for logging, but preserve it for downstream code
+		var bodyBytes []byte
+		if resp.Body != nil {
+			bodyBytes, _ = io.ReadAll(resp.Body)
+			// Close the original body to prevent resource leaks
+			resp.Body.Close()
+			// Replace with a new reader containing the same data
+			resp.Body = io.NopCloser(bytes.NewReader(bodyBytes))
+		}
+
+		// Log the error with body content
 		e.logger.WarnContext(req.Context(), "HTTP error response",
 			"method", req.Method,
 			"url", req.URL.String(),
 			"status_code", resp.StatusCode,
 			"status", resp.Status,
+			"response_body", string(bodyBytes),
 		)
 
-		// Close response body to prevent resource leaks
-		if resp.Body != nil {
-			resp.Body.Close()
-		}
-
-		return nil, httpErr
+		// Return both the error and the response so downstream code can inspect the body
+		return resp, httpErr
 	}
 
 	// Success case - pass through unchanged

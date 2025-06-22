@@ -11,7 +11,7 @@ Please read referenced files to understand the problem:
 ### Source Files
 - `internal/services/http/middleware/auth.go` - Authentication middleware for HTTP client (✓ created)
 - `internal/services/http/middleware/logging.go` - Logging middleware for HTTP client (✓ created)
-- `internal/services/http/middleware/error_handling.go` - Error handling middleware for HTTP client (✓ created)
+- `internal/services/http/middleware/error_handling.go` - Error handling middleware for HTTP client with response body logging (✓ created)
 - `internal/services/http/client_factory.go` - HTTP client factory with middleware composition (✓ created)
 - `internal/services/http/send_request.go` - Shared SendRequest function with generic body and target types (✓ created)
 - `doc/instructions/creating-http-clients.md` - Comprehensive instructions for API client implementation patterns (✓ created)
@@ -124,7 +124,7 @@ Please read referenced files to understand the problem:
   - [x] 3.4 Find official Jira Cloud OpenAPI specification and add it to `internal/services/jira/openapi.yaml`
   - [x] 3.5 Create Bitbucket client based on the openapi and `doc/instructions/creating-http-clients.md` instruction. Add methods for following Bitbucket API calls only: `CreatePR`, `GetPR`, `UpdatePR`, `ApprovePR`, `MergePR`
   - [x] 3.6 Create Jira client based on the openapi and `doc/instructions/creating-http-clients.md` instruction. Add methods for following Jira API calls only: `GetTicket`, `TransitionTicket`, `ManageLabels`
-  - [ ] 3.7 Add Atlassian-specific error response parsing and meaningful error messages (research if needed)
+  - [x] 3.7 Add Atlassian-specific error response parsing and meaningful error messages (research if needed)
   - [ ] 3.8 Register Atlassian HTTP clients in `internal/services/register.go`
 - [ ] 4.0 Accounts Management System
   - [ ] 4.1 Design accounts file JSON schema with multiple named accounts and default account specification
