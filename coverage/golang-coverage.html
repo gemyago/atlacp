@@ -149,23 +149,43 @@
 				
 				<option value="file46">github.com/gemyago/atlacp/internal/diag/testing.go (75.0%)</option>
 				
-				<option value="file47">github.com/gemyago/atlacp/internal/services/http/client_factory.go (100.0%)</option>
+				<option value="file47">github.com/gemyago/atlacp/internal/services/bitbucket/approve_pr.go (100.0%)</option>
 				
-				<option value="file48">github.com/gemyago/atlacp/internal/services/http/middleware/auth.go (100.0%)</option>
+				<option value="file48">github.com/gemyago/atlacp/internal/services/bitbucket/client.go (100.0%)</option>
 				
-				<option value="file49">github.com/gemyago/atlacp/internal/services/http/middleware/error_handling.go (100.0%)</option>
+				<option value="file49">github.com/gemyago/atlacp/internal/services/bitbucket/create_pr.go (100.0%)</option>
 				
-				<option value="file50">github.com/gemyago/atlacp/internal/services/http/middleware/logging.go (100.0%)</option>
+				<option value="file50">github.com/gemyago/atlacp/internal/services/bitbucket/get_pr.go (100.0%)</option>
 				
-				<option value="file51">github.com/gemyago/atlacp/internal/services/http/send_request.go (94.1%)</option>
+				<option value="file51">github.com/gemyago/atlacp/internal/services/bitbucket/merge_pr.go (100.0%)</option>
 				
-				<option value="file52">github.com/gemyago/atlacp/internal/services/register.go (100.0%)</option>
+				<option value="file52">github.com/gemyago/atlacp/internal/services/bitbucket/update_pr.go (100.0%)</option>
 				
-				<option value="file53">github.com/gemyago/atlacp/internal/services/shutdown.go (95.8%)</option>
+				<option value="file53">github.com/gemyago/atlacp/internal/services/http/client_factory.go (100.0%)</option>
 				
-				<option value="file54">github.com/gemyago/atlacp/internal/services/testing.go (12.5%)</option>
+				<option value="file54">github.com/gemyago/atlacp/internal/services/http/middleware/auth.go (100.0%)</option>
 				
-				<option value="file55">github.com/gemyago/atlacp/internal/services/time.go (100.0%)</option>
+				<option value="file55">github.com/gemyago/atlacp/internal/services/http/middleware/error_handling.go (100.0%)</option>
+				
+				<option value="file56">github.com/gemyago/atlacp/internal/services/http/middleware/logging.go (100.0%)</option>
+				
+				<option value="file57">github.com/gemyago/atlacp/internal/services/http/send_request.go (94.1%)</option>
+				
+				<option value="file58">github.com/gemyago/atlacp/internal/services/jira/client.go (100.0%)</option>
+				
+				<option value="file59">github.com/gemyago/atlacp/internal/services/jira/get_ticket.go (96.2%)</option>
+				
+				<option value="file60">github.com/gemyago/atlacp/internal/services/jira/manage_labels.go (100.0%)</option>
+				
+				<option value="file61">github.com/gemyago/atlacp/internal/services/jira/transition_ticket.go (100.0%)</option>
+				
+				<option value="file62">github.com/gemyago/atlacp/internal/services/register.go (100.0%)</option>
+				
+				<option value="file63">github.com/gemyago/atlacp/internal/services/shutdown.go (95.8%)</option>
+				
+				<option value="file64">github.com/gemyago/atlacp/internal/services/testing.go (12.5%)</option>
+				
+				<option value="file65">github.com/gemyago/atlacp/internal/services/time.go (100.0%)</option>
 				
 				</select>
 			</div>
@@ -3918,11 +3938,11 @@ type configValueProvider struct {
         diPath     string
 }
 
-func provideConfigValue(cfg *viper.Viper, path string) configValueProvider <span class="cov10" title="54">{
+func provideConfigValue(cfg *viper.Viper, path string) configValueProvider <span class="cov10" title="62">{
         if !cfg.IsSet(path) </span><span class="cov1" title="1">{
                 panic(fmt.Errorf("config key not found: %s", path))</span>
         }
-        <span class="cov9" title="53">return configValueProvider{cfg, path, "config." + path}</span>
+        <span class="cov9" title="61">return configValueProvider{cfg, path, "config." + path}</span>
 }
 
 func (p configValueProvider) asInt() di.ConstructorWithOpts <span class="cov5" title="9">{
@@ -3933,7 +3953,7 @@ func (p configValueProvider) asInt32() di.ConstructorWithOpts <span class="cov1"
         return di.ProvideValue(p.cfg.GetInt32(p.configPath), dig.Name(p.diPath))
 }</span>
 
-func (p configValueProvider) asString() di.ConstructorWithOpts <span class="cov7" title="21">{
+func (p configValueProvider) asString() di.ConstructorWithOpts <span class="cov8" title="29">{
         return di.ProvideValue(p.cfg.GetString(p.configPath), dig.Name(p.diPath))
 }</span>
 
@@ -3963,6 +3983,10 @@ func Provide(container *dig.Container, cfg *viper.Viper) error <span class="cov4
                 provideConfigValue(cfg, "mcpServer.version").asString(),
                 provideConfigValue(cfg, "mcpServer.httpHost").asString(),
                 provideConfigValue(cfg, "mcpServer.httpPort").asInt(),
+
+                // atlassian config
+                provideConfigValue(cfg, "atlassian.bitbucket.baseUrl").asString(),
+                provideConfigValue(cfg, "atlassian.jira.baseUrl").asString(),
         )
 }</span>
 </pre>
@@ -3985,13 +4009,13 @@ type ConstructorWithOpts struct {
 }
 
 func ProvideAll(container *dig.Container, providers ...interface{}) error <span class="cov7" title="38">{
-        for i, provider := range providers </span><span class="cov10" title="118">{
+        for i, provider := range providers </span><span class="cov10" title="134">{
                 switch p := provider.(type) </span>{
-                case ConstructorWithOpts:<span class="cov8" title="68">
+                case ConstructorWithOpts:<span class="cov8" title="76">
                         if err := container.Provide(p.Constructor, p.Options...); err != nil </span><span class="cov1" title="1">{
                                 return fmt.Errorf("failed to provide %d-th dependency: %w", i, err)
                         }</span>
-                default:<span class="cov8" title="50">
+                default:<span class="cov8" title="58">
                         if err := container.Provide(provider); err != nil </span><span class="cov1" title="1">{
                                 return fmt.Errorf("failed to provide %d-th dependency: %w", i, err)
                         }</span>
@@ -4001,7 +4025,7 @@ func ProvideAll(container *dig.Container, providers ...interface{}) error <span 
 }
 
 // ProvideValue will create a constructor (e.g func) from a given value.
-func ProvideValue[T any](val T, opts ...dig.ProvideOption) ConstructorWithOpts <span class="cov8" title="69">{
+func ProvideValue[T any](val T, opts ...dig.ProvideOption) ConstructorWithOpts <span class="cov8" title="77">{
         return ConstructorWithOpts{
                 Constructor: func() T </span><span class="cov7" title="32">{ return val }</span>,
                 Options:     opts,
@@ -4315,7 +4339,7 @@ func GetLogAttributesFromContext(ctx context.Context) LogAttributes <span class=
         return res
 }</span>
 
-func SetLogAttributesToContext(ctx context.Context, attributes LogAttributes) context.Context <span class="cov5" title="9">{
+func SetLogAttributesToContext(ctx context.Context, attributes LogAttributes) context.Context <span class="cov4" title="9">{
         return context.WithValue(ctx, contextDiagAttrs, attributes)
 }</span>
 
@@ -4323,25 +4347,25 @@ type diagLogHandler struct {
         target slog.Handler
 }
 
-func (h *diagLogHandler) Enabled(ctx context.Context, lvl slog.Level) bool <span class="cov10" title="122">{
+func (h *diagLogHandler) Enabled(ctx context.Context, lvl slog.Level) bool <span class="cov9" title="178">{
         return h.target.Enabled(ctx, lvl)
 }</span>
 
-func (h *diagLogHandler) Handle(ctx context.Context, rec slog.Record) error <span class="cov9" title="114">{
-        if diagAttributes, ok := ctx.Value(contextDiagAttrs).(LogAttributes); ok </span><span class="cov5" title="10">{
+func (h *diagLogHandler) Handle(ctx context.Context, rec slog.Record) error <span class="cov8" title="130">{
+        if diagAttributes, ok := ctx.Value(contextDiagAttrs).(LogAttributes); ok </span><span class="cov4" title="10">{
                 rec.AddAttrs(
                         slog.Attr{Key: "correlationId", Value: diagAttributes.CorrelationID},
                 )
         }</span>
 
-        <span class="cov9" title="114">return h.target.Handle(ctx, rec)</span>
+        <span class="cov8" title="130">return h.target.Handle(ctx, rec)</span>
 }
 
-func (h *diagLogHandler) WithAttrs(attrs []slog.Attr) slog.Handler <span class="cov9" title="92">{
+func (h *diagLogHandler) WithAttrs(attrs []slog.Attr) slog.Handler <span class="cov10" title="262">{
         return &amp;diagLogHandler{target: h.target.WithAttrs(attrs)}
 }</span>
 
-func (h *diagLogHandler) WithGroup(name string) slog.Handler <span class="cov9" title="91">{
+func (h *diagLogHandler) WithGroup(name string) slog.Handler <span class="cov9" title="261">{
         // Using WithAttrs here since group will nest all the attributes
         // inside of it (including correlationId), which makes it harder to
         // filter logs by the correlationId.
@@ -4360,22 +4384,22 @@ type RootLoggerOpts struct {
         logLevel slog.Level
 }
 
-func (opts *RootLoggerOpts) WithJSONLogs(value bool) *RootLoggerOpts <span class="cov4" title="5">{
+func (opts *RootLoggerOpts) WithJSONLogs(value bool) *RootLoggerOpts <span class="cov3" title="5">{
         opts.jsonLogs = value
         return opts
 }</span>
 
-func (opts *RootLoggerOpts) WithLogLevel(logLevel slog.Level) *RootLoggerOpts <span class="cov4" title="5">{
+func (opts *RootLoggerOpts) WithLogLevel(logLevel slog.Level) *RootLoggerOpts <span class="cov3" title="5">{
         opts.logLevel = logLevel
         return opts
 }</span>
 
-func (opts *RootLoggerOpts) WithOutput(output io.Writer) *RootLoggerOpts <span class="cov8" title="66">{
+func (opts *RootLoggerOpts) WithOutput(output io.Writer) *RootLoggerOpts <span class="cov8" title="134">{
         opts.output = output
         return opts
 }</span>
 
-func (opts *RootLoggerOpts) WithOptionalOutputFile(outputFile string) *RootLoggerOpts <span class="cov4" title="5">{
+func (opts *RootLoggerOpts) WithOptionalOutputFile(outputFile string) *RootLoggerOpts <span class="cov3" title="5">{
         if outputFile == "" </span><span class="cov1" title="1">{
                 return opts
         }</span>
@@ -4387,21 +4411,21 @@ func (opts *RootLoggerOpts) WithOptionalOutputFile(outputFile string) *RootLogge
         return opts</span>
 }
 
-func NewRootLoggerOpts() *RootLoggerOpts <span class="cov9" title="72">{
+func NewRootLoggerOpts() *RootLoggerOpts <span class="cov8" title="140">{
         return &amp;RootLoggerOpts{
                 output: os.Stdout,
         }
 }</span>
 
-func SetupRootLogger(opts *RootLoggerOpts) *slog.Logger <span class="cov9" title="72">{
+func SetupRootLogger(opts *RootLoggerOpts) *slog.Logger <span class="cov8" title="140">{
         logHandlerOpts := &amp;slog.HandlerOptions{Level: opts.logLevel}
         var logHandler slog.Handler
         if opts.jsonLogs </span><span class="cov1" title="1">{
                 logHandler = slog.NewJSONHandler(opts.output, logHandlerOpts)
-        }</span> else<span class="cov8" title="71"> {
+        }</span> else<span class="cov8" title="139"> {
                 logHandler = slog.NewTextHandler(opts.output, logHandlerOpts)
         }</span>
-        <span class="cov9" title="72">return slog.New(&amp;diagLogHandler{target: logHandler})</span>
+        <span class="cov8" title="140">return slog.New(&amp;diagLogHandler{target: logHandler})</span>
 }
 </pre>
 		
@@ -4421,7 +4445,7 @@ import (
 )
 
 // openTestLogFile will open a log file in a project root directory.
-func openTestLogFile() *os.File <span class="cov6" title="13">{
+func openTestLogFile() *os.File <span class="cov5" title="15">{
         _, filename, _, _ := runtime.Caller(0) // Will be current file
         testFilePath := filepath.Join(filename, "..", "..", "..", "test.log")
         f, err := os.OpenFile(testFilePath, os.O_CREATE|os.O_APPEND|os.O_WRONLY, 0o666)
@@ -4429,19 +4453,316 @@ func openTestLogFile() *os.File <span class="cov6" title="13">{
                 err = fmt.Errorf("fail to open log file %q for test logging: %w", testFilePath, err)
                 panic(err)</span>
         }
-        <span class="cov6" title="13">return f</span>
+        <span class="cov5" title="15">return f</span>
 }
 
 var testOutput = openTestLogFile() //nolint:gochecknoglobals //it's ok for tests
 
-func RootTestLogger() *slog.Logger <span class="cov10" title="65">{
+func RootTestLogger() *slog.Logger <span class="cov10" title="133">{
         return SetupRootLogger(
                 NewRootLoggerOpts().WithOutput(testOutput),
         )
 }</span>
 </pre>
 		
-		<pre class="file" id="file47" style="display: none">package http
+		<pre class="file" id="file47" style="display: none">package bitbucket
+
+import (
+        "context"
+        "fmt"
+
+        httpservices "github.com/gemyago/atlacp/internal/services/http"
+        "github.com/gemyago/atlacp/internal/services/http/middleware"
+)
+
+// ApprovePRParams contains parameters for approving a pull request.
+type ApprovePRParams struct {
+        Username      string `json:"-"`
+        RepoSlug      string `json:"-"`
+        PullRequestID int    `json:"-"`
+}
+
+// ApprovePR approves a pull request as the authenticated user.
+// POST /repositories/{username}/{repo_slug}/pullrequests/{pull_request_id}/approve.
+func (c *Client) ApprovePR(
+        ctx context.Context,
+        tokenProvider TokenProvider,
+        params ApprovePRParams,
+) (*Participant, error) <span class="cov10" title="4">{
+        token, err := tokenProvider.GetToken(ctx)
+        if err != nil </span><span class="cov1" title="1">{
+                return nil, fmt.Errorf("failed to get token: %w", err)
+        }</span>
+        <span class="cov8" title="3">ctxWithAuth := middleware.WithAuthToken(ctx, token)
+
+        var participant Participant
+        path := fmt.Sprintf(
+                "/repositories/%s/%s/pullrequests/%d/approve",
+                params.Username, params.RepoSlug, params.PullRequestID,
+        )
+        err = httpservices.SendRequest(ctxWithAuth, c.httpClient, httpservices.SendRequestParams[interface{}, Participant]{
+                Method: "POST",
+                URL:    c.baseURL + path,
+                Target: &amp;participant,
+        })
+        if err != nil </span><span class="cov1" title="1">{
+                return nil, fmt.Errorf("approve pull request failed: %w", err)
+        }</span>
+
+        <span class="cov5" title="2">return &amp;participant, nil</span>
+}
+</pre>
+		
+		<pre class="file" id="file48" style="display: none">package bitbucket
+
+import (
+        "context"
+        "log/slog"
+        "net/http"
+
+        httpservices "github.com/gemyago/atlacp/internal/services/http"
+        "go.uber.org/dig"
+)
+
+// TokenProvider provides authentication tokens for Bitbucket API requests.
+type TokenProvider interface {
+        GetToken(ctx context.Context) (string, error)
+}
+
+// Client provides access to Bitbucket Cloud API operations.
+type Client struct {
+        httpClient *http.Client
+        baseURL    string
+        logger     *slog.Logger
+}
+
+// ClientDeps contains dependencies for the Bitbucket client.
+type ClientDeps struct {
+        dig.In
+
+        ClientFactory *httpservices.ClientFactory
+        RootLogger    *slog.Logger
+        BaseURL       string `name:"config.atlassian.bitbucket.baseUrl"`
+}
+
+// NewClient creates a new Bitbucket API client.
+func NewClient(deps ClientDeps) *Client <span class="cov10" title="20">{
+        return &amp;Client{
+                httpClient: deps.ClientFactory.CreateClient(),
+                baseURL:    deps.BaseURL,
+                logger:     deps.RootLogger.WithGroup("bitbucket-client"),
+        }
+}</span>
+</pre>
+		
+		<pre class="file" id="file49" style="display: none">package bitbucket
+
+import (
+        "context"
+        "fmt"
+
+        httpservices "github.com/gemyago/atlacp/internal/services/http"
+        "github.com/gemyago/atlacp/internal/services/http/middleware"
+)
+
+// CreatePRParams contains parameters for creating a pull request.
+type CreatePRParams struct {
+        Username string       `json:"-"`
+        RepoSlug string       `json:"-"`
+        Request  *PullRequest `json:"-"`
+}
+
+// CreatePR creates a new pull request in the specified repository.
+// POST /repositories/{username}/{repo_slug}/pullrequests.
+func (c *Client) CreatePR(
+        ctx context.Context,
+        tokenProvider TokenProvider,
+        params CreatePRParams,
+) (*PullRequest, error) <span class="cov10" title="4">{
+        token, err := tokenProvider.GetToken(ctx)
+        if err != nil </span><span class="cov1" title="1">{
+                return nil, fmt.Errorf("failed to get token: %w", err)
+        }</span>
+        <span class="cov8" title="3">ctxWithAuth := middleware.WithAuthToken(ctx, token)
+
+        var pullRequest PullRequest
+        path := fmt.Sprintf("/repositories/%s/%s/pullrequests", params.Username, params.RepoSlug)
+        err = httpservices.SendRequest(ctxWithAuth, c.httpClient, httpservices.SendRequestParams[PullRequest, PullRequest]{
+                Method: "POST",
+                URL:    c.baseURL + path,
+                Body:   params.Request,
+                Target: &amp;pullRequest,
+        })
+        if err != nil </span><span class="cov1" title="1">{
+                return nil, fmt.Errorf("create pull request failed: %w", err)
+        }</span>
+
+        <span class="cov5" title="2">return &amp;pullRequest, nil</span>
+}
+</pre>
+		
+		<pre class="file" id="file50" style="display: none">package bitbucket
+
+import (
+        "context"
+        "fmt"
+
+        httpservices "github.com/gemyago/atlacp/internal/services/http"
+        "github.com/gemyago/atlacp/internal/services/http/middleware"
+)
+
+// GetPRParams contains parameters for getting a pull request.
+type GetPRParams struct {
+        Username      string `json:"-"`
+        RepoSlug      string `json:"-"`
+        PullRequestID int    `json:"-"`
+}
+
+// GetPR retrieves a specific pull request by ID.
+// GET /repositories/{username}/{repo_slug}/pullrequests/{pull_request_id}.
+func (c *Client) GetPR(
+        ctx context.Context,
+        tokenProvider TokenProvider,
+        params GetPRParams,
+) (*PullRequest, error) <span class="cov10" title="4">{
+        token, err := tokenProvider.GetToken(ctx)
+        if err != nil </span><span class="cov1" title="1">{
+                return nil, fmt.Errorf("failed to get token: %w", err)
+        }</span>
+        <span class="cov8" title="3">ctxWithAuth := middleware.WithAuthToken(ctx, token)
+
+        var pullRequest PullRequest
+        path := fmt.Sprintf("/repositories/%s/%s/pullrequests/%d", params.Username, params.RepoSlug, params.PullRequestID)
+        err = httpservices.SendRequest(ctxWithAuth, c.httpClient, httpservices.SendRequestParams[interface{}, PullRequest]{
+                Method: "GET",
+                URL:    c.baseURL + path,
+                Target: &amp;pullRequest,
+        })
+        if err != nil </span><span class="cov1" title="1">{
+                return nil, fmt.Errorf("get pull request failed: %w", err)
+        }</span>
+
+        <span class="cov5" title="2">return &amp;pullRequest, nil</span>
+}
+</pre>
+		
+		<pre class="file" id="file51" style="display: none">package bitbucket
+
+import (
+        "context"
+        "fmt"
+
+        httpservices "github.com/gemyago/atlacp/internal/services/http"
+        "github.com/gemyago/atlacp/internal/services/http/middleware"
+)
+
+// MergePRParams contains parameters for merging a pull request.
+type MergePRParams struct {
+        Username        string                      `json:"-"`
+        RepoSlug        string                      `json:"-"`
+        PullRequestID   int                         `json:"-"`
+        MergeParameters *PullRequestMergeParameters `json:"-"`
+}
+
+// MergePR merges a pull request.
+// POST /repositories/{username}/{repo_slug}/pullrequests/{pull_request_id}/merge.
+func (c *Client) MergePR(
+        ctx context.Context,
+        tokenProvider TokenProvider,
+        params MergePRParams,
+) (*PullRequest, error) <span class="cov10" title="4">{
+        token, err := tokenProvider.GetToken(ctx)
+        if err != nil </span><span class="cov1" title="1">{
+                return nil, fmt.Errorf("failed to get token: %w", err)
+        }</span>
+        <span class="cov8" title="3">ctxWithAuth := middleware.WithAuthToken(ctx, token)
+
+        var pullRequest PullRequest
+        path := fmt.Sprintf(
+                "/repositories/%s/%s/pullrequests/%d/merge",
+                params.Username, params.RepoSlug, params.PullRequestID,
+        )
+
+        // Use SendRequest with merge parameters if provided, otherwise send empty body
+        if params.MergeParameters != nil </span><span class="cov1" title="1">{
+                err = httpservices.SendRequest(
+                        ctxWithAuth,
+                        c.httpClient,
+                        httpservices.SendRequestParams[PullRequestMergeParameters, PullRequest]{
+                                Method: "POST",
+                                URL:    c.baseURL + path,
+                                Body:   params.MergeParameters,
+                                Target: &amp;pullRequest,
+                        },
+                )
+        }</span> else<span class="cov5" title="2"> {
+                err = httpservices.SendRequest(
+                        ctxWithAuth,
+                        c.httpClient,
+                        httpservices.SendRequestParams[interface{}, PullRequest]{
+                                Method: "POST",
+                                URL:    c.baseURL + path,
+                                Target: &amp;pullRequest,
+                        },
+                )
+        }</span>
+
+        <span class="cov8" title="3">if err != nil </span><span class="cov1" title="1">{
+                return nil, fmt.Errorf("merge pull request failed: %w", err)
+        }</span>
+
+        <span class="cov5" title="2">return &amp;pullRequest, nil</span>
+}
+</pre>
+		
+		<pre class="file" id="file52" style="display: none">package bitbucket
+
+import (
+        "context"
+        "fmt"
+
+        httpservices "github.com/gemyago/atlacp/internal/services/http"
+        "github.com/gemyago/atlacp/internal/services/http/middleware"
+)
+
+// UpdatePRParams contains parameters for updating a pull request.
+type UpdatePRParams struct {
+        Username      string       `json:"-"`
+        RepoSlug      string       `json:"-"`
+        PullRequestID int          `json:"-"`
+        Request       *PullRequest `json:"-"`
+}
+
+// UpdatePR updates an existing pull request.
+// PUT /repositories/{username}/{repo_slug}/pullrequests/{pull_request_id}.
+func (c *Client) UpdatePR(
+        ctx context.Context,
+        tokenProvider TokenProvider,
+        params UpdatePRParams,
+) (*PullRequest, error) <span class="cov10" title="4">{
+        token, err := tokenProvider.GetToken(ctx)
+        if err != nil </span><span class="cov1" title="1">{
+                return nil, fmt.Errorf("failed to get token: %w", err)
+        }</span>
+        <span class="cov8" title="3">ctxWithAuth := middleware.WithAuthToken(ctx, token)
+
+        var pullRequest PullRequest
+        path := fmt.Sprintf("/repositories/%s/%s/pullrequests/%d", params.Username, params.RepoSlug, params.PullRequestID)
+        err = httpservices.SendRequest(ctxWithAuth, c.httpClient, httpservices.SendRequestParams[PullRequest, PullRequest]{
+                Method: "PUT",
+                URL:    c.baseURL + path,
+                Body:   params.Request,
+                Target: &amp;pullRequest,
+        })
+        if err != nil </span><span class="cov1" title="1">{
+                return nil, fmt.Errorf("update pull request failed: %w", err)
+        }</span>
+
+        <span class="cov5" title="2">return &amp;pullRequest, nil</span>
+}
+</pre>
+		
+		<pre class="file" id="file53" style="display: none">package http
 
 import (
         "log/slog"
@@ -4509,7 +4830,7 @@ type ClientFactory struct {
 }
 
 // NewClientFactory creates a new client factory.
-func NewClientFactory(deps ClientFactoryDeps) *ClientFactory <span class="cov8" title="3">{
+func NewClientFactory(deps ClientFactoryDeps) *ClientFactory <span class="cov10" title="37">{
         return &amp;ClientFactory{
                 logger: deps.RootLogger.WithGroup("http-client-factory"),
         }
@@ -4518,7 +4839,7 @@ func NewClientFactory(deps ClientFactoryDeps) *ClientFactory <span class="cov8" 
 // CreateClient creates a new HTTP client with the specified options.
 // Middleware is applied in the order: Logging -&gt; Auth -&gt; ErrorHandling -&gt; BaseTransport
 // This ensures logging captures the full request lifecycle, auth adds headers, and error handling catches issues.
-func (f *ClientFactory) CreateClient(options ...ClientOption) *http.Client <span class="cov8" title="3">{
+func (f *ClientFactory) CreateClient(options ...ClientOption) *http.Client <span class="cov10" title="37">{
         config := &amp;clientConfig{
                 timeout:             defaultClientTimeout,
                 enableAuth:          true, // Default: enabled
@@ -4526,43 +4847,43 @@ func (f *ClientFactory) CreateClient(options ...ClientOption) *http.Client <span
                 enableErrorHandling: true, // Default: enabled
         }
 
-        for _, option := range options </span><span class="cov10" title="4">{
+        for _, option := range options </span><span class="cov4" title="4">{
                 option(config)
         }</span>
 
         // Start with the base transport
-        <span class="cov8" title="3">transport := http.DefaultTransport
+        <span class="cov10" title="37">transport := http.DefaultTransport
 
         // Apply middleware in reverse order (innermost to outermost)
         // Error handling middleware is applied closest to the base transport
-        if config.enableErrorHandling </span><span class="cov5" title="2">{
+        if config.enableErrorHandling </span><span class="cov9" title="36">{
                 transport = middleware.NewErrorHandlingMiddleware(transport, middleware.ErrorHandlingMiddlewareDeps{
                         RootLogger: f.logger,
                 })
         }</span>
 
         // Auth middleware wraps error handling
-        <span class="cov8" title="3">if config.enableAuth </span><span class="cov5" title="2">{
+        <span class="cov10" title="37">if config.enableAuth </span><span class="cov9" title="36">{
                 transport = middleware.NewAuthenticationMiddleware(transport, middleware.AuthenticationMiddlewareDeps{
                         RootLogger: f.logger,
                 })
         }</span>
 
         // Logging middleware is outermost to capture full request lifecycle
-        <span class="cov8" title="3">if config.enableLogging </span><span class="cov5" title="2">{
+        <span class="cov10" title="37">if config.enableLogging </span><span class="cov9" title="36">{
                 transport = middleware.NewLoggingMiddleware(transport, middleware.LoggingMiddlewareDeps{
                         RootLogger: f.logger,
                 })
         }</span>
 
-        <span class="cov8" title="3">return &amp;http.Client{
+        <span class="cov10" title="37">return &amp;http.Client{
                 Transport: transport,
                 Timeout:   config.timeout,
         }</span>
 }
 </pre>
 		
-		<pre class="file" id="file48" style="display: none">package middleware
+		<pre class="file" id="file54" style="display: none">package middleware
 
 import (
         "context"
@@ -4574,12 +4895,12 @@ import (
 type authTokenKey struct{}
 
 // WithAuthToken adds an authentication token to the context.
-func WithAuthToken(ctx context.Context, token string) context.Context <span class="cov7" title="3">{
+func WithAuthToken(ctx context.Context, token string) context.Context <span class="cov9" title="27">{
         return context.WithValue(ctx, authTokenKey{}, token)
 }</span>
 
 // AuthTokenFromContext extracts the authentication token from the context.
-func AuthTokenFromContext(ctx context.Context) (string, bool) <span class="cov10" title="5">{
+func AuthTokenFromContext(ctx context.Context) (string, bool) <span class="cov9" title="29">{
         token, ok := ctx.Value(authTokenKey{}).(string)
         return token, ok
 }</span>
@@ -4597,7 +4918,7 @@ type AuthenticationMiddleware struct {
 
 // NewAuthenticationMiddleware creates a new authentication middleware
 // Tokens are injected via context using WithAuthToken.
-func NewAuthenticationMiddleware(transport http.RoundTripper, deps AuthenticationMiddlewareDeps) http.RoundTripper <span class="cov10" title="5">{
+func NewAuthenticationMiddleware(transport http.RoundTripper, deps AuthenticationMiddlewareDeps) http.RoundTripper <span class="cov10" title="39">{
         return &amp;AuthenticationMiddleware{
                 transport: transport,
                 logger:    deps.RootLogger.WithGroup("http-auth-middleware"),
@@ -4606,18 +4927,18 @@ func NewAuthenticationMiddleware(transport http.RoundTripper, deps Authenticatio
 
 // RoundTrip implements http.RoundTripper interface
 // Extracts token from context and adds Bearer Authorization header.
-func (a *AuthenticationMiddleware) RoundTrip(req *http.Request) (*http.Response, error) <span class="cov10" title="5">{
+func (a *AuthenticationMiddleware) RoundTrip(req *http.Request) (*http.Response, error) <span class="cov9" title="29">{
         // Extract token from context
         token, hasToken := AuthTokenFromContext(req.Context())
 
         // If no token in context, log and pass request through unchanged
-        if !hasToken </span><span class="cov4" title="2">{
+        if !hasToken </span><span class="cov2" title="2">{
                 a.logger.DebugContext(req.Context(), "No authentication token found in context, passing request through unchanged")
                 return a.transport.RoundTrip(req)
         }</span>
 
         // Clone the request to avoid modifying the original
-        <span class="cov7" title="3">clonedReq := req.Clone(req.Context())
+        <span class="cov9" title="27">clonedReq := req.Clone(req.Context())
 
         // Add Bearer authorization header
         clonedReq.Header.Set("Authorization", "Bearer "+token)
@@ -4627,10 +4948,12 @@ func (a *AuthenticationMiddleware) RoundTrip(req *http.Request) (*http.Response,
 }
 </pre>
 		
-		<pre class="file" id="file49" style="display: none">package middleware
+		<pre class="file" id="file55" style="display: none">package middleware
 
 import (
+        "bytes"
         "fmt"
+        "io"
         "log/slog"
         "net/http"
 )
@@ -4651,15 +4974,15 @@ type HTTPError struct {
 }
 
 // Error implements the error interface.
-func (e *HTTPError) Error() string <span class="cov7" title="4">{
+func (e *HTTPError) Error() string <span class="cov8" title="20">{
         if e.Err != nil </span><span class="cov1" title="1">{
                 return fmt.Sprintf("%s: %v", e.Message, e.Err)
         }</span>
-        <span class="cov6" title="3">return e.Message</span>
+        <span class="cov8" title="19">return e.Message</span>
 }
 
 // Unwrap implements error unwrapping for error chain support.
-func (e *HTTPError) Unwrap() error <span class="cov4" title="2">{
+func (e *HTTPError) Unwrap() error <span class="cov2" title="2">{
         return e.Err
 }</span>
 
@@ -4675,7 +4998,7 @@ type ErrorHandlingMiddleware struct {
 }
 
 // NewErrorHandlingMiddleware creates a new error handling middleware.
-func NewErrorHandlingMiddleware(transport http.RoundTripper, deps ErrorHandlingMiddlewareDeps) http.RoundTripper <span class="cov10" title="7">{
+func NewErrorHandlingMiddleware(transport http.RoundTripper, deps ErrorHandlingMiddlewareDeps) http.RoundTripper <span class="cov10" title="41">{
         return &amp;ErrorHandlingMiddleware{
                 transport: transport,
                 logger:    deps.RootLogger.WithGroup("http-error-middleware"),
@@ -4684,7 +5007,7 @@ func NewErrorHandlingMiddleware(transport http.RoundTripper, deps ErrorHandlingM
 
 // RoundTrip implements http.RoundTripper interface.
 // Handles HTTP errors by wrapping non-2xx responses and transport errors in HTTPError.
-func (e *ErrorHandlingMiddleware) RoundTrip(req *http.Request) (*http.Response, error) <span class="cov10" title="7">{
+func (e *ErrorHandlingMiddleware) RoundTrip(req *http.Request) (*http.Response, error) <span class="cov9" title="31">{
         // Call next transport
         resp, err := e.transport.RoundTrip(req)
 
@@ -4706,15 +5029,15 @@ func (e *ErrorHandlingMiddleware) RoundTrip(req *http.Request) (*http.Response, 
         }</span>
 
         // Handle HTTP error status codes
-        <span class="cov9" title="6">if resp.StatusCode &gt;= httpStatusClientErrorMin </span><span class="cov6" title="3">{
+        <span class="cov9" title="30">if resp.StatusCode &gt;= httpStatusClientErrorMin </span><span class="cov6" title="11">{
                 var message string
-                if resp.StatusCode &gt;= httpStatusServerErrorMin </span><span class="cov4" title="2">{
+                if resp.StatusCode &gt;= httpStatusServerErrorMin </span><span class="cov2" title="2">{
                         message = fmt.Sprintf("HTTP server error (%d %s)", resp.StatusCode, resp.Status)
-                }</span> else<span class="cov1" title="1"> {
+                }</span> else<span class="cov6" title="9"> {
                         message = fmt.Sprintf("HTTP client error (%d %s)", resp.StatusCode, resp.Status)
                 }</span>
 
-                <span class="cov6" title="3">httpErr := &amp;HTTPError{
+                <span class="cov6" title="11">httpErr := &amp;HTTPError{
                         StatusCode: resp.StatusCode,
                         Method:     req.Method,
                         URL:        req.URL.String(),
@@ -4722,27 +5045,35 @@ func (e *ErrorHandlingMiddleware) RoundTrip(req *http.Request) (*http.Response, 
                         Err:        nil, // No underlying error for HTTP status errors
                 }
 
-                e.logger.WarnContext(req.Context(), "HTTP error response",
+                // Read response body for logging, but preserve it for downstream code
+                var bodyBytes []byte
+                if resp.Body != nil </span><span class="cov6" title="11">{
+                        bodyBytes, _ = io.ReadAll(resp.Body)
+                        // Close the original body to prevent resource leaks
+                        resp.Body.Close()
+                        // Replace with a new reader containing the same data
+                        resp.Body = io.NopCloser(bytes.NewReader(bodyBytes))
+                }</span>
+
+                // Log the error with body content
+                <span class="cov6" title="11">e.logger.WarnContext(req.Context(), "HTTP error response",
                         "method", req.Method,
                         "url", req.URL.String(),
                         "status_code", resp.StatusCode,
                         "status", resp.Status,
+                        "response_body", string(bodyBytes),
                 )
 
-                // Close response body to prevent resource leaks
-                if resp.Body != nil </span><span class="cov4" title="2">{
-                        resp.Body.Close()
-                }</span>
-
-                <span class="cov6" title="3">return nil, httpErr</span>
+                // Return both the error and the response so downstream code can inspect the body
+                return resp, httpErr</span>
         }
 
         // Success case - pass through unchanged
-        <span class="cov6" title="3">return resp, nil</span>
+        <span class="cov8" title="19">return resp, nil</span>
 }
 </pre>
 		
-		<pre class="file" id="file50" style="display: none">package middleware
+		<pre class="file" id="file56" style="display: none">package middleware
 
 import (
         "log/slog"
@@ -4762,7 +5093,7 @@ type LoggingMiddleware struct {
 }
 
 // NewLoggingMiddleware creates a new logging middleware.
-func NewLoggingMiddleware(transport http.RoundTripper, deps LoggingMiddlewareDeps) http.RoundTripper <span class="cov10" title="5">{
+func NewLoggingMiddleware(transport http.RoundTripper, deps LoggingMiddlewareDeps) http.RoundTripper <span class="cov10" title="39">{
         return &amp;LoggingMiddleware{
                 transport: transport,
                 logger:    deps.RootLogger.WithGroup("http-logging-middleware"),
@@ -4771,7 +5102,7 @@ func NewLoggingMiddleware(transport http.RoundTripper, deps LoggingMiddlewareDep
 
 // RoundTrip implements http.RoundTripper interface.
 // Logs request and response details with structured logging.
-func (l *LoggingMiddleware) RoundTrip(req *http.Request) (*http.Response, error) <span class="cov10" title="5">{
+func (l *LoggingMiddleware) RoundTrip(req *http.Request) (*http.Response, error) <span class="cov9" title="29">{
         start := time.Now()
 
         // Log request
@@ -4786,7 +5117,7 @@ func (l *LoggingMiddleware) RoundTrip(req *http.Request) (*http.Response, error)
         duration := time.Since(start)
 
         // Log response
-        if err != nil </span><span class="cov4" title="2">{
+        if err != nil </span><span class="cov6" title="10">{
                 l.logger.ErrorContext(req.Context(), "HTTP request failed",
                         slog.String("method", req.Method),
                         slog.String("url", req.URL.String()),
@@ -4796,7 +5127,7 @@ func (l *LoggingMiddleware) RoundTrip(req *http.Request) (*http.Response, error)
                 return nil, err
         }</span>
 
-        <span class="cov7" title="3">l.logger.DebugContext(req.Context(), "HTTP request completed",
+        <span class="cov8" title="19">l.logger.DebugContext(req.Context(), "HTTP request completed",
                 slog.String("method", req.Method),
                 slog.String("url", req.URL.String()),
                 slog.Int("status_code", resp.StatusCode),
@@ -4807,7 +5138,7 @@ func (l *LoggingMiddleware) RoundTrip(req *http.Request) (*http.Response, error)
 }
 </pre>
 		
-		<pre class="file" id="file51" style="display: none">package http
+		<pre class="file" id="file57" style="display: none">package http
 
 import (
         "bytes"
@@ -4839,46 +5170,297 @@ func SendRequest[TBody any, TTarget any](
         ctx context.Context,
         client *http.Client,
         params SendRequestParams[TBody, TTarget],
-) error <span class="cov10" title="7">{
+) error <span class="cov10" title="31">{
         var reqBody bytes.Buffer
-        if params.Body != nil </span><span class="cov4" title="2">{
+        if params.Body != nil </span><span class="cov8" title="15">{
                 if err := json.NewEncoder(&amp;reqBody).Encode(params.Body); err != nil </span><span class="cov1" title="1">{
                         return fmt.Errorf("failed to marshal request body: %w", err)
                 }</span>
         }
 
-        <span class="cov9" title="6">req, err := http.NewRequestWithContext(ctx, params.Method, params.URL, &amp;reqBody)
+        <span class="cov9" title="30">req, err := http.NewRequestWithContext(ctx, params.Method, params.URL, &amp;reqBody)
         if err != nil </span><span class="cov0" title="0">{
                 return fmt.Errorf("failed to create HTTP request: %w", err)
         }</span>
 
-        <span class="cov9" title="6">if params.Body != nil </span><span class="cov1" title="1">{
+        <span class="cov9" title="30">if params.Body != nil </span><span class="cov7" title="14">{
                 req.Header.Set("Content-Type", "application/json")
         }</span>
 
-        <span class="cov9" title="6">resp, err := client.Do(req)
-        if err != nil </span><span class="cov4" title="2">{
+        <span class="cov9" title="30">resp, err := client.Do(req)
+        if err != nil </span><span class="cov7" title="10">{
                 return fmt.Errorf("HTTP request failed: %w", err)
         }</span>
-        <span class="cov7" title="4">defer resp.Body.Close()
+        <span class="cov8" title="20">defer resp.Body.Close()
 
-        if params.Target != nil </span><span class="cov6" title="3">{
+        if params.Target != nil </span><span class="cov8" title="15">{
                 if err = json.NewDecoder(resp.Body).Decode(params.Target); err != nil </span><span class="cov1" title="1">{
                         return fmt.Errorf("failed to unmarshal response into target: %w", err)
                 }</span>
         }
 
-        <span class="cov6" title="3">return nil</span>
+        <span class="cov8" title="19">return nil</span>
 }
 </pre>
 		
-		<pre class="file" id="file52" style="display: none">package services
+		<pre class="file" id="file58" style="display: none">package jira
+
+import (
+        "context"
+        "log/slog"
+        "net/http"
+        "strings"
+
+        httpservices "github.com/gemyago/atlacp/internal/services/http"
+        "go.uber.org/dig"
+)
+
+// TokenProvider provides authentication tokens for Jira API requests.
+type TokenProvider interface {
+        GetToken(ctx context.Context) (string, error)
+}
+
+// Client provides access to Jira Cloud API operations.
+type Client struct {
+        httpClient *http.Client
+        baseURL    string
+        logger     *slog.Logger
+}
+
+// ClientDeps contains dependencies for the Jira client.
+type ClientDeps struct {
+        dig.In
+
+        ClientFactory *httpservices.ClientFactory
+        RootLogger    *slog.Logger
+        BaseURL       string `name:"config.atlassian.jira.baseUrl"`
+}
+
+// NewClient creates a new Jira API client.
+func NewClient(deps ClientDeps) *Client <span class="cov10" title="14">{
+        return &amp;Client{
+                httpClient: deps.ClientFactory.CreateClient(),
+                baseURL:    deps.BaseURL,
+                logger:     deps.RootLogger.WithGroup("jira-client"),
+        }
+}</span>
+
+// GetBaseURL returns the base URL with the domain replaced.
+// The baseURL contains a placeholder {domain} that needs to be replaced with the actual domain.
+func (c *Client) GetBaseURL(domain string) string <span class="cov9" title="11">{
+        return strings.ReplaceAll(c.baseURL, "{domain}", domain)
+}</span>
+</pre>
+		
+		<pre class="file" id="file59" style="display: none">package jira
+
+import (
+        "context"
+        "fmt"
+        "net/url"
+
+        httpservices "github.com/gemyago/atlacp/internal/services/http"
+        "github.com/gemyago/atlacp/internal/services/http/middleware"
+)
+
+// GetTicketParams contains parameters for retrieving a Jira ticket.
+type GetTicketParams struct {
+        Domain    string   `json:"-"` // Jira domain (e.g., "company" in company.atlassian.net)
+        TicketKey string   `json:"-"` // The ticket key (e.g., "PROJECT-123")
+        Fields    []string `json:"-"` // Optional fields to include
+        Expand    []string `json:"-"` // Optional expansions (e.g., "renderedFields", "transitions")
+}
+
+// GetTicket retrieves a Jira ticket by its key.
+// GET /rest/api/3/issue/{issueIdOrKey}.
+func (c *Client) GetTicket(
+        ctx context.Context,
+        tokenProvider TokenProvider,
+        params GetTicketParams,
+) (*Ticket, error) <span class="cov8" title="4">{
+        token, err := tokenProvider.GetToken(ctx)
+        if err != nil </span><span class="cov1" title="1">{
+                return nil, fmt.Errorf("failed to get token: %w", err)
+        }</span>
+        <span class="cov7" title="3">ctxWithAuth := middleware.WithAuthToken(ctx, token)
+
+        baseURL := c.GetBaseURL(params.Domain)
+        path := fmt.Sprintf("/issue/%s", params.TicketKey)
+
+        // Add query parameters if provided
+        requestURL, err := url.Parse(baseURL + path)
+        if err != nil </span><span class="cov0" title="0">{
+                return nil, fmt.Errorf("failed to parse URL: %w", err)
+        }</span>
+
+        <span class="cov7" title="3">query := requestURL.Query()
+        if len(params.Fields) &gt; 0 </span><span class="cov1" title="1">{
+                query.Set("fields", joinStrings(params.Fields))
+        }</span>
+        <span class="cov7" title="3">if len(params.Expand) &gt; 0 </span><span class="cov1" title="1">{
+                query.Set("expand", joinStrings(params.Expand))
+        }</span>
+        <span class="cov7" title="3">requestURL.RawQuery = query.Encode()
+
+        var ticket Ticket
+        err = httpservices.SendRequest(ctxWithAuth, c.httpClient, httpservices.SendRequestParams[interface{}, Ticket]{
+                Method: "GET",
+                URL:    requestURL.String(),
+                Target: &amp;ticket,
+        })
+        if err != nil </span><span class="cov1" title="1">{
+                return nil, fmt.Errorf("get ticket failed: %w", err)
+        }</span>
+
+        <span class="cov4" title="2">return &amp;ticket, nil</span>
+}
+
+// joinStrings joins a slice of strings with commas.
+func joinStrings(items []string) string <span class="cov4" title="2">{
+        result := ""
+        for i, item := range items </span><span class="cov10" title="5">{
+                if i &gt; 0 </span><span class="cov7" title="3">{
+                        result += ","
+                }</span>
+                <span class="cov10" title="5">result += item</span>
+        }
+        <span class="cov4" title="2">return result</span>
+}
+</pre>
+		
+		<pre class="file" id="file60" style="display: none">package jira
+
+import (
+        "context"
+        "fmt"
+
+        httpservices "github.com/gemyago/atlacp/internal/services/http"
+        "github.com/gemyago/atlacp/internal/services/http/middleware"
+)
+
+// ManageLabelsParams contains parameters for managing labels on a Jira ticket.
+type ManageLabelsParams struct {
+        Domain       string   `json:"-"` // Jira domain (e.g., "company" in company.atlassian.net)
+        TicketKey    string   `json:"-"` // The ticket key (e.g., "PROJECT-123")
+        AddLabels    []string `json:"-"` // Labels to add to the ticket
+        RemoveLabels []string `json:"-"` // Labels to remove from the ticket
+}
+
+// ManageLabels adds and/or removes labels from a Jira ticket.
+// PUT /rest/api/3/issue/{issueIdOrKey}.
+func (c *Client) ManageLabels(
+        ctx context.Context,
+        tokenProvider TokenProvider,
+        params ManageLabelsParams,
+) error <span class="cov10" title="4">{
+        token, err := tokenProvider.GetToken(ctx)
+        if err != nil </span><span class="cov1" title="1">{
+                return fmt.Errorf("failed to get token: %w", err)
+        }</span>
+        <span class="cov8" title="3">ctxWithAuth := middleware.WithAuthToken(ctx, token)
+
+        baseURL := c.GetBaseURL(params.Domain)
+        path := fmt.Sprintf("/issue/%s", params.TicketKey)
+
+        // Create label update request
+        request := LabelUpdateRequest{}
+        request.Update.Labels = make([]LabelOperation, 0, len(params.AddLabels)+len(params.RemoveLabels))
+
+        // Add labels
+        for _, label := range params.AddLabels </span><span class="cov10" title="4">{
+                request.Update.Labels = append(request.Update.Labels, LabelOperation{
+                        Add: label,
+                })
+        }</span>
+
+        // Remove labels
+        <span class="cov8" title="3">for _, label := range params.RemoveLabels </span><span class="cov1" title="1">{
+                request.Update.Labels = append(request.Update.Labels, LabelOperation{
+                        Remove: label,
+                })
+        }</span>
+
+        <span class="cov8" title="3">sendParams := httpservices.SendRequestParams[LabelUpdateRequest, interface{}]{
+                Method: "PUT",
+                URL:    baseURL + path,
+                Body:   &amp;request,
+                Target: nil, // No response body expected for successful update
+        }
+        err = httpservices.SendRequest(ctxWithAuth, c.httpClient, sendParams)
+        if err != nil </span><span class="cov1" title="1">{
+                return fmt.Errorf("manage labels failed: %w", err)
+        }</span>
+
+        <span class="cov5" title="2">return nil</span>
+}
+</pre>
+		
+		<pre class="file" id="file61" style="display: none">package jira
+
+import (
+        "context"
+        "fmt"
+
+        httpservices "github.com/gemyago/atlacp/internal/services/http"
+        "github.com/gemyago/atlacp/internal/services/http/middleware"
+)
+
+// TransitionTicketParams contains parameters for transitioning a Jira ticket.
+type TransitionTicketParams struct {
+        Domain       string                 `json:"-"` // Jira domain (e.g., "company" in company.atlassian.net)
+        TicketKey    string                 `json:"-"` // The ticket key (e.g., "PROJECT-123")
+        TransitionID string                 `json:"-"` // The ID of the transition to perform
+        Fields       map[string]interface{} `json:"-"` // Optional fields to update during transition
+        Update       map[string]interface{} `json:"-"` // Optional updates to perform during transition
+}
+
+// TransitionTicket transitions a Jira ticket to a new status.
+// POST /rest/api/3/issue/{issueIdOrKey}/transitions.
+func (c *Client) TransitionTicket(
+        ctx context.Context,
+        tokenProvider TokenProvider,
+        params TransitionTicketParams,
+) error <span class="cov10" title="4">{
+        token, err := tokenProvider.GetToken(ctx)
+        if err != nil </span><span class="cov1" title="1">{
+                return fmt.Errorf("failed to get token: %w", err)
+        }</span>
+        <span class="cov8" title="3">ctxWithAuth := middleware.WithAuthToken(ctx, token)
+
+        baseURL := c.GetBaseURL(params.Domain)
+        path := fmt.Sprintf("/issue/%s/transitions", params.TicketKey)
+
+        // Create transition request
+        request := TransitionRequest{
+                Fields: params.Fields,
+                Update: params.Update,
+        }
+        request.Transition.ID = params.TransitionID
+
+        sendParams := httpservices.SendRequestParams[TransitionRequest, interface{}]{
+                Method: "POST",
+                URL:    baseURL + path,
+                Body:   &amp;request,
+                Target: nil, // No response body expected for successful transition
+        }
+        err = httpservices.SendRequest(ctxWithAuth, c.httpClient, sendParams)
+        if err != nil </span><span class="cov1" title="1">{
+                return fmt.Errorf("transition ticket failed: %w", err)
+        }</span>
+
+        <span class="cov5" title="2">return nil</span>
+}
+</pre>
+		
+		<pre class="file" id="file62" style="display: none">package services
 
 import (
         "time"
 
         "github.com/gemyago/atlacp/internal/di"
+        "github.com/gemyago/atlacp/internal/services/bitbucket"
         httpservices "github.com/gemyago/atlacp/internal/services/http"
+        "github.com/gemyago/atlacp/internal/services/jira"
         "go.uber.org/dig"
 )
 
@@ -4888,11 +5470,13 @@ func Register(container *dig.Container) error <span class="cov10" title="4">{
                 di.ProvideValue(time.NewTicker),
                 NewShutdownHooks,
                 httpservices.NewClientFactory,
+                bitbucket.NewClient,
+                jira.NewClient,
         )
 }</span>
 </pre>
 		
-		<pre class="file" id="file53" style="display: none">// ShutdownHooks are used to implement a graceful shutdown
+		<pre class="file" id="file63" style="display: none">// ShutdownHooks are used to implement a graceful shutdown
 // of the application. This may include closing database connections, flushing pending
 // events to the queue, shutting down the http server, etc.
 
@@ -4987,7 +5571,7 @@ func NewShutdownHooks(deps ShutdownHooksRegistryDeps) *ShutdownHooks <span class
 }</span>
 </pre>
 		
-		<pre class="file" id="file54" style="display: none">//go:build !release
+		<pre class="file" id="file64" style="display: none">//go:build !release
 
 package services
 
@@ -5036,7 +5620,7 @@ func NewTestShutdownHooks() *ShutdownHooks <span class="cov10" title="5">{
 }</span>
 </pre>
 		
-		<pre class="file" id="file55" style="display: none">package services
+		<pre class="file" id="file65" style="display: none">package services
 
 import "time"
 
