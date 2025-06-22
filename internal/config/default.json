@@ -15,5 +15,13 @@
     "version": "1.0.0",
     "httpHost": "localhost",
     "httpPort": 8080
+  },
+  "atlassian": {
+    "bitbucket": {
+      "baseUrl": "https://api.bitbucket.org/2.0"
+    },
+    "jira": {
+      "baseUrl": "https://{domain}.atlassian.net/rest/api/3"
+    }
   }
 }
