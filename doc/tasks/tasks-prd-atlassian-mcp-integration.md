@@ -35,7 +35,7 @@ Please read referenced files to understand the problem:
 - `internal/api/mcp/controllers/jira.go` - MCP controller for Jira tools
 - `internal/api/mcp/controllers/register.go` - Controller registration (modified)
 - `internal/app/register.go` - App layer registration (modified)
-- `internal/services/register.go` - Service registration (modified)
+- `internal/services/register.go` - Service registration with Atlassian HTTP clients (✓ modified)
 - `internal/config/load.go` - Configuration loading (modified)
 
 ### Test Files
@@ -125,7 +125,7 @@ Please read referenced files to understand the problem:
   - [x] 3.5 Create Bitbucket client based on the openapi and `doc/instructions/creating-http-clients.md` instruction. Add methods for following Bitbucket API calls only: `CreatePR`, `GetPR`, `UpdatePR`, `ApprovePR`, `MergePR`
   - [x] 3.6 Create Jira client based on the openapi and `doc/instructions/creating-http-clients.md` instruction. Add methods for following Jira API calls only: `GetTicket`, `TransitionTicket`, `ManageLabels`
   - [x] 3.7 Add Atlassian-specific error response parsing and meaningful error messages (research if needed)
-  - [ ] 3.8 Register Atlassian HTTP clients in `internal/services/register.go`
+  - [x] 3.8 Register Atlassian HTTP clients in `internal/services/register.go`
 - [ ] 4.0 Accounts Management System
   - [ ] 4.1 Design accounts file JSON schema with multiple named accounts and default account specification
   - [ ] 4.2 Create `internal/services/atlassian_accounts.go` with accounts repository interface
