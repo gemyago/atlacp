@@ -15,6 +15,18 @@ Please read referenced files to understand the problem:
 - `internal/services/http/client_factory.go` - HTTP client factory with middleware composition (✓ created)
 - `internal/services/http/send_request.go` - Shared SendRequest function with generic body and target types (✓ created)
 - `doc/instructions/creating-http-clients.md` - Comprehensive instructions for API client implementation patterns (✓ created)
+- `internal/services/bitbucket/client.go` - Bitbucket API client implementation (✓ created)
+- `internal/services/bitbucket/pullrequest.go` - Bitbucket pull request models (✓ created)
+- `internal/services/bitbucket/create_pr.go` - CreatePR operation implementation (✓ created)
+- `internal/services/bitbucket/get_pr.go` - GetPR operation implementation (✓ created)
+- `internal/services/bitbucket/update_pr.go` - UpdatePR operation implementation (✓ created)
+- `internal/services/bitbucket/approve_pr.go` - ApprovePR operation implementation (✓ created)
+- `internal/services/bitbucket/merge_pr.go` - MergePR operation implementation (✓ created)
+- `internal/services/jira/client.go` - Jira API client implementation (✓ created)
+- `internal/services/jira/ticket.go` - Jira ticket models (✓ created)
+- `internal/services/jira/get_ticket.go` - GetTicket operation implementation (✓ created)
+- `internal/services/jira/transition_ticket.go` - TransitionTicket operation implementation (✓ created)
+- `internal/services/jira/manage_labels.go` - ManageLabels operation implementation (✓ created)
 - `internal/services/atlassian_client.go` - Atlassian-specific HTTP client implementation
 - `internal/services/atlassian_accounts.go` - Accounts repository for managing multiple named Atlassian accounts
 - `internal/app/bitbucket.go` - Business logic for Bitbucket operations
@@ -31,6 +43,16 @@ Please read referenced files to understand the problem:
 - `internal/services/http/middleware/logging_test.go` - Unit tests for logging middleware (✓ created)
 - `internal/services/http/middleware/error_handling_test.go` - Unit tests for error handling middleware (✓ created)
 - `internal/services/http/client_factory_test.go` - Unit tests for client factory
+- `internal/services/bitbucket/client_test.go` - Unit tests for Bitbucket client (✓ created)
+- `internal/services/bitbucket/create_pr_test.go` - Unit tests for CreatePR operation (✓ created)
+- `internal/services/bitbucket/get_pr_test.go` - Unit tests for GetPR operation (✓ created)
+- `internal/services/bitbucket/update_pr_test.go` - Unit tests for UpdatePR operation (✓ created)
+- `internal/services/bitbucket/approve_pr_test.go` - Unit tests for ApprovePR operation (✓ created)
+- `internal/services/bitbucket/merge_pr_test.go` - Unit tests for MergePR operation (✓ created)
+- `internal/services/jira/client_test.go` - Unit tests for Jira client (✓ created)
+- `internal/services/jira/get_ticket_test.go` - Unit tests for GetTicket operation (✓ created)
+- `internal/services/jira/transition_ticket_test.go` - Unit tests for TransitionTicket operation (✓ created)
+- `internal/services/jira/manage_labels_test.go` - Unit tests for ManageLabels operation (✓ created)
 - `internal/services/atlassian_client_test.go` - Unit tests for Atlassian HTTP client
 - `internal/services/atlassian_accounts_test.go` - Unit tests for accounts repository
 - `internal/app/bitbucket_test.go` - Unit tests for Bitbucket business logic
@@ -101,7 +123,7 @@ Please read referenced files to understand the problem:
   - [x] 3.3 Find official Bitbucket Cloud OpenAPI specification and add it to `internal/services/bitbucket/openapi.yaml` (Used community-maintained spec from magmax/atlassian-openapi)
   - [x] 3.4 Find official Jira Cloud OpenAPI specification and add it to `internal/services/jira/openapi.yaml`
   - [x] 3.5 Create Bitbucket client based on the openapi and `doc/instructions/creating-http-clients.md` instruction. Add methods for following Bitbucket API calls only: `CreatePR`, `GetPR`, `UpdatePR`, `ApprovePR`, `MergePR`
-  - [ ] 3.6 Create Jira client based on the openapi and `doc/instructions/creating-http-clients.md` instruction. Add methods for following Jira API calls only: `GetTicket`, `TransitionTicket`, `ManageLabels`
+  - [x] 3.6 Create Jira client based on the openapi and `doc/instructions/creating-http-clients.md` instruction. Add methods for following Jira API calls only: `GetTicket`, `TransitionTicket`, `ManageLabels`
   - [ ] 3.7 Add Atlassian-specific error response parsing and meaningful error messages (research if needed)
   - [ ] 3.8 Register Atlassian HTTP clients in `internal/services/register.go`
 - [ ] 4.0 Accounts Management System

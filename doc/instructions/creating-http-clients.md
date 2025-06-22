@@ -53,7 +53,7 @@ type TokenProvider interface {
     GetToken(ctx context.Context) (string, error)
 }
 
-// In the client method - always use params struct even for single parameters
+// In the client method - always use params struct even for single parameters.
 type CreateResourceParams struct {
     Request *CreateResourceRequest
 }
@@ -132,14 +132,14 @@ func (c *Client) GetResource(ctx context.Context, tokenProvider TokenProvider, p
 ### Request/Response Model Templates
 
 ```go
-// Request models
+// Request models.
 type CreateResourceRequest struct {
     Name        string   `json:"name"`
     Description string   `json:"description"`
     Tags        []string `json:"tags,omitempty"`
 }
 
-// Response models  
+// Response models.
 type Resource struct {
     ID          string    `json:"id"`
     Name        string    `json:"name"`
