@@ -3,10 +3,10 @@ package app
 // AtlassianAccount represents configuration for a single Atlassian account.
 type AtlassianAccount struct {
 	// Friendly name of the account
-	Name string
+	Name string `json:"name"`
 
 	// Is this the default account
-	Default bool
+	Default bool `json:"default"`
 
 	// Bitbucket-specific configuration (optional)
 	Bitbucket *BitbucketAccount `json:"bitbucket,omitempty"`
@@ -18,17 +18,23 @@ type AtlassianAccount struct {
 // BitbucketAccount contains Bitbucket-specific account configuration.
 type BitbucketAccount struct {
 	// API token for authentication
-	Token string
+	Token string `json:"token"`
 
 	// Workspace is the Bitbucket workspace/username for this account
-	Workspace string
+	Workspace string `json:"workspace"`
 }
 
 // JiraAccount contains Jira-specific account configuration.
 type JiraAccount struct {
 	// API token for authentication
-	Token string
+	Token string `json:"token"`
 
 	// Domain is the Jira cloud instance domain (e.g., "mycompany" for mycompany.atlassian.net)
-	Domain string
+	Domain string `json:"domain"`
+}
+
+// AtlassianAccountsConfig represents the structure of the accounts configuration file.
+type AtlassianAccountsConfig struct {
+	// List of Atlassian accounts
+	Accounts []AtlassianAccount `json:"accounts"`
 }

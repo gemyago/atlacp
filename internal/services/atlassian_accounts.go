@@ -13,48 +13,9 @@ import (
 	"go.uber.org/dig"
 )
 
-// atlassianAccountsConfig represents the structure of the accounts configuration file.
-type atlassianAccountsConfig struct {
-	// List of Atlassian accounts
-	Accounts []atlassianAccountConfig `json:"accounts"`
-}
-
-// atlassianAccountConfig represents configuration for a single Atlassian account.
-type atlassianAccountConfig struct {
-	// Friendly name of the account
-	Name string `json:"name"`
-
-	// Is this the default account
-	Default bool `json:"default"`
-
-	// Bitbucket-specific configuration
-	Bitbucket *bitbucketAccountConfig `json:"bitbucket,omitempty"`
-
-	// Jira-specific configuration
-	Jira *jiraAccountConfig `json:"jira,omitempty"`
-}
-
-// bitbucketAccountConfig contains Bitbucket-specific account configuration.
-type bitbucketAccountConfig struct {
-	// API token for authentication
-	Token string `json:"token"`
-
-	// Workspace is the Bitbucket workspace/username for this account
-	Workspace string `json:"workspace"`
-}
-
-// jiraAccountConfig contains Jira-specific account configuration.
-type jiraAccountConfig struct {
-	// API token for authentication
-	Token string `json:"token"`
-
-	// Domain is the Jira cloud instance domain (e.g., "mycompany" for mycompany.atlassian.net)
-	Domain string `json:"domain"`
-}
-
 // atlassianAccountsRepository implements the app.AtlassianAccountsRepository interface.
 type atlassianAccountsRepository struct {
-	config *atlassianAccountsConfig
+	config *app.AtlassianAccountsConfig
 	logger *slog.Logger
 }
 
@@ -88,7 +49,7 @@ func NewAtlassianAccountsRepository(deps AtlassianAccountsRepositoryDeps) (app.A
 		return nil, fmt.Errorf("failed to read accounts configuration: %w", err)
 	}
 
-	var config atlassianAccountsConfig
+	var config app.AtlassianAccountsConfig
 	if unmarshalErr := json.Unmarshal(data, &config); unmarshalErr != nil {
 		return nil, fmt.Errorf("failed to parse accounts configuration: %w", unmarshalErr)
 	}
@@ -106,9 +67,9 @@ func NewAtlassianAccountsRepository(deps AtlassianAccountsRepositoryDeps) (app.A
 
 // GetDefaultAccount returns the default Atlassian account configuration.
 func (r *atlassianAccountsRepository) GetDefaultAccount(_ context.Context) (*app.AtlassianAccount, error) {
-	for _, account := range r.config.Accounts {
+	for i, account := range r.config.Accounts {
 		if account.Default {
-			return convertToAppAccount(account), nil
+			return &r.config.Accounts[i], nil
 		}
 	}
 	return nil, app.ErrNoDefaultAccount
@@ -116,16 +77,16 @@ func (r *atlassianAccountsRepository) GetDefaultAccount(_ context.Context) (*app
 
 // GetAccountByName returns an account with the specified name.
 func (r *atlassianAccountsRepository) GetAccountByName(_ context.Context, name string) (*app.AtlassianAccount, error) {
-	for _, account := range r.config.Accounts {
+	for i, account := range r.config.Accounts {
 		if account.Name == name {
-			return convertToAppAccount(account), nil
+			return &r.config.Accounts[i], nil
 		}
 	}
 	return nil, fmt.Errorf("%w: %s", app.ErrAccountNotFound, name)
 }
 
 // validateAccountsConfig validates the accounts configuration.
-func validateAccountsConfig(config *atlassianAccountsConfig) error {
+func validateAccountsConfig(config *app.AtlassianAccountsConfig) error {
 	if len(config.Accounts) == 0 {
 		return errors.New("no accounts configured")
 	}
@@ -163,7 +124,7 @@ func validateAccountsConfig(config *atlassianAccountsConfig) error {
 }
 
 // validateBasicAccountProperties validates non-service-specific account properties.
-func validateBasicAccountProperties(account atlassianAccountConfig, existingNames map[string]bool) error {
+func validateBasicAccountProperties(account app.AtlassianAccount, existingNames map[string]bool) error {
 	// Check for duplicate names
 	if existingNames[account.Name] {
 		return fmt.Errorf("duplicate account name: %s", account.Name)
@@ -183,7 +144,7 @@ func validateBasicAccountProperties(account atlassianAccountConfig, existingName
 }
 
 // validateServiceConfigs validates Bitbucket and Jira configurations for an account.
-func validateServiceConfigs(account atlassianAccountConfig) error {
+func validateServiceConfigs(account app.AtlassianAccount) error {
 	// Validate Bitbucket configuration if provided
 	if account.Bitbucket != nil {
 		if err := validateBitbucketConfig(account); err != nil {
@@ -202,7 +163,7 @@ func validateServiceConfigs(account atlassianAccountConfig) error {
 }
 
 // validateBitbucketConfig validates Bitbucket-specific configuration.
-func validateBitbucketConfig(account atlassianAccountConfig) error {
+func validateBitbucketConfig(account app.AtlassianAccount) error {
 	if account.Bitbucket.Token == "" {
 		return fmt.Errorf("account %s is missing Bitbucket token", account.Name)
 	}
@@ -213,7 +174,7 @@ func validateBitbucketConfig(account atlassianAccountConfig) error {
 }
 
 // validateJiraConfig validates Jira-specific configuration.
-func validateJiraConfig(account atlassianAccountConfig) error {
+func validateJiraConfig(account app.AtlassianAccount) error {
 	if account.Jira.Token == "" {
 		return fmt.Errorf("account %s is missing Jira token", account.Name)
 	}
@@ -223,6 +184,9 @@ func validateJiraConfig(account atlassianAccountConfig) error {
 	return nil
 }
 
+// getDefaultConfigPath returns the default location for the accounts configuration file.
+// It tries to find the configuration in common locations:
+// 1. $HOME/.config/atlacp/accounts.json
 // 2. Current directory: ./accounts.json.
 func getDefaultConfigPath() string {
 	// Try home directory first
@@ -236,28 +200,4 @@ func getDefaultConfigPath() string {
 
 	// Fall back to current directory
 	return "accounts.json"
-}
-
-// convertToAppAccount converts the internal account configuration to the application layer type.
-func convertToAppAccount(config atlassianAccountConfig) *app.AtlassianAccount {
-	appAccount := &app.AtlassianAccount{
-		Name:    config.Name,
-		Default: config.Default,
-	}
-
-	if config.Bitbucket != nil {
-		appAccount.Bitbucket = &app.BitbucketAccount{
-			Token:     config.Bitbucket.Token,
-			Workspace: config.Bitbucket.Workspace,
-		}
-	}
-
-	if config.Jira != nil {
-		appAccount.Jira = &app.JiraAccount{
-			Token:  config.Jira.Token,
-			Domain: config.Jira.Domain,
-		}
-	}
-
-	return appAccount
 }

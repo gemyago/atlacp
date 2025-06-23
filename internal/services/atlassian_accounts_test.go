@@ -17,40 +17,16 @@ func TestAtlassianAccountsRepository_GetDefaultAccount(t *testing.T) {
 	createTempAccountsFile := func(t *testing.T, accounts []app.AtlassianAccount) string {
 		t.Helper()
 
-		// Convert to storage format
-		configAccounts := make([]map[string]interface{}, 0, len(accounts))
-		for _, acc := range accounts {
-			accMap := map[string]interface{}{
-				"name":    acc.Name,
-				"default": acc.Default,
-			}
-
-			if acc.Bitbucket != nil {
-				accMap["bitbucket"] = map[string]interface{}{
-					"token":     acc.Bitbucket.Token,
-					"workspace": acc.Bitbucket.Workspace,
-				}
-			}
-
-			if acc.Jira != nil {
-				accMap["jira"] = map[string]interface{}{
-					"token":  acc.Jira.Token,
-					"domain": acc.Jira.Domain,
-				}
-			}
-
-			configAccounts = append(configAccounts, accMap)
-		}
-
-		configData := map[string]interface{}{
-			"accounts": configAccounts,
+		// Create configuration object
+		config := app.AtlassianAccountsConfig{
+			Accounts: accounts,
 		}
 
 		// Create temporary file
 		tempFile := filepath.Join(t.TempDir(), "accounts.json")
 
 		// Write config to file
-		data, err := json.Marshal(configData)
+		data, err := json.Marshal(config)
 		require.NoError(t, err, "Failed to marshal config data")
 
 		err = os.WriteFile(tempFile, data, 0600)
@@ -109,11 +85,11 @@ func TestAtlassianAccountsRepository_GetDefaultAccount(t *testing.T) {
 
 	t.Run("should return error when no default account exists", func(t *testing.T) {
 		// Arrange - create a repository with accounts but no default
-		accounts := []atlassianAccountConfig{
+		accounts := []app.AtlassianAccount{
 			{
 				Name:    "account1",
 				Default: false,
-				Bitbucket: &bitbucketAccountConfig{
+				Bitbucket: &app.BitbucketAccount{
 					Token:     "token1",
 					Workspace: "workspace1",
 				},
@@ -121,7 +97,7 @@ func TestAtlassianAccountsRepository_GetDefaultAccount(t *testing.T) {
 			{
 				Name:    "account2",
 				Default: false,
-				Jira: &jiraAccountConfig{
+				Jira: &app.JiraAccount{
 					Token:  "token2",
 					Domain: "example",
 				},
@@ -130,7 +106,7 @@ func TestAtlassianAccountsRepository_GetDefaultAccount(t *testing.T) {
 
 		// Create repository manually, bypassing validation
 		repository := &atlassianAccountsRepository{
-			config: &atlassianAccountsConfig{
+			config: &app.AtlassianAccountsConfig{
 				Accounts: accounts,
 			},
 			logger: diag.RootTestLogger().WithGroup("atlassian-accounts"),
