@@ -35,6 +35,31 @@
 - Compare entire structs when possible instead of individual fields (e.g `assert.Equal(t, expectedUser, actualUser)`)
 - Use options pattern for test data generation to make tests more readable and maintainable
 
+### IMPORTANT: Always Use Randomized Data
+
+Never use static strings or values in tests unless absolutely necessary. Always use faker to generate random data:
+
+```go
+// DON'T DO THIS:
+user := NewRandomUser(WithUserName("john_doe"))  // Static name
+
+// DO THIS:
+user := NewRandomUser(WithUserName("user-" + faker.Username()))  // Randomized name
+```
+
+If static data is absolutely required (e.g., for testing specific edge cases or validation rules), add a comment explaining why:
+
+```go
+// Static value required here because we're testing the specific validation rule for reserved usernames
+user := NewRandomUser(WithUserName("admin"))  // "admin" is a reserved name in our system
+```
+
+Benefits of randomized data:
+- Prevents accidental dependencies between tests
+- Catches edge cases that might only appear with certain data
+- Makes tests more robust against future changes
+- Ensures tests work with a variety of inputs, not just carefully chosen examples
+
 ### Use Options Pattern for Test Data
 
 Create flexible test data generators with the options pattern:

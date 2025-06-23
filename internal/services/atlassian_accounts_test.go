@@ -8,6 +8,7 @@ import (
 
 	"github.com/gemyago/atlacp/internal/app"
 	"github.com/gemyago/atlacp/internal/diag"
+	"github.com/go-faker/faker/v4"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
@@ -110,10 +111,16 @@ func TestAtlassianAccountsRepository(t *testing.T) {
 	t.Run("GetAccountByName", func(t *testing.T) {
 		t.Run("should return account when name exists", func(t *testing.T) {
 			// Arrange
-			defaultAccount := NewRandomAtlassianAccount(WithAtlassianAccountDefault(true), WithAtlassianAccountName("default"))
-			account1 := NewRandomAtlassianAccount(WithAtlassianAccountName("user"))
-			account2 := NewRandomAtlassianAccount(WithAtlassianAccountName("bot"))
-			account3 := NewRandomAtlassianAccount(WithAtlassianAccountName("admin"))
+			// Generate random account names
+			defaultName := "default-" + faker.Username()
+			userName := "user-" + faker.Username()
+			botName := "bot-" + faker.Username()
+			adminName := "admin-" + faker.Username()
+
+			defaultAccount := NewRandomAtlassianAccount(WithAtlassianAccountDefault(true), WithAtlassianAccountName(defaultName))
+			account1 := NewRandomAtlassianAccount(WithAtlassianAccountName(userName))
+			account2 := NewRandomAtlassianAccount(WithAtlassianAccountName(botName))
+			account3 := NewRandomAtlassianAccount(WithAtlassianAccountName(adminName))
 
 			accounts := []app.AtlassianAccount{defaultAccount, account1, account2, account3}
 
@@ -124,7 +131,7 @@ func TestAtlassianAccountsRepository(t *testing.T) {
 			require.NoError(t, err, "Failed to create repository")
 
 			// Act
-			result, err := repository.GetAccountByName(t.Context(), "bot")
+			result, err := repository.GetAccountByName(t.Context(), botName)
 
 			// Assert
 			require.NoError(t, err, "GetAccountByName should not return an error")
@@ -136,9 +143,17 @@ func TestAtlassianAccountsRepository(t *testing.T) {
 
 		t.Run("should return error when account name doesn't exist", func(t *testing.T) {
 			// Arrange
-			defaultAccount := NewRandomAtlassianAccount(WithAtlassianAccountDefault(true), WithAtlassianAccountName("default"))
-			account1 := NewRandomAtlassianAccount(WithAtlassianAccountName("user"))
-			account2 := NewRandomAtlassianAccount(WithAtlassianAccountName("bot"))
+			// Generate random account names
+			defaultName := "default-" + faker.Username()
+			userName := "user-" + faker.Username()
+			botName := "bot-" + faker.Username()
+
+			// Generate a non-existent name that's guaranteed to be different
+			nonExistentName := "nonexistent-" + faker.Username()
+
+			defaultAccount := NewRandomAtlassianAccount(WithAtlassianAccountDefault(true), WithAtlassianAccountName(defaultName))
+			account1 := NewRandomAtlassianAccount(WithAtlassianAccountName(userName))
+			account2 := NewRandomAtlassianAccount(WithAtlassianAccountName(botName))
 
 			accounts := []app.AtlassianAccount{defaultAccount, account1, account2}
 
@@ -149,12 +164,12 @@ func TestAtlassianAccountsRepository(t *testing.T) {
 			require.NoError(t, err, "Failed to create repository")
 
 			// Act
-			result, err := repository.GetAccountByName(t.Context(), "nonexistent")
+			result, err := repository.GetAccountByName(t.Context(), nonExistentName)
 
 			// Assert
 			assert.Nil(t, result, "Account should be nil when name doesn't exist")
 			require.ErrorIs(t, err, app.ErrAccountNotFound, "Error should be ErrAccountNotFound")
-			assert.Contains(t, err.Error(), "nonexistent", "Error should contain the account name")
+			assert.Contains(t, err.Error(), nonExistentName, "Error should contain the account name")
 		})
 	})
 }
