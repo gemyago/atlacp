@@ -117,7 +117,10 @@ func TestAtlassianAccountsRepository(t *testing.T) {
 			botName := "bot-" + faker.Username()
 			adminName := "admin-" + faker.Username()
 
-			defaultAccount := app.NewRandomAtlassianAccount(app.WithAtlassianAccountDefault(true), app.WithAtlassianAccountName(defaultName))
+			defaultAccount := app.NewRandomAtlassianAccount(
+				app.WithAtlassianAccountDefault(true),
+				app.WithAtlassianAccountName(defaultName),
+			)
 			account1 := app.NewRandomAtlassianAccount(app.WithAtlassianAccountName(userName))
 			account2 := app.NewRandomAtlassianAccount(app.WithAtlassianAccountName(botName))
 			account3 := app.NewRandomAtlassianAccount(app.WithAtlassianAccountName(adminName))
@@ -151,7 +154,10 @@ func TestAtlassianAccountsRepository(t *testing.T) {
 			// Generate a non-existent name that's guaranteed to be different
 			nonExistentName := "nonexistent-" + faker.Username()
 
-			defaultAccount := app.NewRandomAtlassianAccount(app.WithAtlassianAccountDefault(true), app.WithAtlassianAccountName(defaultName))
+			defaultAccount := app.NewRandomAtlassianAccount(
+				app.WithAtlassianAccountDefault(true),
+				app.WithAtlassianAccountName(defaultName),
+			)
 			account1 := app.NewRandomAtlassianAccount(app.WithAtlassianAccountName(userName))
 			account2 := app.NewRandomAtlassianAccount(app.WithAtlassianAccountName(botName))
 
