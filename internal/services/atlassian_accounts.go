@@ -13,9 +13,15 @@ import (
 	"go.uber.org/dig"
 )
 
+// atlassianAccountsConfig represents the structure of the accounts configuration file.
+type atlassianAccountsConfig struct {
+	// List of Atlassian accounts
+	Accounts []app.AtlassianAccount `json:"accounts"`
+}
+
 // atlassianAccountsRepository implements the app.AtlassianAccountsRepository interface.
 type atlassianAccountsRepository struct {
-	config *app.AtlassianAccountsConfig
+	config *atlassianAccountsConfig
 	logger *slog.Logger
 }
 
@@ -49,7 +55,7 @@ func NewAtlassianAccountsRepository(deps AtlassianAccountsRepositoryDeps) (app.A
 		return nil, fmt.Errorf("failed to read accounts configuration: %w", err)
 	}
 
-	var config app.AtlassianAccountsConfig
+	var config atlassianAccountsConfig
 	if unmarshalErr := json.Unmarshal(data, &config); unmarshalErr != nil {
 		return nil, fmt.Errorf("failed to parse accounts configuration: %w", unmarshalErr)
 	}
@@ -86,7 +92,7 @@ func (r *atlassianAccountsRepository) GetAccountByName(_ context.Context, name s
 }
 
 // validateAccountsConfig validates the accounts configuration.
-func validateAccountsConfig(config *app.AtlassianAccountsConfig) error {
+func validateAccountsConfig(config *atlassianAccountsConfig) error {
 	if len(config.Accounts) == 0 {
 		return errors.New("no accounts configured")
 	}

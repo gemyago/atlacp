@@ -32,9 +32,3 @@ type JiraAccount struct {
 	// Domain is the Jira cloud instance domain (e.g., "mycompany" for mycompany.atlassian.net)
 	Domain string `json:"domain"`
 }
-
-// AtlassianAccountsConfig represents the structure of the accounts configuration file.
-type AtlassianAccountsConfig struct {
-	// List of Atlassian accounts
-	Accounts []AtlassianAccount `json:"accounts"`
-}

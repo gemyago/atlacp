@@ -18,7 +18,7 @@ func TestAtlassianAccountsRepository_GetDefaultAccount(t *testing.T) {
 		t.Helper()
 
 		// Create configuration object
-		config := app.AtlassianAccountsConfig{
+		config := atlassianAccountsConfig{
 			Accounts: accounts,
 		}
 
@@ -44,24 +44,10 @@ func TestAtlassianAccountsRepository_GetDefaultAccount(t *testing.T) {
 
 	t.Run("should return default account when configuration is valid", func(t *testing.T) {
 		// Arrange
-		accounts := []app.AtlassianAccount{
-			{
-				Name:    "non-default-account",
-				Default: false,
-				Bitbucket: &app.BitbucketAccount{
-					Token:     "token1",
-					Workspace: "workspace1",
-				},
-			},
-			{
-				Name:    "default-account",
-				Default: true,
-				Jira: &app.JiraAccount{
-					Token:  "token2",
-					Domain: "example",
-				},
-			},
-		}
+		defaultAccount := NewRandomAtlassianAccount(WithAtlassianAccountDefault(true))
+		nonDefaultAccount := NewRandomAtlassianAccount()
+
+		accounts := []app.AtlassianAccount{nonDefaultAccount, defaultAccount}
 
 		configPath := createTempAccountsFile(t, accounts)
 		deps := makeMockDeps(configPath)
@@ -75,39 +61,23 @@ func TestAtlassianAccountsRepository_GetDefaultAccount(t *testing.T) {
 		// Assert
 		require.NoError(t, err, "GetDefaultAccount should not return an error")
 		require.NotNil(t, account, "Default account should not be nil")
-		assert.Equal(t, "default-account", account.Name, "Should return the correct default account")
-		assert.True(t, account.Default, "Default account should have Default=true")
-		assert.Nil(t, account.Bitbucket, "Bitbucket should be nil for this account")
-		require.NotNil(t, account.Jira, "Jira should not be nil for this account")
-		assert.Equal(t, "token2", account.Jira.Token, "Should have correct Jira token")
-		assert.Equal(t, "example", account.Jira.Domain, "Should have correct Jira domain")
+
+		// Compare the entire account
+		assert.Equal(t, defaultAccount, *account, "Should return the correct default account")
 	})
 
 	t.Run("should return error when no default account exists", func(t *testing.T) {
 		// Arrange - create a repository with accounts but no default
-		accounts := []app.AtlassianAccount{
-			{
-				Name:    "account1",
-				Default: false,
-				Bitbucket: &app.BitbucketAccount{
-					Token:     "token1",
-					Workspace: "workspace1",
-				},
-			},
-			{
-				Name:    "account2",
-				Default: false,
-				Jira: &app.JiraAccount{
-					Token:  "token2",
-					Domain: "example",
-				},
-			},
+		// Generate two accounts without the default flag set
+		nonDefaultAccounts := []app.AtlassianAccount{
+			NewRandomAtlassianAccount(),
+			NewRandomAtlassianAccount(),
 		}
 
 		// Create repository manually, bypassing validation
 		repository := &atlassianAccountsRepository{
-			config: &app.AtlassianAccountsConfig{
-				Accounts: accounts,
+			config: &atlassianAccountsConfig{
+				Accounts: nonDefaultAccounts,
 			},
 			logger: diag.RootTestLogger().WithGroup("atlassian-accounts"),
 		}
