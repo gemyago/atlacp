@@ -174,56 +174,6 @@ func TestAtlassianAccountsRepository(t *testing.T) {
 	})
 
 	t.Run("NewAtlassianAccountsRepository", func(t *testing.T) {
-		t.Run("should use default config path when not specified", func(t *testing.T) {
-			// Create a temporary accounts file in current directory
-			defaultAccount := NewRandomAtlassianAccount(WithAtlassianAccountDefault(true))
-			accounts := []app.AtlassianAccount{defaultAccount}
-
-			// Save to current directory
-			tempFile := "accounts.json"
-
-			// Create configuration object
-			config := atlassianAccountsConfig{
-				Accounts: accounts,
-			}
-
-			// Write config to file
-			data, err := json.Marshal(config)
-			require.NoError(t, err, "Failed to marshal config data")
-
-			// Save the original file if it exists so we can restore it later
-			var originalData []byte
-			if _, err := os.Stat(tempFile); err == nil {
-				originalData, err = os.ReadFile(tempFile)
-				require.NoError(t, err, "Failed to read original accounts.json")
-			}
-
-			// Write test file and ensure cleanup
-			err = os.WriteFile(tempFile, data, 0600)
-			require.NoError(t, err, "Failed to write config file")
-
-			defer func() {
-				// Restore original file or remove test file
-				if len(originalData) > 0 {
-					os.WriteFile(tempFile, originalData, 0600)
-				} else {
-					os.Remove(tempFile)
-				}
-			}()
-
-			// Create repository without specifying path
-			deps := AtlassianAccountsRepositoryDeps{
-				RootLogger: diag.RootTestLogger(),
-			}
-
-			// Act
-			repo, err := NewAtlassianAccountsRepository(deps)
-
-			// Assert
-			require.NoError(t, err, "Should create repository with default path")
-			require.NotNil(t, repo, "Repository should not be nil")
-		})
-
 		t.Run("should fail when file read fails", func(t *testing.T) {
 			// Create a directory instead of a file to cause read failure
 			tempDir := filepath.Join(t.TempDir(), "accounts.json")
@@ -354,7 +304,8 @@ func TestAtlassianAccountsRepository(t *testing.T) {
 
 			// Assert
 			require.Error(t, err, "Should fail with no services")
-			assert.Contains(t, err.Error(), "must have at least one service configured", "Error should mention service requirement")
+			assert.Contains(t, err.Error(), "must have at least one service configured",
+				"Error should mention service requirement")
 		})
 	})
 

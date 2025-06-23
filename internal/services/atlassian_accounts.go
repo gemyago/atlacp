@@ -7,7 +7,6 @@ import (
 	"fmt"
 	"log/slog"
 	"os"
-	"path/filepath"
 
 	"github.com/gemyago/atlacp/internal/app"
 	"go.uber.org/dig"
@@ -40,8 +39,7 @@ func NewAtlassianAccountsRepository(deps AtlassianAccountsRepositoryDeps) (app.A
 
 	// Use default path if not specified
 	if configPath == "" {
-		configPath = getDefaultConfigPath()
-		logger.Debug("Using default accounts configuration path", "path", configPath)
+		return nil, errors.New("accounts configuration path not specified")
 	}
 
 	// Check if file exists
@@ -188,22 +186,4 @@ func validateJiraConfig(account app.AtlassianAccount) error {
 		return fmt.Errorf("account %s is missing Jira domain", account.Name)
 	}
 	return nil
-}
-
-// getDefaultConfigPath returns the default location for the accounts configuration file.
-// It tries to find the configuration in common locations:
-// 1. $HOME/.config/atlacp/accounts.json
-// 2. Current directory: ./accounts.json.
-func getDefaultConfigPath() string {
-	// Try home directory first
-	if homeDir, err := os.UserHomeDir(); err == nil {
-		configDir := filepath.Join(homeDir, ".config", "atlacp")
-		path := filepath.Join(configDir, "accounts.json")
-		if _, statErr := os.Stat(path); statErr == nil {
-			return path
-		}
-	}
-
-	// Fall back to current directory
-	return "accounts.json"
 }
