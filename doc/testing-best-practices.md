@@ -117,12 +117,13 @@ Larger structs/interfaces can be mocked with mockery by adding a new interface t
 
 ## Test Structure
 
-### Use Nested t.Run
+### IMPORTANT: Use a Single Top-level Test Function Per Component
 
-When testing complex components, use toplevel test named after the component (e.g `TestMyService`) and nest tests inside it.
+Always use a single top-level test function named after the component being tested, with nested t.Run blocks for each method or behavior:
 
 ```go
-func TestMyService(t *testing.T) {
+/// DO THIS: Single top-level function with nested tests
+func TestUserRepository(t *testing.T) {
     t.Run("should handle valid input", func(t *testing.T) {
         // Test the main functionality
     })
@@ -131,7 +132,17 @@ func TestMyService(t *testing.T) {
         // Test edge case that matters to business logic
     })
 }
+
+// DON'T DO THIS: Multiple top-level functions
+// func TestUserRepository_GetByID(t *testing.T) { ... }
+// func TestUserRepository_Create(t *testing.T) { ... }
 ```
+
+This approach:
+- Keeps all tests for a component organized in one place
+- Reduces duplication of setup code
+- Makes it easier to run all tests for a component
+- Follows the project's established testing conventions
 
 ### Follow AAA Pattern
 - **Arrange** - Set up test data and mocks
