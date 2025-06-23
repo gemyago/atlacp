@@ -32,6 +32,59 @@
 - Avoid static variables shared across tests
 - Use random data when possible, use faker (github.com/go-faker/faker/v4)
 - Don't pollute testing namespace - if helper functions are only used within one test, nest them inside that test function
+- Compare entire structs when possible instead of individual fields (e.g `assert.Equal(t, expectedUser, actualUser)`)
+- Use options pattern for test data generation to make tests more readable and maintainable
+
+### Use Options Pattern for Test Data
+
+Create flexible test data generators with the options pattern:
+
+```go
+// The file should be named similar to `accounts_testing.go`
+// and have "//go:build !release" tag to avoid including it in the release build
+
+// Define option function type
+type RandomUserOpt func(*User)
+
+// Create option functions
+func WithRandomUserName(name string) RandomUserOpt {
+    return func(u *User) {
+        u.Name = name
+    }
+}
+
+// Create generator function
+func NewRandomUser(opts ...RandomUserOpt) User {
+    user := User{
+        ID:   faker.UUIDHyphenated(),
+        Name: faker.Name(),
+    }
+    
+    // Apply all options
+    for _, opt := range opts {
+        opt(&user)
+    }
+    
+    return user
+}
+
+// In tests
+user := NewRandomUser(WithRandomUserName("test-user"))
+```
+
+### Use Struct Comparison
+
+Compare entire structs instead of individual fields:
+
+```go
+// Instead of this:
+assert.Equal(t, expectedUser.ID, actualUser.ID)
+assert.Equal(t, expectedUser.Name, actualUser.Name)
+assert.Equal(t, expectedUser.Email, actualUser.Email)
+
+// Do this:
+assert.Equal(t, expectedUser, actualUser)
+```
 
 ### Use makeMockDeps()
 
@@ -65,6 +118,9 @@ Larger structs/interfaces can be mocked with mockery by adding a new interface t
 ## Test Structure
 
 ### Use Nested t.Run
+
+When testing complex components, use toplevel test named after the component (e.g `TestMyService`) and nest tests inside it.
+
 ```go
 func TestMyService(t *testing.T) {
     t.Run("should handle valid input", func(t *testing.T) {
