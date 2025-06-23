@@ -47,22 +47,14 @@ func TestBitbucketService(t *testing.T) {
 			destBranch := "main"
 			prID := int(faker.RandomUnixTime())
 
-			expectedPR := &bitbucket.PullRequest{
-				ID:          prID,
-				Title:       prTitle,
-				Description: prDesc,
-				Source: bitbucket.PullRequestSource{
-					Branch: bitbucket.PullRequestBranch{
-						Name: sourceBranch,
-					},
-				},
-				Destination: &bitbucket.PullRequestDestination{
-					Branch: bitbucket.PullRequestBranch{
-						Name: destBranch,
-					},
-				},
-				CloseSourceBranch: true,
-			}
+			expectedPR := bitbucket.NewRandomPullRequest(
+				bitbucket.WithPullRequestID(prID),
+				bitbucket.WithPullRequestTitle(prTitle),
+				bitbucket.WithPullRequestDescription(prDesc),
+				bitbucket.WithPullRequestSourceBranch(sourceBranch),
+				bitbucket.WithPullRequestDestinationBranch(destBranch),
+				bitbucket.WithPullRequestCloseSourceBranch(true),
+			)
 
 			// Mock the accounts repo to return our test account
 			mockAccounts.EXPECT().
@@ -130,11 +122,11 @@ func TestBitbucketService(t *testing.T) {
 			destBranch := "main"
 			prID := int(faker.RandomUnixTime())
 
-			expectedPR := &bitbucket.PullRequest{
-				ID:          prID,
-				Title:       prTitle,
-				Description: prDesc,
-			}
+			expectedPR := bitbucket.NewRandomPullRequest(
+				bitbucket.WithPullRequestID(prID),
+				bitbucket.WithPullRequestTitle(prTitle),
+				bitbucket.WithPullRequestDescription(prDesc),
+			)
 
 			// Mock the accounts repo to return our test account
 			mockAccounts.EXPECT().
@@ -207,7 +199,9 @@ func TestBitbucketService(t *testing.T) {
 					}
 					return true
 				})).
-				Return(&bitbucket.PullRequest{ID: prID}, nil)
+				Return(bitbucket.NewRandomPullRequest(
+					bitbucket.WithPullRequestID(prID),
+				), nil)
 
 			// Act
 			result, err := service.CreatePR(t.Context(), BitbucketCreatePRParams{
