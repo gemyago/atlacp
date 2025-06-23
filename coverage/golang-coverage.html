@@ -149,43 +149,47 @@
 				
 				<option value="file46">github.com/gemyago/atlacp/internal/diag/testing.go (75.0%)</option>
 				
-				<option value="file47">github.com/gemyago/atlacp/internal/services/bitbucket/approve_pr.go (100.0%)</option>
+				<option value="file47">github.com/gemyago/atlacp/internal/services/accounts_testing.go (50.0%)</option>
 				
-				<option value="file48">github.com/gemyago/atlacp/internal/services/bitbucket/client.go (100.0%)</option>
+				<option value="file48">github.com/gemyago/atlacp/internal/services/atlassian_accounts.go (92.2%)</option>
 				
-				<option value="file49">github.com/gemyago/atlacp/internal/services/bitbucket/create_pr.go (100.0%)</option>
+				<option value="file49">github.com/gemyago/atlacp/internal/services/bitbucket/approve_pr.go (100.0%)</option>
 				
-				<option value="file50">github.com/gemyago/atlacp/internal/services/bitbucket/get_pr.go (100.0%)</option>
+				<option value="file50">github.com/gemyago/atlacp/internal/services/bitbucket/client.go (100.0%)</option>
 				
-				<option value="file51">github.com/gemyago/atlacp/internal/services/bitbucket/merge_pr.go (100.0%)</option>
+				<option value="file51">github.com/gemyago/atlacp/internal/services/bitbucket/create_pr.go (100.0%)</option>
 				
-				<option value="file52">github.com/gemyago/atlacp/internal/services/bitbucket/update_pr.go (100.0%)</option>
+				<option value="file52">github.com/gemyago/atlacp/internal/services/bitbucket/get_pr.go (100.0%)</option>
 				
-				<option value="file53">github.com/gemyago/atlacp/internal/services/http/client_factory.go (100.0%)</option>
+				<option value="file53">github.com/gemyago/atlacp/internal/services/bitbucket/merge_pr.go (100.0%)</option>
 				
-				<option value="file54">github.com/gemyago/atlacp/internal/services/http/middleware/auth.go (100.0%)</option>
+				<option value="file54">github.com/gemyago/atlacp/internal/services/bitbucket/update_pr.go (100.0%)</option>
 				
-				<option value="file55">github.com/gemyago/atlacp/internal/services/http/middleware/error_handling.go (100.0%)</option>
+				<option value="file55">github.com/gemyago/atlacp/internal/services/http/client_factory.go (100.0%)</option>
 				
-				<option value="file56">github.com/gemyago/atlacp/internal/services/http/middleware/logging.go (100.0%)</option>
+				<option value="file56">github.com/gemyago/atlacp/internal/services/http/middleware/auth.go (100.0%)</option>
 				
-				<option value="file57">github.com/gemyago/atlacp/internal/services/http/send_request.go (94.1%)</option>
+				<option value="file57">github.com/gemyago/atlacp/internal/services/http/middleware/error_handling.go (100.0%)</option>
 				
-				<option value="file58">github.com/gemyago/atlacp/internal/services/jira/client.go (100.0%)</option>
+				<option value="file58">github.com/gemyago/atlacp/internal/services/http/middleware/logging.go (100.0%)</option>
 				
-				<option value="file59">github.com/gemyago/atlacp/internal/services/jira/get_ticket.go (96.2%)</option>
+				<option value="file59">github.com/gemyago/atlacp/internal/services/http/send_request.go (94.1%)</option>
 				
-				<option value="file60">github.com/gemyago/atlacp/internal/services/jira/manage_labels.go (100.0%)</option>
+				<option value="file60">github.com/gemyago/atlacp/internal/services/jira/client.go (100.0%)</option>
 				
-				<option value="file61">github.com/gemyago/atlacp/internal/services/jira/transition_ticket.go (100.0%)</option>
+				<option value="file61">github.com/gemyago/atlacp/internal/services/jira/get_ticket.go (96.2%)</option>
 				
-				<option value="file62">github.com/gemyago/atlacp/internal/services/register.go (100.0%)</option>
+				<option value="file62">github.com/gemyago/atlacp/internal/services/jira/manage_labels.go (100.0%)</option>
 				
-				<option value="file63">github.com/gemyago/atlacp/internal/services/shutdown.go (95.8%)</option>
+				<option value="file63">github.com/gemyago/atlacp/internal/services/jira/transition_ticket.go (100.0%)</option>
 				
-				<option value="file64">github.com/gemyago/atlacp/internal/services/testing.go (12.5%)</option>
+				<option value="file64">github.com/gemyago/atlacp/internal/services/register.go (100.0%)</option>
 				
-				<option value="file65">github.com/gemyago/atlacp/internal/services/time.go (100.0%)</option>
+				<option value="file65">github.com/gemyago/atlacp/internal/services/shutdown.go (95.8%)</option>
+				
+				<option value="file66">github.com/gemyago/atlacp/internal/services/testing.go (12.5%)</option>
+				
+				<option value="file67">github.com/gemyago/atlacp/internal/services/time.go (100.0%)</option>
 				
 				</select>
 			</div>
@@ -4009,13 +4013,13 @@ type ConstructorWithOpts struct {
 }
 
 func ProvideAll(container *dig.Container, providers ...interface{}) error <span class="cov7" title="38">{
-        for i, provider := range providers </span><span class="cov10" title="134">{
+        for i, provider := range providers </span><span class="cov10" title="138">{
                 switch p := provider.(type) </span>{
                 case ConstructorWithOpts:<span class="cov8" title="76">
                         if err := container.Provide(p.Constructor, p.Options...); err != nil </span><span class="cov1" title="1">{
                                 return fmt.Errorf("failed to provide %d-th dependency: %w", i, err)
                         }</span>
-                default:<span class="cov8" title="58">
+                default:<span class="cov8" title="62">
                         if err := container.Provide(provider); err != nil </span><span class="cov1" title="1">{
                                 return fmt.Errorf("failed to provide %d-th dependency: %w", i, err)
                         }</span>
@@ -4361,11 +4365,11 @@ func (h *diagLogHandler) Handle(ctx context.Context, rec slog.Record) error <spa
         <span class="cov8" title="130">return h.target.Handle(ctx, rec)</span>
 }
 
-func (h *diagLogHandler) WithAttrs(attrs []slog.Attr) slog.Handler <span class="cov10" title="262">{
+func (h *diagLogHandler) WithAttrs(attrs []slog.Attr) slog.Handler <span class="cov10" title="269">{
         return &amp;diagLogHandler{target: h.target.WithAttrs(attrs)}
 }</span>
 
-func (h *diagLogHandler) WithGroup(name string) slog.Handler <span class="cov9" title="261">{
+func (h *diagLogHandler) WithGroup(name string) slog.Handler <span class="cov9" title="268">{
         // Using WithAttrs here since group will nest all the attributes
         // inside of it (including correlationId), which makes it harder to
         // filter logs by the correlationId.
@@ -4394,7 +4398,7 @@ func (opts *RootLoggerOpts) WithLogLevel(logLevel slog.Level) *RootLoggerOpts <s
         return opts
 }</span>
 
-func (opts *RootLoggerOpts) WithOutput(output io.Writer) *RootLoggerOpts <span class="cov8" title="134">{
+func (opts *RootLoggerOpts) WithOutput(output io.Writer) *RootLoggerOpts <span class="cov8" title="141">{
         opts.output = output
         return opts
 }</span>
@@ -4411,21 +4415,21 @@ func (opts *RootLoggerOpts) WithOptionalOutputFile(outputFile string) *RootLogge
         return opts</span>
 }
 
-func NewRootLoggerOpts() *RootLoggerOpts <span class="cov8" title="140">{
+func NewRootLoggerOpts() *RootLoggerOpts <span class="cov9" title="147">{
         return &amp;RootLoggerOpts{
                 output: os.Stdout,
         }
 }</span>
 
-func SetupRootLogger(opts *RootLoggerOpts) *slog.Logger <span class="cov8" title="140">{
+func SetupRootLogger(opts *RootLoggerOpts) *slog.Logger <span class="cov9" title="147">{
         logHandlerOpts := &amp;slog.HandlerOptions{Level: opts.logLevel}
         var logHandler slog.Handler
         if opts.jsonLogs </span><span class="cov1" title="1">{
                 logHandler = slog.NewJSONHandler(opts.output, logHandlerOpts)
-        }</span> else<span class="cov8" title="139"> {
+        }</span> else<span class="cov9" title="146"> {
                 logHandler = slog.NewTextHandler(opts.output, logHandlerOpts)
         }</span>
-        <span class="cov8" title="140">return slog.New(&amp;diagLogHandler{target: logHandler})</span>
+        <span class="cov9" title="147">return slog.New(&amp;diagLogHandler{target: logHandler})</span>
 }
 </pre>
 		
@@ -4458,14 +4462,327 @@ func openTestLogFile() *os.File <span class="cov5" title="15">{
 
 var testOutput = openTestLogFile() //nolint:gochecknoglobals //it's ok for tests
 
-func RootTestLogger() *slog.Logger <span class="cov10" title="133">{
+func RootTestLogger() *slog.Logger <span class="cov10" title="140">{
         return SetupRootLogger(
                 NewRootLoggerOpts().WithOutput(testOutput),
         )
 }</span>
 </pre>
 		
-		<pre class="file" id="file47" style="display: none">package bitbucket
+		<pre class="file" id="file47" style="display: none">//go:build !release
+
+package services
+
+import (
+        "github.com/gemyago/atlacp/internal/app"
+        "github.com/go-faker/faker/v4"
+)
+
+// AtlassianAccountOpt is a function that configures an AtlassianAccount.
+type AtlassianAccountOpt func(*app.AtlassianAccount)
+
+// WithAtlassianAccountDefault sets the account as default.
+func WithAtlassianAccountDefault(isDefault bool) AtlassianAccountOpt <span class="cov5" title="5">{
+        return func(a *app.AtlassianAccount) </span><span class="cov5" title="5">{
+                a.Default = isDefault
+        }</span>
+}
+
+// WithAtlassianAccountName sets the account name.
+func WithAtlassianAccountName(name string) AtlassianAccountOpt <span class="cov7" title="9">{
+        return func(a *app.AtlassianAccount) </span><span class="cov7" title="9">{
+                a.Name = name
+        }</span>
+}
+
+// WithAtlassianAccountBitbucket adds a Bitbucket configuration to the account.
+func WithAtlassianAccountBitbucket(opts ...BitbucketAccountOpt) AtlassianAccountOpt <span class="cov0" title="0">{
+        return func(a *app.AtlassianAccount) </span><span class="cov0" title="0">{
+                a.Bitbucket = NewRandomBitbucketAccount(opts...)
+        }</span>
+}
+
+// WithAtlassianAccountJira adds a Jira configuration to the account.
+func WithAtlassianAccountJira(opts ...JiraAccountOpt) AtlassianAccountOpt <span class="cov0" title="0">{
+        return func(a *app.AtlassianAccount) </span><span class="cov0" title="0">{
+                a.Jira = NewRandomJiraAccount(opts...)
+        }</span>
+}
+
+// BitbucketAccountOpt is a function that configures a BitbucketAccount.
+type BitbucketAccountOpt func(*app.BitbucketAccount)
+
+// WithBitbucketAccountToken sets the Bitbucket token.
+func WithBitbucketAccountToken(token string) BitbucketAccountOpt <span class="cov0" title="0">{
+        return func(b *app.BitbucketAccount) </span><span class="cov0" title="0">{
+                b.Token = token
+        }</span>
+}
+
+// WithBitbucketAccountWorkspace sets the Bitbucket workspace.
+func WithBitbucketAccountWorkspace(workspace string) BitbucketAccountOpt <span class="cov0" title="0">{
+        return func(b *app.BitbucketAccount) </span><span class="cov0" title="0">{
+                b.Workspace = workspace
+        }</span>
+}
+
+// JiraAccountOpt is a function that configures a JiraAccount.
+type JiraAccountOpt func(*app.JiraAccount)
+
+// WithJiraAccountToken sets the Jira token.
+func WithJiraAccountToken(token string) JiraAccountOpt <span class="cov0" title="0">{
+        return func(j *app.JiraAccount) </span><span class="cov0" title="0">{
+                j.Token = token
+        }</span>
+}
+
+// WithJiraAccountDomain sets the Jira domain.
+func WithJiraAccountDomain(domain string) JiraAccountOpt <span class="cov0" title="0">{
+        return func(j *app.JiraAccount) </span><span class="cov0" title="0">{
+                j.Domain = domain
+        }</span>
+}
+
+// NewRandomAtlassianAccount generates a random AtlassianAccount for testing.
+// Options can be used to customize the account.
+func NewRandomAtlassianAccount(opts ...AtlassianAccountOpt) app.AtlassianAccount <span class="cov10" title="23">{
+        account := app.AtlassianAccount{
+                Name:      faker.Name(),
+                Bitbucket: NewRandomBitbucketAccount(),
+                Jira:      NewRandomJiraAccount(),
+        }
+
+        // Apply all options
+        for _, opt := range opts </span><span class="cov8" title="14">{
+                opt(&amp;account)
+        }</span>
+
+        <span class="cov10" title="23">return account</span>
+}
+
+// NewRandomBitbucketAccount generates a random BitbucketAccount for testing.
+func NewRandomBitbucketAccount(opts ...BitbucketAccountOpt) *app.BitbucketAccount <span class="cov10" title="23">{
+        account := &amp;app.BitbucketAccount{
+                Token:     faker.UUIDHyphenated(),
+                Workspace: faker.Username(),
+        }
+
+        // Apply all options
+        for _, opt := range opts </span><span class="cov0" title="0">{
+                opt(account)
+        }</span>
+
+        <span class="cov10" title="23">return account</span>
+}
+
+// NewRandomJiraAccount generates a random JiraAccount for testing.
+func NewRandomJiraAccount(opts ...JiraAccountOpt) *app.JiraAccount <span class="cov10" title="23">{
+        account := &amp;app.JiraAccount{
+                Token:  faker.UUIDHyphenated(),
+                Domain: faker.DomainName(),
+        }
+
+        // Apply all options
+        for _, opt := range opts </span><span class="cov0" title="0">{
+                opt(account)
+        }</span>
+
+        <span class="cov10" title="23">return account</span>
+}
+</pre>
+		
+		<pre class="file" id="file48" style="display: none">package services
+
+import (
+        "context"
+        "encoding/json"
+        "errors"
+        "fmt"
+        "log/slog"
+        "os"
+
+        "github.com/gemyago/atlacp/internal/app"
+        "go.uber.org/dig"
+)
+
+// atlassianAccountsConfig represents the structure of the accounts configuration file.
+type atlassianAccountsConfig struct {
+        // List of Atlassian accounts
+        Accounts []app.AtlassianAccount `json:"accounts"`
+}
+
+// atlassianAccountsRepository implements the app.AtlassianAccountsRepository interface.
+type atlassianAccountsRepository struct {
+        config *atlassianAccountsConfig
+        logger *slog.Logger
+}
+
+// AtlassianAccountsRepositoryDeps contains dependencies for the accounts repository.
+type AtlassianAccountsRepositoryDeps struct {
+        dig.In
+
+        RootLogger *slog.Logger
+        ConfigPath string `name:"config.atlassian.accountsFilePath" optional:"true"`
+}
+
+// NewAtlassianAccountsRepository creates a new Atlassian accounts repository.
+func NewAtlassianAccountsRepository(deps AtlassianAccountsRepositoryDeps) (app.AtlassianAccountsRepository, error) <span class="cov6" title="6">{
+        logger := deps.RootLogger.WithGroup("atlassian-accounts")
+        configPath := deps.ConfigPath
+
+        // Use default path if not specified
+        if configPath == "" </span><span class="cov0" title="0">{
+                return nil, errors.New("accounts configuration path not specified")
+        }</span>
+
+        // Check if file exists
+        <span class="cov6" title="6">if _, err := os.Stat(configPath); os.IsNotExist(err) </span><span class="cov1" title="1">{
+                return nil, fmt.Errorf("accounts configuration file not found at %s", configPath)
+        }</span>
+
+        // Read and parse configuration
+        <span class="cov6" title="5">data, err := os.ReadFile(configPath)
+        if err != nil </span><span class="cov1" title="1">{
+                return nil, fmt.Errorf("failed to read accounts configuration: %w", err)
+        }</span>
+
+        <span class="cov5" title="4">var config atlassianAccountsConfig
+        if unmarshalErr := json.Unmarshal(data, &amp;config); unmarshalErr != nil </span><span class="cov1" title="1">{
+                return nil, fmt.Errorf("failed to parse accounts configuration: %w", unmarshalErr)
+        }</span>
+
+        // Validate configuration
+        <span class="cov4" title="3">if validateErr := validateAccountsConfig(&amp;config); validateErr != nil </span><span class="cov0" title="0">{
+                return nil, fmt.Errorf("invalid accounts configuration: %w", validateErr)
+        }</span>
+
+        <span class="cov4" title="3">return &amp;atlassianAccountsRepository{
+                config: &amp;config,
+                logger: logger,
+        }, nil</span>
+}
+
+// GetDefaultAccount returns the default Atlassian account configuration.
+func (r *atlassianAccountsRepository) GetDefaultAccount(_ context.Context) (*app.AtlassianAccount, error) <span class="cov3" title="2">{
+        for i, account := range r.config.Accounts </span><span class="cov5" title="4">{
+                if account.Default </span><span class="cov1" title="1">{
+                        return &amp;r.config.Accounts[i], nil
+                }</span>
+        }
+        <span class="cov1" title="1">return nil, app.ErrNoDefaultAccount</span>
+}
+
+// GetAccountByName returns an account with the specified name.
+func (r *atlassianAccountsRepository) GetAccountByName(_ context.Context, name string) (*app.AtlassianAccount, error) <span class="cov3" title="2">{
+        for i, account := range r.config.Accounts </span><span class="cov6" title="6">{
+                if account.Name == name </span><span class="cov1" title="1">{
+                        return &amp;r.config.Accounts[i], nil
+                }</span>
+        }
+        <span class="cov1" title="1">return nil, fmt.Errorf("%w: %s", app.ErrAccountNotFound, name)</span>
+}
+
+// validateAccountsConfig validates the accounts configuration.
+func validateAccountsConfig(config *atlassianAccountsConfig) error <span class="cov7" title="7">{
+        if len(config.Accounts) == 0 </span><span class="cov1" title="1">{
+                return errors.New("no accounts configured")
+        }</span>
+
+        <span class="cov6" title="6">accountNames := make(map[string]bool)
+        foundDefault := false
+
+        for _, account := range config.Accounts </span><span class="cov9" title="15">{
+                // Validate basic account properties
+                if err := validateBasicAccountProperties(account, accountNames); err != nil </span><span class="cov1" title="1">{
+                        return err
+                }</span>
+                <span class="cov9" title="14">accountNames[account.Name] = true
+
+                // Validate service-specific configuration
+                if err := validateServiceConfigs(account); err != nil </span><span class="cov0" title="0">{
+                        return err
+                }</span>
+
+                // Track default account
+                <span class="cov9" title="14">if account.Default </span><span class="cov6" title="5">{
+                        if foundDefault </span><span class="cov1" title="1">{
+                                return errors.New("multiple default accounts defined")
+                        }</span>
+                        <span class="cov5" title="4">foundDefault = true</span>
+                }
+        }
+
+        // Ensure at least one default account exists
+        <span class="cov5" title="4">if !foundDefault </span><span class="cov1" title="1">{
+                return errors.New("no default account specified")
+        }</span>
+
+        <span class="cov4" title="3">return nil</span>
+}
+
+// validateBasicAccountProperties validates non-service-specific account properties.
+func validateBasicAccountProperties(account app.AtlassianAccount, existingNames map[string]bool) error <span class="cov10" title="17">{
+        // Check for duplicate names
+        if existingNames[account.Name] </span><span class="cov1" title="1">{
+                return fmt.Errorf("duplicate account name: %s", account.Name)
+        }</span>
+
+        // Check that name is specified
+        <span class="cov9" title="16">if account.Name == "" </span><span class="cov1" title="1">{
+                return errors.New("account missing name")
+        }</span>
+
+        // Ensure at least one service is configured
+        <span class="cov9" title="15">if account.Bitbucket == nil &amp;&amp; account.Jira == nil </span><span class="cov1" title="1">{
+                return fmt.Errorf("account %s must have at least one service configured", account.Name)
+        }</span>
+
+        <span class="cov9" title="14">return nil</span>
+}
+
+// validateServiceConfigs validates Bitbucket and Jira configurations for an account.
+func validateServiceConfigs(account app.AtlassianAccount) error <span class="cov9" title="14">{
+        // Validate Bitbucket configuration if provided
+        if account.Bitbucket != nil </span><span class="cov9" title="14">{
+                if err := validateBitbucketConfig(account); err != nil </span><span class="cov0" title="0">{
+                        return err
+                }</span>
+        }
+
+        // Validate Jira configuration if provided
+        <span class="cov9" title="14">if account.Jira != nil </span><span class="cov9" title="14">{
+                if err := validateJiraConfig(account); err != nil </span><span class="cov0" title="0">{
+                        return err
+                }</span>
+        }
+
+        <span class="cov9" title="14">return nil</span>
+}
+
+// validateBitbucketConfig validates Bitbucket-specific configuration.
+func validateBitbucketConfig(account app.AtlassianAccount) error <span class="cov9" title="16">{
+        if account.Bitbucket.Token == "" </span><span class="cov1" title="1">{
+                return fmt.Errorf("account %s is missing Bitbucket token", account.Name)
+        }</span>
+        <span class="cov9" title="15">if account.Bitbucket.Workspace == "" </span><span class="cov1" title="1">{
+                return fmt.Errorf("account %s is missing Bitbucket workspace", account.Name)
+        }</span>
+        <span class="cov9" title="14">return nil</span>
+}
+
+// validateJiraConfig validates Jira-specific configuration.
+func validateJiraConfig(account app.AtlassianAccount) error <span class="cov9" title="16">{
+        if account.Jira.Token == "" </span><span class="cov1" title="1">{
+                return fmt.Errorf("account %s is missing Jira token", account.Name)
+        }</span>
+        <span class="cov9" title="15">if account.Jira.Domain == "" </span><span class="cov1" title="1">{
+                return fmt.Errorf("account %s is missing Jira domain", account.Name)
+        }</span>
+        <span class="cov9" title="14">return nil</span>
+}
+</pre>
+		
+		<pre class="file" id="file49" style="display: none">package bitbucket
 
 import (
         "context"
@@ -4513,7 +4830,7 @@ func (c *Client) ApprovePR(
 }
 </pre>
 		
-		<pre class="file" id="file48" style="display: none">package bitbucket
+		<pre class="file" id="file50" style="display: none">package bitbucket
 
 import (
         "context"
@@ -4555,7 +4872,7 @@ func NewClient(deps ClientDeps) *Client <span class="cov10" title="20">{
 }</span>
 </pre>
 		
-		<pre class="file" id="file49" style="display: none">package bitbucket
+		<pre class="file" id="file51" style="display: none">package bitbucket
 
 import (
         "context"
@@ -4601,7 +4918,7 @@ func (c *Client) CreatePR(
 }
 </pre>
 		
-		<pre class="file" id="file50" style="display: none">package bitbucket
+		<pre class="file" id="file52" style="display: none">package bitbucket
 
 import (
         "context"
@@ -4646,7 +4963,7 @@ func (c *Client) GetPR(
 }
 </pre>
 		
-		<pre class="file" id="file51" style="display: none">package bitbucket
+		<pre class="file" id="file53" style="display: none">package bitbucket
 
 import (
         "context"
@@ -4715,7 +5032,7 @@ func (c *Client) MergePR(
 }
 </pre>
 		
-		<pre class="file" id="file52" style="display: none">package bitbucket
+		<pre class="file" id="file54" style="display: none">package bitbucket
 
 import (
         "context"
@@ -4762,7 +5079,7 @@ func (c *Client) UpdatePR(
 }
 </pre>
 		
-		<pre class="file" id="file53" style="display: none">package http
+		<pre class="file" id="file55" style="display: none">package http
 
 import (
         "log/slog"
@@ -4883,7 +5200,7 @@ func (f *ClientFactory) CreateClient(options ...ClientOption) *http.Client <span
 }
 </pre>
 		
-		<pre class="file" id="file54" style="display: none">package middleware
+		<pre class="file" id="file56" style="display: none">package middleware
 
 import (
         "context"
@@ -4948,7 +5265,7 @@ func (a *AuthenticationMiddleware) RoundTrip(req *http.Request) (*http.Response,
 }
 </pre>
 		
-		<pre class="file" id="file55" style="display: none">package middleware
+		<pre class="file" id="file57" style="display: none">package middleware
 
 import (
         "bytes"
@@ -5073,7 +5390,7 @@ func (e *ErrorHandlingMiddleware) RoundTrip(req *http.Request) (*http.Response, 
 }
 </pre>
 		
-		<pre class="file" id="file56" style="display: none">package middleware
+		<pre class="file" id="file58" style="display: none">package middleware
 
 import (
         "log/slog"
@@ -5138,7 +5455,7 @@ func (l *LoggingMiddleware) RoundTrip(req *http.Request) (*http.Response, error)
 }
 </pre>
 		
-		<pre class="file" id="file57" style="display: none">package http
+		<pre class="file" id="file59" style="display: none">package http
 
 import (
         "bytes"
@@ -5203,7 +5520,7 @@ func SendRequest[TBody any, TTarget any](
 }
 </pre>
 		
-		<pre class="file" id="file58" style="display: none">package jira
+		<pre class="file" id="file60" style="display: none">package jira
 
 import (
         "context"
@@ -5252,7 +5569,7 @@ func (c *Client) GetBaseURL(domain string) string <span class="cov9" title="11">
 }</span>
 </pre>
 		
-		<pre class="file" id="file59" style="display: none">package jira
+		<pre class="file" id="file61" style="display: none">package jira
 
 import (
         "context"
@@ -5328,7 +5645,7 @@ func joinStrings(items []string) string <span class="cov4" title="2">{
 }
 </pre>
 		
-		<pre class="file" id="file60" style="display: none">package jira
+		<pre class="file" id="file62" style="display: none">package jira
 
 import (
         "context"
@@ -5395,7 +5712,7 @@ func (c *Client) ManageLabels(
 }
 </pre>
 		
-		<pre class="file" id="file61" style="display: none">package jira
+		<pre class="file" id="file63" style="display: none">package jira
 
 import (
         "context"
@@ -5452,7 +5769,7 @@ func (c *Client) TransitionTicket(
 }
 </pre>
 		
-		<pre class="file" id="file62" style="display: none">package services
+		<pre class="file" id="file64" style="display: none">package services
 
 import (
         "time"
@@ -5472,11 +5789,12 @@ func Register(container *dig.Container) error <span class="cov10" title="4">{
                 httpservices.NewClientFactory,
                 bitbucket.NewClient,
                 jira.NewClient,
+                NewAtlassianAccountsRepository,
         )
 }</span>
 </pre>
 		
-		<pre class="file" id="file63" style="display: none">// ShutdownHooks are used to implement a graceful shutdown
+		<pre class="file" id="file65" style="display: none">// ShutdownHooks are used to implement a graceful shutdown
 // of the application. This may include closing database connections, flushing pending
 // events to the queue, shutting down the http server, etc.
 
@@ -5571,7 +5889,7 @@ func NewShutdownHooks(deps ShutdownHooksRegistryDeps) *ShutdownHooks <span class
 }</span>
 </pre>
 		
-		<pre class="file" id="file64" style="display: none">//go:build !release
+		<pre class="file" id="file66" style="display: none">//go:build !release
 
 package services
 
@@ -5620,7 +5938,7 @@ func NewTestShutdownHooks() *ShutdownHooks <span class="cov10" title="5">{
 }</span>
 </pre>
 		
-		<pre class="file" id="file65" style="display: none">package services
+		<pre class="file" id="file67" style="display: none">package services
 
 import "time"
 
