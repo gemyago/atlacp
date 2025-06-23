@@ -8,3 +8,4 @@ alwaysApply: false
 * Mockery v2 is still used
 * It's configured via mockery config .mockery.yaml
 * If you need to regenerate mocks, always run `mockery` from project root without args
+* Add new interfaces to the .mockery.yaml as needed
