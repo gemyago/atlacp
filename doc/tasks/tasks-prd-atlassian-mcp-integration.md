@@ -135,11 +135,11 @@ Please read referenced files to understand the problem:
   - [x] 4.2 Create `internal/app/ports.go` with Atlassian accounts repository interface
   - [x] 4.3 Implement `GetDefaultAccount()` method for retrieving configured default account
   - [x] 4.4 Implement `GetAccountByName(name string)` method for retrieving specific named accounts
-  - [ ] 4.5 Add support for separate Bitbucket and Jira credentials per account with dynamic URL parameters
-  - [ ] 4.6 Implement file reading, parsing, and validation logic with proper error handling
-  - [ ] 4.7 Handle workspace and domain parameters from account configuration (not main config)
-  - [ ] 4.8 Create comprehensive unit tests in `internal/services/atlassian_accounts_test.go`
-  - [ ] 4.9 Register accounts repository in `internal/services/register.go`
+  - [x] 4.5 Add support for separate Bitbucket and Jira credentials per account with dynamic URL parameters
+  - [x] 4.6 Implement file reading, parsing, and validation logic with proper error handling
+  - [x] 4.7 Handle workspace and domain parameters from account configuration (not main config)
+  - [x] 4.8 Create comprehensive unit tests in `internal/services/atlassian_accounts_test.go`
+  - [x] 4.9 Register accounts repository in `internal/services/register.go`
 - [ ] 5.0 Bitbucket MCP Integration
   - [ ] 5.1 Create `internal/app/bitbucket.go` with business logic service interface and implementation
   - [ ] 5.2 Implement `bitbucket_create_pr` tool: Create pull requests with template support and reviewer assignment
