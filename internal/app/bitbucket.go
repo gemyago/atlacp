@@ -184,8 +184,7 @@ func (s *BitbucketService) CreatePR(
 	}
 
 	// Create token provider using account token
-	tokenProvider := NewStaticTokenProvider(account.Bitbucket.Token)
-	bitbucketTokenProvider := NewBitbucketTokenProviderAdapter(tokenProvider)
+	tokenProvider := newStaticTokenProvider(account.Bitbucket.Token)
 
 	// Build pull request object
 	prRequest := &bitbucket.PullRequest{
@@ -215,7 +214,7 @@ func (s *BitbucketService) CreatePR(
 	}
 
 	// Call the client to create the pull request
-	return s.client.CreatePR(ctx, bitbucketTokenProvider, bitbucket.CreatePRParams{
+	return s.client.CreatePR(ctx, tokenProvider, bitbucket.CreatePRParams{
 		Username: account.Bitbucket.Workspace,
 		RepoSlug: params.RepoName,
 		Request:  prRequest,

@@ -15,7 +15,7 @@ func TestTokenProviders(t *testing.T) {
 		t.Run("should return the provided token", func(t *testing.T) {
 			// Arrange
 			expectedToken := "token-" + faker.UUIDHyphenated()
-			provider := NewStaticTokenProvider(expectedToken)
+			provider := newStaticTokenProvider(expectedToken)
 
 			// Act
 			token, err := provider.GetToken(t.Context())
@@ -27,7 +27,7 @@ func TestTokenProviders(t *testing.T) {
 
 		t.Run("should accept empty token", func(t *testing.T) {
 			// Arrange
-			provider := NewStaticTokenProvider("")
+			provider := newStaticTokenProvider("")
 
 			// Act
 			token, err := provider.GetToken(t.Context())
@@ -39,7 +39,7 @@ func TestTokenProviders(t *testing.T) {
 
 		t.Run("should handle context cancellation gracefully", func(t *testing.T) {
 			// Arrange
-			provider := NewStaticTokenProvider("test-token")
+			provider := newStaticTokenProvider("test-token")
 			ctx, cancel := context.WithCancel(t.Context())
 			cancel() // Cancel the context
 
@@ -49,22 +49,6 @@ func TestTokenProviders(t *testing.T) {
 			// Assert - should still work because the implementation doesn't use the context
 			require.NoError(t, err)
 			assert.Equal(t, "test-token", token)
-		})
-	})
-
-	t.Run("BitbucketTokenProviderAdapter", func(t *testing.T) {
-		t.Run("should delegate to the underlying provider", func(t *testing.T) {
-			// Arrange
-			expectedToken := "token-" + faker.UUIDHyphenated()
-			provider := NewStaticTokenProvider(expectedToken)
-			adapter := NewBitbucketTokenProviderAdapter(provider)
-
-			// Act
-			token, err := adapter.GetToken(t.Context())
-
-			// Assert
-			require.NoError(t, err)
-			assert.Equal(t, expectedToken, token)
 		})
 	})
 }
