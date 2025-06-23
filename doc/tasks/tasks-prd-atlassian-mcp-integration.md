@@ -27,8 +27,12 @@ Please read referenced files to understand the problem:
 - `internal/services/jira/get_ticket.go` - GetTicket operation implementation (✓ created)
 - `internal/services/jira/transition_ticket.go` - TransitionTicket operation implementation (✓ created)
 - `internal/services/jira/manage_labels.go` - ManageLabels operation implementation (✓ created)
+- `internal/app/atlassian_accounts.go` - Atlassian account models in application layer (✓ created)
+- `internal/app/ports.go` - Application layer ports (interfaces) for repositories (✓ created)
+- `doc/atlassian-accounts-schema.md` - JSON schema documentation for Atlassian accounts (✓ created)
+- `examples/atlassian-accounts.json` - Example Atlassian accounts configuration (✓ created)
 - `internal/services/atlassian_client.go` - Atlassian-specific HTTP client implementation
-- `internal/services/atlassian_accounts.go` - Accounts repository for managing multiple named Atlassian accounts
+- `internal/services/atlassian_accounts.go` - Accounts repository for managing multiple named Atlassian accounts (✓ created stub)
 - `internal/app/bitbucket.go` - Business logic for Bitbucket operations
 - `internal/app/jira.go` - Business logic for Jira operations
 - `internal/api/mcp/controllers/bitbucket.go` - MCP controller for Bitbucket tools
@@ -127,15 +131,15 @@ Please read referenced files to understand the problem:
   - [x] 3.7 Add Atlassian-specific error response parsing and meaningful error messages (research if needed)
   - [x] 3.8 Register Atlassian HTTP clients in `internal/services/register.go`
 - [ ] 4.0 Accounts Management System
-  - [ ] 4.1 Design accounts file JSON schema with multiple named accounts and default account specification
-  - [ ] 4.2 Create `internal/services/atlassian_accounts.go` with accounts repository interface
-  - [ ] 4.3 Implement `GetDefaultAccount()` method for retrieving configured default account
-  - [ ] 4.4 Implement `GetAccountByName(name string)` method for retrieving specific named accounts
-  - [ ] 4.5 Add support for separate Bitbucket and Jira credentials per account with dynamic URL parameters
-  - [ ] 4.6 Implement file reading, parsing, and validation logic with proper error handling
-  - [ ] 4.7 Handle workspace and domain parameters from account configuration (not main config)
-  - [ ] 4.8 Create comprehensive unit tests in `internal/services/atlassian_accounts_test.go`
-  - [ ] 4.9 Register accounts repository in `internal/services/register.go`
+  - [x] 4.1 Design accounts file JSON schema with multiple named accounts and default account specification
+  - [x] 4.2 Create `internal/app/ports.go` with Atlassian accounts repository interface
+  - [x] 4.3 Implement `GetDefaultAccount()` method for retrieving configured default account
+  - [x] 4.4 Implement `GetAccountByName(name string)` method for retrieving specific named accounts
+  - [x] 4.5 Add support for separate Bitbucket and Jira credentials per account with dynamic URL parameters
+  - [x] 4.6 Implement file reading, parsing, and validation logic with proper error handling
+  - [x] 4.7 Handle workspace and domain parameters from account configuration (not main config)
+  - [x] 4.8 Create comprehensive unit tests in `internal/services/atlassian_accounts_test.go`
+  - [x] 4.9 Register accounts repository in `internal/services/register.go`
 - [ ] 5.0 Bitbucket MCP Integration
   - [ ] 5.1 Create `internal/app/bitbucket.go` with business logic service interface and implementation
   - [ ] 5.2 Implement `bitbucket_create_pr` tool: Create pull requests with template support and reviewer assignment

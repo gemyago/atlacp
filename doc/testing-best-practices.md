@@ -32,6 +32,84 @@
 - Avoid static variables shared across tests
 - Use random data when possible, use faker (github.com/go-faker/faker/v4)
 - Don't pollute testing namespace - if helper functions are only used within one test, nest them inside that test function
+- Compare entire structs when possible instead of individual fields (e.g `assert.Equal(t, expectedUser, actualUser)`)
+- Use options pattern for test data generation to make tests more readable and maintainable
+
+### IMPORTANT: Always Use Randomized Data
+
+Never use static strings or values in tests unless absolutely necessary. Always use faker to generate random data:
+
+```go
+// DON'T DO THIS:
+user := NewRandomUser(WithUserName("john_doe"))  // Static name
+
+// DO THIS:
+user := NewRandomUser(WithUserName("user-" + faker.Username()))  // Randomized name
+```
+
+If static data is absolutely required (e.g., for testing specific edge cases or validation rules), add a comment explaining why:
+
+```go
+// Static value required here because we're testing the specific validation rule for reserved usernames
+user := NewRandomUser(WithUserName("admin"))  // "admin" is a reserved name in our system
+```
+
+Benefits of randomized data:
+- Prevents accidental dependencies between tests
+- Catches edge cases that might only appear with certain data
+- Makes tests more robust against future changes
+- Ensures tests work with a variety of inputs, not just carefully chosen examples
+
+### Use Options Pattern for Test Data
+
+Create flexible test data generators with the options pattern:
+
+```go
+// The file should be named similar to `accounts_testing.go`
+// and have "//go:build !release" tag to avoid including it in the release build
+
+// Define option function type
+type RandomUserOpt func(*User)
+
+// Create option functions
+func WithRandomUserName(name string) RandomUserOpt {
+    return func(u *User) {
+        u.Name = name
+    }
+}
+
+// Create generator function
+func NewRandomUser(opts ...RandomUserOpt) User {
+    user := User{
+        ID:   faker.UUIDHyphenated(),
+        Name: faker.Name(),
+    }
+    
+    // Apply all options
+    for _, opt := range opts {
+        opt(&user)
+    }
+    
+    return user
+}
+
+// In tests
+user := NewRandomUser(WithRandomUserName("test-user"))
+```
+
+### Use Struct Comparison
+
+Compare entire structs instead of individual fields:
+
+```go
+// Instead of this:
+assert.Equal(t, expectedUser.ID, actualUser.ID)
+assert.Equal(t, expectedUser.Name, actualUser.Name)
+assert.Equal(t, expectedUser.Email, actualUser.Email)
+
+// Do this:
+assert.Equal(t, expectedUser, actualUser)
+```
 
 ### Use makeMockDeps()
 
@@ -64,9 +142,13 @@ Larger structs/interfaces can be mocked with mockery by adding a new interface t
 
 ## Test Structure
 
-### Use Nested t.Run
+### IMPORTANT: Use a Single Top-level Test Function Per Component
+
+Always use a single top-level test function named after the component being tested, with nested t.Run blocks for each method or behavior:
+
 ```go
-func TestMyService(t *testing.T) {
+/// DO THIS: Single top-level function with nested tests
+func TestUserRepository(t *testing.T) {
     t.Run("should handle valid input", func(t *testing.T) {
         // Test the main functionality
     })
@@ -75,7 +157,17 @@ func TestMyService(t *testing.T) {
         // Test edge case that matters to business logic
     })
 }
+
+// DON'T DO THIS: Multiple top-level functions
+// func TestUserRepository_GetByID(t *testing.T) { ... }
+// func TestUserRepository_Create(t *testing.T) { ... }
 ```
+
+This approach:
+- Keeps all tests for a component organized in one place
+- Reduces duplication of setup code
+- Makes it easier to run all tests for a component
+- Follows the project's established testing conventions
 
 ### Follow AAA Pattern
 - **Arrange** - Set up test data and mocks

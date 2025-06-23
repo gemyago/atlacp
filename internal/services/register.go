@@ -18,5 +18,6 @@ func Register(container *dig.Container) error {
 		httpservices.NewClientFactory,
 		bitbucket.NewClient,
 		jira.NewClient,
+		NewAtlassianAccountsRepository,
 	)
 }
