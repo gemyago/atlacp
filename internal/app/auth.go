@@ -15,7 +15,7 @@ func NewStaticTokenProvider(token string) *StaticTokenProvider {
 }
 
 // GetToken returns the static token.
-func (p *StaticTokenProvider) GetToken(ctx context.Context) (string, error) {
+func (p *StaticTokenProvider) GetToken(_ context.Context) (string, error) {
 	return p.token, nil
 }
 
