@@ -32,7 +32,7 @@ Please read referenced files to understand the problem:
 - `doc/atlassian-accounts-schema.md` - JSON schema documentation for Atlassian accounts (✓ created)
 - `examples/atlassian-accounts.json` - Example Atlassian accounts configuration (✓ created)
 - `internal/services/atlassian_client.go` - Atlassian-specific HTTP client implementation
-- `internal/services/atlassian_accounts.go` - Accounts repository for managing multiple named Atlassian accounts
+- `internal/services/atlassian_accounts.go` - Accounts repository for managing multiple named Atlassian accounts (✓ created stub)
 - `internal/app/bitbucket.go` - Business logic for Bitbucket operations
 - `internal/app/jira.go` - Business logic for Jira operations
 - `internal/api/mcp/controllers/bitbucket.go` - MCP controller for Bitbucket tools
