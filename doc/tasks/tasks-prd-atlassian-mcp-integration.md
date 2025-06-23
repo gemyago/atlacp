@@ -141,7 +141,7 @@ Please read referenced files to understand the problem:
   - [x] 4.8 Create comprehensive unit tests in `internal/services/atlassian_accounts_test.go`
   - [x] 4.9 Register accounts repository in `internal/services/register.go`
 - [ ] 5.0 Bitbucket MCP Integration
-  - [ ] 5.1 Create `internal/app/bitbucket.go` with business logic service interface and implementation
+  - [x] 5.1 Create `internal/app/bitbucket.go` with business logic service with all method stubs and initial skeleton for unit tests
   - [ ] 5.2 Implement `bitbucket_create_pr` tool: Create pull requests with template support and reviewer assignment
   - [ ] 5.3 Implement `bitbucket_read_pr` tool: Retrieve comprehensive PR details including status and reviews
   - [ ] 5.4 Implement `bitbucket_update_pr` tool: Update PR titles and descriptions with validation
