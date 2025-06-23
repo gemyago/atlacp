@@ -41,20 +41,7 @@ func TestBitbucketService(t *testing.T) {
 			)
 
 			repoName := "repo-" + faker.Username()
-			prTitle := "PR-" + faker.Sentence()
-			prDesc := faker.Paragraph()
-			sourceBranch := "feature/" + faker.Word()
-			destBranch := "main"
-			prID := int(faker.RandomUnixTime())
-
-			expectedPR := bitbucket.NewRandomPullRequest(
-				bitbucket.WithPullRequestID(prID),
-				bitbucket.WithPullRequestTitle(prTitle),
-				bitbucket.WithPullRequestDescription(prDesc),
-				bitbucket.WithPullRequestSourceBranch(sourceBranch),
-				bitbucket.WithPullRequestDestinationBranch(destBranch),
-				bitbucket.WithPullRequestCloseSourceBranch(true),
-			)
+			expectedPR := bitbucket.NewRandomPullRequest()
 
 			// Mock the accounts repo to return our test account
 			mockAccounts.EXPECT().
@@ -68,14 +55,24 @@ func TestBitbucketService(t *testing.T) {
 					assert.Equal(t, account.Bitbucket.Workspace, params.Username)
 					assert.Equal(t, repoName, params.RepoSlug)
 
-					// Verify the PR request
-					pr := params.Request
-					assert.Equal(t, prTitle, pr.Title)
-					assert.Equal(t, prDesc, pr.Description)
-					assert.Equal(t, sourceBranch, pr.Source.Branch.Name)
-					assert.Equal(t, destBranch, pr.Destination.Branch.Name)
-					assert.True(t, pr.CloseSourceBranch)
-					assert.Empty(t, pr.Reviewers) // No reviewers in this test
+					// Verify the PR request matches expected values
+					expectedRequest := &bitbucket.PullRequest{
+						Title:             expectedPR.Title,
+						Description:       expectedPR.Description,
+						CloseSourceBranch: true,
+						Source: bitbucket.PullRequestSource{
+							Branch: bitbucket.PullRequestBranch{
+								Name: expectedPR.Source.Branch.Name,
+							},
+						},
+						Destination: &bitbucket.PullRequestDestination{
+							Branch: bitbucket.PullRequestBranch{
+								Name: expectedPR.Destination.Branch.Name,
+							},
+						},
+					}
+					assert.Equal(t, expectedRequest, params.Request)
+					assert.Empty(t, params.Request.Reviewers) // No reviewers in this test
 
 					return true
 				})).
@@ -84,10 +81,10 @@ func TestBitbucketService(t *testing.T) {
 			// Act
 			result, err := service.CreatePR(t.Context(), BitbucketCreatePRParams{
 				RepoName:          repoName,
-				Title:             prTitle,
-				Description:       prDesc,
-				SourceBranch:      sourceBranch,
-				DestBranch:        destBranch,
+				Title:             expectedPR.Title,
+				Description:       expectedPR.Description,
+				SourceBranch:      expectedPR.Source.Branch.Name,
+				DestBranch:        expectedPR.Destination.Branch.Name,
 				CloseSourceBranch: true,
 			})
 
@@ -116,17 +113,7 @@ func TestBitbucketService(t *testing.T) {
 			)
 
 			repoName := "repo-" + faker.Username()
-			prTitle := "PR-" + faker.Sentence()
-			prDesc := faker.Paragraph()
-			sourceBranch := "feature/" + faker.Word()
-			destBranch := "main"
-			prID := int(faker.RandomUnixTime())
-
-			expectedPR := bitbucket.NewRandomPullRequest(
-				bitbucket.WithPullRequestID(prID),
-				bitbucket.WithPullRequestTitle(prTitle),
-				bitbucket.WithPullRequestDescription(prDesc),
-			)
+			expectedPR := bitbucket.NewRandomPullRequest()
 
 			// Mock the accounts repo to return our test account
 			mockAccounts.EXPECT().
@@ -146,10 +133,10 @@ func TestBitbucketService(t *testing.T) {
 			result, err := service.CreatePR(t.Context(), BitbucketCreatePRParams{
 				AccountName:  accountName,
 				RepoName:     repoName,
-				Title:        prTitle,
-				Description:  prDesc,
-				SourceBranch: sourceBranch,
-				DestBranch:   destBranch,
+				Title:        expectedPR.Title,
+				Description:  expectedPR.Description,
+				SourceBranch: expectedPR.Source.Branch.Name,
+				DestBranch:   expectedPR.Destination.Branch.Name,
 			})
 
 			// Assert
@@ -179,10 +166,7 @@ func TestBitbucketService(t *testing.T) {
 			}
 
 			repoName := "repo-" + faker.Username()
-			prTitle := "PR-" + faker.Sentence()
-			sourceBranch := "feature/" + faker.Word()
-			destBranch := "main"
-			prID := int(faker.RandomUnixTime())
+			expectedPR := bitbucket.NewRandomPullRequest()
 
 			// Mock the accounts repo
 			mockAccounts.EXPECT().
@@ -199,16 +183,14 @@ func TestBitbucketService(t *testing.T) {
 					}
 					return true
 				})).
-				Return(bitbucket.NewRandomPullRequest(
-					bitbucket.WithPullRequestID(prID),
-				), nil)
+				Return(expectedPR, nil)
 
 			// Act
 			result, err := service.CreatePR(t.Context(), BitbucketCreatePRParams{
 				RepoName:     repoName,
-				Title:        prTitle,
-				SourceBranch: sourceBranch,
-				DestBranch:   destBranch,
+				Title:        expectedPR.Title,
+				SourceBranch: expectedPR.Source.Branch.Name,
+				DestBranch:   expectedPR.Destination.Branch.Name,
 				Reviewers:    reviewers,
 			})
 
@@ -225,9 +207,7 @@ func TestBitbucketService(t *testing.T) {
 			service := NewBitbucketService(deps)
 
 			repoName := "repo-" + faker.Username()
-			prTitle := "PR-" + faker.Sentence()
-			sourceBranch := "feature/" + faker.Word()
-			destBranch := "main"
+			expectedPR := bitbucket.NewRandomPullRequest()
 
 			// Account not found
 			mockAccounts.EXPECT().
@@ -237,9 +217,9 @@ func TestBitbucketService(t *testing.T) {
 			// Act
 			result, err := service.CreatePR(t.Context(), BitbucketCreatePRParams{
 				RepoName:     repoName,
-				Title:        prTitle,
-				SourceBranch: sourceBranch,
-				DestBranch:   destBranch,
+				Title:        expectedPR.Title,
+				SourceBranch: expectedPR.Source.Branch.Name,
+				DestBranch:   expectedPR.Destination.Branch.Name,
 			})
 
 			// Assert
@@ -257,9 +237,7 @@ func TestBitbucketService(t *testing.T) {
 
 			accountName := "non-existent-" + faker.Username()
 			repoName := "repo-" + faker.Username()
-			prTitle := "PR-" + faker.Sentence()
-			sourceBranch := "feature/" + faker.Word()
-			destBranch := "main"
+			expectedPR := bitbucket.NewRandomPullRequest()
 
 			// Account not found
 			mockAccounts.EXPECT().
@@ -270,9 +248,9 @@ func TestBitbucketService(t *testing.T) {
 			result, err := service.CreatePR(t.Context(), BitbucketCreatePRParams{
 				AccountName:  accountName,
 				RepoName:     repoName,
-				Title:        prTitle,
-				SourceBranch: sourceBranch,
-				DestBranch:   destBranch,
+				Title:        expectedPR.Title,
+				SourceBranch: expectedPR.Source.Branch.Name,
+				DestBranch:   expectedPR.Destination.Branch.Name,
 			})
 
 			// Assert
@@ -289,9 +267,7 @@ func TestBitbucketService(t *testing.T) {
 			service := NewBitbucketService(deps)
 
 			repoName := "repo-" + faker.Username()
-			prTitle := "PR-" + faker.Sentence()
-			sourceBranch := "feature/" + faker.Word()
-			destBranch := "main"
+			expectedPR := bitbucket.NewRandomPullRequest()
 
 			// Account with no Bitbucket config, only Jira
 			account := NewRandomAtlassianAccount(
@@ -309,9 +285,9 @@ func TestBitbucketService(t *testing.T) {
 			// Act
 			result, err := service.CreatePR(t.Context(), BitbucketCreatePRParams{
 				RepoName:     repoName,
-				Title:        prTitle,
-				SourceBranch: sourceBranch,
-				DestBranch:   destBranch,
+				Title:        expectedPR.Title,
+				SourceBranch: expectedPR.Source.Branch.Name,
+				DestBranch:   expectedPR.Destination.Branch.Name,
 			})
 
 			// Assert
@@ -391,9 +367,7 @@ func TestBitbucketService(t *testing.T) {
 			service := NewBitbucketService(deps)
 
 			repoName := "repo-" + faker.Username()
-			prTitle := "PR-" + faker.Sentence()
-			sourceBranch := "feature/" + faker.Word()
-			destBranch := "main"
+			expectedPR := bitbucket.NewRandomPullRequest()
 
 			account := NewRandomAtlassianAccount(
 				WithAtlassianAccountName("default"),
@@ -416,9 +390,9 @@ func TestBitbucketService(t *testing.T) {
 			// Act
 			result, err := service.CreatePR(t.Context(), BitbucketCreatePRParams{
 				RepoName:     repoName,
-				Title:        prTitle,
-				SourceBranch: sourceBranch,
-				DestBranch:   destBranch,
+				Title:        expectedPR.Title,
+				SourceBranch: expectedPR.Source.Branch.Name,
+				DestBranch:   expectedPR.Destination.Branch.Name,
 			})
 
 			// Assert
