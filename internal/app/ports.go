@@ -3,6 +3,8 @@ package app
 import (
 	"context"
 	"errors"
+
+	"github.com/gemyago/atlacp/internal/services/bitbucket"
 )
 
 // AtlassianAccountsRepository defines the port for accessing Atlassian account information.
@@ -21,6 +23,45 @@ type AtlassianAccountsRepository interface {
 type TokenProvider interface {
 	// GetToken returns an authentication token for API requests.
 	GetToken(ctx context.Context) (string, error)
+}
+
+// BitbucketClient defines the interface for Bitbucket API operations.
+// This is an outbound port that will be implemented by the infrastructure layer.
+type BitbucketClient interface {
+	// CreatePR creates a new pull request in the specified repository.
+	CreatePR(
+		ctx context.Context,
+		tokenProvider bitbucket.TokenProvider,
+		params bitbucket.CreatePRParams,
+	) (*bitbucket.PullRequest, error)
+
+	// GetPR retrieves a specific pull request by ID.
+	GetPR(
+		ctx context.Context,
+		tokenProvider bitbucket.TokenProvider,
+		params bitbucket.GetPRParams,
+	) (*bitbucket.PullRequest, error)
+
+	// UpdatePR updates an existing pull request.
+	UpdatePR(
+		ctx context.Context,
+		tokenProvider bitbucket.TokenProvider,
+		params bitbucket.UpdatePRParams,
+	) (*bitbucket.PullRequest, error)
+
+	// ApprovePR approves a pull request.
+	ApprovePR(
+		ctx context.Context,
+		tokenProvider bitbucket.TokenProvider,
+		params bitbucket.ApprovePRParams,
+	) (*bitbucket.Participant, error)
+
+	// MergePR merges a pull request.
+	MergePR(
+		ctx context.Context,
+		tokenProvider bitbucket.TokenProvider,
+		params bitbucket.MergePRParams,
+	) (*bitbucket.PullRequest, error)
 }
 
 // Error types for account-related operations.
