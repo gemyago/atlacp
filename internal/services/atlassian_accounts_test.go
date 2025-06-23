@@ -172,4 +172,245 @@ func TestAtlassianAccountsRepository(t *testing.T) {
 			assert.Contains(t, err.Error(), nonExistentName, "Error should contain the account name")
 		})
 	})
+
+	t.Run("NewAtlassianAccountsRepository", func(t *testing.T) {
+		t.Run("should use default config path when not specified", func(t *testing.T) {
+			// Create a temporary accounts file in current directory
+			defaultAccount := NewRandomAtlassianAccount(WithAtlassianAccountDefault(true))
+			accounts := []app.AtlassianAccount{defaultAccount}
+
+			// Save to current directory
+			tempFile := "accounts.json"
+
+			// Create configuration object
+			config := atlassianAccountsConfig{
+				Accounts: accounts,
+			}
+
+			// Write config to file
+			data, err := json.Marshal(config)
+			require.NoError(t, err, "Failed to marshal config data")
+
+			// Save the original file if it exists so we can restore it later
+			var originalData []byte
+			if _, err := os.Stat(tempFile); err == nil {
+				originalData, err = os.ReadFile(tempFile)
+				require.NoError(t, err, "Failed to read original accounts.json")
+			}
+
+			// Write test file and ensure cleanup
+			err = os.WriteFile(tempFile, data, 0600)
+			require.NoError(t, err, "Failed to write config file")
+
+			defer func() {
+				// Restore original file or remove test file
+				if len(originalData) > 0 {
+					os.WriteFile(tempFile, originalData, 0600)
+				} else {
+					os.Remove(tempFile)
+				}
+			}()
+
+			// Create repository without specifying path
+			deps := AtlassianAccountsRepositoryDeps{
+				RootLogger: diag.RootTestLogger(),
+			}
+
+			// Act
+			repo, err := NewAtlassianAccountsRepository(deps)
+
+			// Assert
+			require.NoError(t, err, "Should create repository with default path")
+			require.NotNil(t, repo, "Repository should not be nil")
+		})
+
+		t.Run("should fail when file read fails", func(t *testing.T) {
+			// Create a directory instead of a file to cause read failure
+			tempDir := filepath.Join(t.TempDir(), "accounts.json")
+			err := os.Mkdir(tempDir, 0700)
+			require.NoError(t, err, "Failed to create directory")
+
+			deps := makeMockDeps(tempDir)
+
+			// Act
+			_, err = NewAtlassianAccountsRepository(deps)
+
+			// Assert
+			require.Error(t, err, "Should error when file read fails")
+			assert.Contains(t, err.Error(), "failed to read accounts configuration", "Error should mention read failure")
+		})
+
+		t.Run("should fail when JSON parsing fails", func(t *testing.T) {
+			// Create invalid JSON file
+			tempFile := filepath.Join(t.TempDir(), "accounts.json")
+			err := os.WriteFile(tempFile, []byte("invalid json"), 0600)
+			require.NoError(t, err, "Failed to write config file")
+
+			deps := makeMockDeps(tempFile)
+
+			// Act
+			_, err = NewAtlassianAccountsRepository(deps)
+
+			// Assert
+			require.Error(t, err, "Should error when JSON parsing fails")
+			assert.Contains(t, err.Error(), "failed to parse accounts configuration", "Error should mention parse failure")
+		})
+	})
+
+	t.Run("validateAccountsConfig", func(t *testing.T) {
+		t.Run("should fail when no accounts are configured", func(t *testing.T) {
+			// Arrange
+			config := &atlassianAccountsConfig{
+				Accounts: []app.AtlassianAccount{},
+			}
+
+			// Act
+			err := validateAccountsConfig(config)
+
+			// Assert
+			require.Error(t, err, "Should fail with empty accounts")
+			assert.Contains(t, err.Error(), "no accounts configured", "Error should mention no accounts")
+		})
+
+		t.Run("should fail with duplicate account names", func(t *testing.T) {
+			// Arrange
+			name := "duplicate-" + faker.Username()
+			account1 := NewRandomAtlassianAccount(WithAtlassianAccountName(name))
+			account2 := NewRandomAtlassianAccount(WithAtlassianAccountName(name))
+
+			config := &atlassianAccountsConfig{
+				Accounts: []app.AtlassianAccount{account1, account2},
+			}
+
+			// Act
+			err := validateAccountsConfig(config)
+
+			// Assert
+			require.Error(t, err, "Should fail with duplicate names")
+			assert.Contains(t, err.Error(), "duplicate account name", "Error should mention duplicate name")
+		})
+
+		t.Run("should fail with multiple default accounts", func(t *testing.T) {
+			// Arrange
+			account1 := NewRandomAtlassianAccount(WithAtlassianAccountDefault(true))
+			account2 := NewRandomAtlassianAccount(WithAtlassianAccountDefault(true))
+
+			config := &atlassianAccountsConfig{
+				Accounts: []app.AtlassianAccount{account1, account2},
+			}
+
+			// Act
+			err := validateAccountsConfig(config)
+
+			// Assert
+			require.Error(t, err, "Should fail with multiple default accounts")
+			assert.Contains(t, err.Error(), "multiple default accounts defined", "Error should mention multiple defaults")
+		})
+
+		t.Run("should fail with no default account", func(t *testing.T) {
+			// Arrange
+			account1 := NewRandomAtlassianAccount()
+			account1.Default = false
+			account2 := NewRandomAtlassianAccount()
+			account2.Default = false
+
+			config := &atlassianAccountsConfig{
+				Accounts: []app.AtlassianAccount{account1, account2},
+			}
+
+			// Act
+			err := validateAccountsConfig(config)
+
+			// Assert
+			require.Error(t, err, "Should fail with no default account")
+			assert.Contains(t, err.Error(), "no default account specified", "Error should mention no default")
+		})
+	})
+
+	t.Run("validateBasicAccountProperties", func(t *testing.T) {
+		t.Run("should fail with empty account name", func(t *testing.T) {
+			// Arrange
+			account := NewRandomAtlassianAccount()
+			account.Name = ""
+			existingNames := make(map[string]bool)
+
+			// Act
+			err := validateBasicAccountProperties(account, existingNames)
+
+			// Assert
+			require.Error(t, err, "Should fail with empty name")
+			assert.Contains(t, err.Error(), "account missing name", "Error should mention missing name")
+		})
+
+		t.Run("should fail with no services configured", func(t *testing.T) {
+			// Arrange
+			account := NewRandomAtlassianAccount()
+			account.Bitbucket = nil
+			account.Jira = nil
+			existingNames := make(map[string]bool)
+
+			// Act
+			err := validateBasicAccountProperties(account, existingNames)
+
+			// Assert
+			require.Error(t, err, "Should fail with no services")
+			assert.Contains(t, err.Error(), "must have at least one service configured", "Error should mention service requirement")
+		})
+	})
+
+	t.Run("validateBitbucketConfig", func(t *testing.T) {
+		t.Run("should fail with empty token", func(t *testing.T) {
+			// Arrange
+			account := NewRandomAtlassianAccount()
+			account.Bitbucket.Token = ""
+
+			// Act
+			err := validateBitbucketConfig(account)
+
+			// Assert
+			require.Error(t, err, "Should fail with empty token")
+			assert.Contains(t, err.Error(), "missing Bitbucket token", "Error should mention missing token")
+		})
+
+		t.Run("should fail with empty workspace", func(t *testing.T) {
+			// Arrange
+			account := NewRandomAtlassianAccount()
+			account.Bitbucket.Workspace = ""
+
+			// Act
+			err := validateBitbucketConfig(account)
+
+			// Assert
+			require.Error(t, err, "Should fail with empty workspace")
+			assert.Contains(t, err.Error(), "missing Bitbucket workspace", "Error should mention missing workspace")
+		})
+	})
+
+	t.Run("validateJiraConfig", func(t *testing.T) {
+		t.Run("should fail with empty token", func(t *testing.T) {
+			// Arrange
+			account := NewRandomAtlassianAccount()
+			account.Jira.Token = ""
+
+			// Act
+			err := validateJiraConfig(account)
+
+			// Assert
+			require.Error(t, err, "Should fail with empty token")
+			assert.Contains(t, err.Error(), "missing Jira token", "Error should mention missing token")
+		})
+
+		t.Run("should fail with empty domain", func(t *testing.T) {
+			// Arrange
+			account := NewRandomAtlassianAccount()
+			account.Jira.Domain = ""
+
+			// Act
+			err := validateJiraConfig(account)
+
+			// Assert
+			require.Error(t, err, "Should fail with empty domain")
+			assert.Contains(t, err.Error(), "missing Jira domain", "Error should mention missing domain")
+		})
+	})
 }
