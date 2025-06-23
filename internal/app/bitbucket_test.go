@@ -34,14 +34,11 @@ func TestBitbucketService(t *testing.T) {
 			service := NewBitbucketService(deps)
 
 			// Create test data
-			account := &AtlassianAccount{
-				Name:    "default",
-				Default: true,
-				Bitbucket: &BitbucketAccount{
-					Token:     "token-" + faker.UUIDHyphenated(),
-					Workspace: "workspace-" + faker.Username(),
-				},
-			}
+			account := NewRandomAtlassianAccount(
+				WithAtlassianAccountName("default"),
+				WithAtlassianAccountDefault(true),
+				WithAtlassianAccountBitbucket(),
+			)
 
 			repoName := "repo-" + faker.Username()
 			prTitle := "PR-" + faker.Sentence()
@@ -70,7 +67,7 @@ func TestBitbucketService(t *testing.T) {
 			// Mock the accounts repo to return our test account
 			mockAccounts.EXPECT().
 				GetDefaultAccount(mock.Anything).
-				Return(account, nil)
+				Return(&account, nil)
 
 			// Mock the client to return expected PR
 			mockClient.EXPECT().
@@ -118,14 +115,13 @@ func TestBitbucketService(t *testing.T) {
 
 			// Create test data
 			accountName := "custom-account-" + faker.Username()
-			account := &AtlassianAccount{
-				Name:    accountName,
-				Default: false,
-				Bitbucket: &BitbucketAccount{
-					Token:     "custom-token-" + faker.UUIDHyphenated(),
-					Workspace: "custom-workspace-" + faker.Username(),
-				},
-			}
+			account := NewRandomAtlassianAccount(
+				WithAtlassianAccountName(accountName),
+				WithAtlassianAccountDefault(false),
+				WithAtlassianAccountBitbucket(
+					WithBitbucketAccountWorkspace("custom-workspace-"+faker.Username()),
+				),
+			)
 
 			repoName := "repo-" + faker.Username()
 			prTitle := "PR-" + faker.Sentence()
@@ -143,7 +139,7 @@ func TestBitbucketService(t *testing.T) {
 			// Mock the accounts repo to return our test account
 			mockAccounts.EXPECT().
 				GetAccountByName(mock.Anything, accountName).
-				Return(account, nil)
+				Return(&account, nil)
 
 			// Mock the client to return expected PR
 			mockClient.EXPECT().
@@ -178,14 +174,11 @@ func TestBitbucketService(t *testing.T) {
 			require.True(t, ok, "AccountsRepo should be a MockAtlassianAccountsRepository")
 			service := NewBitbucketService(deps)
 
-			account := &AtlassianAccount{
-				Name:    "default",
-				Default: true,
-				Bitbucket: &BitbucketAccount{
-					Token:     "token-" + faker.UUIDHyphenated(),
-					Workspace: "workspace-" + faker.Username(),
-				},
-			}
+			account := NewRandomAtlassianAccount(
+				WithAtlassianAccountName("default"),
+				WithAtlassianAccountDefault(true),
+				WithAtlassianAccountBitbucket(),
+			)
 
 			// Generate random reviewers
 			reviewers := []string{
@@ -202,7 +195,7 @@ func TestBitbucketService(t *testing.T) {
 			// Mock the accounts repo
 			mockAccounts.EXPECT().
 				GetDefaultAccount(mock.Anything).
-				Return(account, nil)
+				Return(&account, nil)
 
 			// Mock the client
 			mockClient.EXPECT().
@@ -306,20 +299,18 @@ func TestBitbucketService(t *testing.T) {
 			sourceBranch := "feature/" + faker.Word()
 			destBranch := "main"
 
-			// Account with no Bitbucket config
-			account := &AtlassianAccount{
-				Name:    "default",
-				Default: true,
-				Jira: &JiraAccount{
-					Token:  "jira-token-" + faker.UUIDHyphenated(),
-					Domain: "domain-" + faker.DomainName(),
-				},
-				// No Bitbucket config
-			}
+			// Account with no Bitbucket config, only Jira
+			account := NewRandomAtlassianAccount(
+				WithAtlassianAccountName("default"),
+				WithAtlassianAccountDefault(true),
+				WithAtlassianAccountJira(),
+			)
+			// Remove Bitbucket config
+			account.Bitbucket = nil
 
 			mockAccounts.EXPECT().
 				GetDefaultAccount(mock.Anything).
-				Return(account, nil)
+				Return(&account, nil)
 
 			// Act
 			result, err := service.CreatePR(t.Context(), BitbucketCreatePRParams{
@@ -410,21 +401,18 @@ func TestBitbucketService(t *testing.T) {
 			sourceBranch := "feature/" + faker.Word()
 			destBranch := "main"
 
-			account := &AtlassianAccount{
-				Name:    "default",
-				Default: true,
-				Bitbucket: &BitbucketAccount{
-					Token:     "token-" + faker.UUIDHyphenated(),
-					Workspace: "workspace-" + faker.Username(),
-				},
-			}
+			account := NewRandomAtlassianAccount(
+				WithAtlassianAccountName("default"),
+				WithAtlassianAccountDefault(true),
+				WithAtlassianAccountBitbucket(),
+			)
 
 			clientErr := errors.New("client error: " + faker.Sentence())
 
 			// Mock account repo
 			mockAccounts.EXPECT().
 				GetDefaultAccount(mock.Anything).
-				Return(account, nil)
+				Return(&account, nil)
 
 			// Mock client error
 			mockClient.EXPECT().
