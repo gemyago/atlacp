@@ -1,0 +1,28 @@
+{
+  "accounts": [
+    {
+      "name": "default-user",
+      "default": true,
+      "bitbucket": {
+        "token": "ATBBxxxxxxxxxxxxxxxx",
+        "workspace": "my-workspace"
+      },
+      "jira": {
+        "token": "ATATxxxxxxxxxxxxxxxx",
+        "domain": "mycompany"
+      }
+    },
+    {
+      "name": "ci-bot",
+      "default": false,
+      "bitbucket": {
+        "token": "ATBBxxxxxxxxxxxxxxxx",
+        "workspace": "my-workspace"
+      },
+      "jira": {
+        "token": "ATATxxxxxxxxxxxxxxxx",
+        "domain": "mycompany"
+      }
+    }
+  ]
+} 

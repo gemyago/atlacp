@@ -27,6 +27,9 @@ Please read referenced files to understand the problem:
 - `internal/services/jira/get_ticket.go` - GetTicket operation implementation (✓ created)
 - `internal/services/jira/transition_ticket.go` - TransitionTicket operation implementation (✓ created)
 - `internal/services/jira/manage_labels.go` - ManageLabels operation implementation (✓ created)
+- `internal/app/atlassian_accounts.go` - Atlassian account models in application layer (✓ created)
+- `doc/atlassian-accounts-schema.md` - JSON schema documentation for Atlassian accounts (✓ created)
+- `examples/atlassian-accounts.json` - Example Atlassian accounts configuration (✓ created)
 - `internal/services/atlassian_client.go` - Atlassian-specific HTTP client implementation
 - `internal/services/atlassian_accounts.go` - Accounts repository for managing multiple named Atlassian accounts
 - `internal/app/bitbucket.go` - Business logic for Bitbucket operations
@@ -127,7 +130,7 @@ Please read referenced files to understand the problem:
   - [x] 3.7 Add Atlassian-specific error response parsing and meaningful error messages (research if needed)
   - [x] 3.8 Register Atlassian HTTP clients in `internal/services/register.go`
 - [ ] 4.0 Accounts Management System
-  - [ ] 4.1 Design accounts file JSON schema with multiple named accounts and default account specification
+  - [x] 4.1 Design accounts file JSON schema with multiple named accounts and default account specification
   - [ ] 4.2 Create `internal/services/atlassian_accounts.go` with accounts repository interface
   - [ ] 4.3 Implement `GetDefaultAccount()` method for retrieving configured default account
   - [ ] 4.4 Implement `GetAccountByName(name string)` method for retrieving specific named accounts
