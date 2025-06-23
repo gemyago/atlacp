@@ -14,6 +14,21 @@ type TokenProvider interface {
 	GetToken(ctx context.Context) (string, error)
 }
 
+// StaticTokenProvider provides a static token for authentication.
+type StaticTokenProvider struct {
+	token string
+}
+
+// NewStaticTokenProvider creates a new provider that returns a static token.
+func NewStaticTokenProvider(token string) *StaticTokenProvider {
+	return &StaticTokenProvider{token: token}
+}
+
+// GetToken returns the static token.
+func (p *StaticTokenProvider) GetToken(ctx context.Context) (string, error) {
+	return p.token, nil
+}
+
 // Client provides access to Bitbucket Cloud API operations.
 type Client struct {
 	httpClient *http.Client

@@ -145,11 +145,80 @@ func (s *BitbucketService) CreatePR(
 	params BitbucketCreatePRParams,
 ) (*bitbucket.PullRequest, error) {
 	s.logger.InfoContext(ctx, "Creating pull request",
-		slog.String("repo", params.RepoOwner+"/"+params.RepoName),
+		slog.String("repo", params.RepoName),
 		slog.String("source", params.SourceBranch),
 		slog.String("dest", params.DestBranch))
 
-	return nil, errors.New("not implemented")
+	// Validate required parameters
+	if params.RepoName == "" {
+		return nil, errors.New("repository name is required")
+	}
+	if params.Title == "" {
+		return nil, errors.New("title is required")
+	}
+	if params.SourceBranch == "" {
+		return nil, errors.New("source branch is required")
+	}
+	if params.DestBranch == "" {
+		return nil, errors.New("destination branch is required")
+	}
+
+	// Get account
+	var account *AtlassianAccount
+	var err error
+	if params.AccountName == "" {
+		account, err = s.accountsRepo.GetDefaultAccount(ctx)
+		if err != nil {
+			return nil, err
+		}
+	} else {
+		account, err = s.accountsRepo.GetAccountByName(ctx, params.AccountName)
+		if err != nil {
+			return nil, err
+		}
+	}
+
+	// Validate account has Bitbucket configuration
+	if account.Bitbucket == nil {
+		return nil, errors.New("bitbucket configuration not found for account: " + account.Name)
+	}
+
+	// Create token provider using account token
+	tokenProvider := bitbucket.NewStaticTokenProvider(account.Bitbucket.Token)
+
+	// Build pull request object
+	prRequest := &bitbucket.PullRequest{
+		Title:             params.Title,
+		Description:       params.Description,
+		CloseSourceBranch: params.CloseSourceBranch,
+		Source: bitbucket.PullRequestSource{
+			Branch: bitbucket.PullRequestBranch{
+				Name: params.SourceBranch,
+			},
+		},
+		Destination: &bitbucket.PullRequestDestination{
+			Branch: bitbucket.PullRequestBranch{
+				Name: params.DestBranch,
+			},
+		},
+	}
+
+	// Add reviewers if specified
+	if len(params.Reviewers) > 0 {
+		prRequest.Reviewers = make([]bitbucket.PullRequestAuthor, len(params.Reviewers))
+		for i, reviewer := range params.Reviewers {
+			prRequest.Reviewers[i] = bitbucket.PullRequestAuthor{
+				Username: reviewer,
+			}
+		}
+	}
+
+	// Call the client to create the pull request
+	return s.client.CreatePR(ctx, tokenProvider, bitbucket.CreatePRParams{
+		Username: account.Bitbucket.Workspace,
+		RepoSlug: params.RepoName,
+		Request:  prRequest,
+	})
 }
 
 // ReadPR retrieves a specific pull request.
