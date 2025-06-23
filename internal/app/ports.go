@@ -1,6 +1,9 @@
 package app
 
-import "context"
+import (
+	"context"
+	"errors"
+)
 
 // AtlassianAccountsRepository defines the port for accessing Atlassian account information.
 // This is an outbound port that will be implemented by the infrastructure layer.
@@ -14,14 +17,20 @@ type AtlassianAccountsRepository interface {
 	GetAccountByName(ctx context.Context, name string) (*AtlassianAccount, error)
 }
 
+// TokenProvider provides authentication tokens for API requests.
+type TokenProvider interface {
+	// GetToken returns an authentication token for API requests.
+	GetToken(ctx context.Context) (string, error)
+}
+
 // Error types for account-related operations.
-const (
+var (
 	// ErrNoDefaultAccount is returned when no default account is configured.
-	ErrNoDefaultAccount = "no default Atlassian account configured"
+	ErrNoDefaultAccount = errors.New("no default Atlassian account configured")
 
 	// ErrAccountNotFound is returned when a specific named account is not found.
-	ErrAccountNotFound = "Atlassian account not found"
+	ErrAccountNotFound = errors.New("atlassian account not found")
 
 	// ErrAccountConfigInvalid is returned when account configuration is invalid.
-	ErrAccountConfigInvalid = "Atlassian account configuration is invalid"
+	ErrAccountConfigInvalid = errors.New("atlassian account configuration is invalid")
 )
