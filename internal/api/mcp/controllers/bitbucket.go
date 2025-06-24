@@ -263,6 +263,14 @@ func (bc *BitbucketController) newUpdatePRServerTool() server.ServerTool {
 			mcp.Description("Pull request ID"),
 			mcp.Required(),
 		),
+		mcp.WithString("repo_owner",
+			mcp.Description("Repository owner (username/workspace)"),
+			mcp.Required(),
+		),
+		mcp.WithString("repo_name",
+			mcp.Description("Repository name (slug)"),
+			mcp.Required(),
+		),
 		mcp.WithString("title",
 			mcp.Description("New pull request title"),
 		),
@@ -274,9 +282,58 @@ func (bc *BitbucketController) newUpdatePRServerTool() server.ServerTool {
 		),
 	)
 
-	handler := func(_ context.Context, _ mcp.CallToolRequest) (*mcp.CallToolResult, error) {
-		// TODO: Implement handler for update PR
-		return mcp.NewToolResultText("UpdatePR functionality not implemented yet"), nil
+	handler := func(ctx context.Context, request mcp.CallToolRequest) (*mcp.CallToolResult, error) {
+		bc.logger.Debug("Received bitbucket_update_pr request", "params", request.Params)
+
+		// Extract required parameters directly from the request
+		prID := request.GetInt("pr_id", 0)
+		if prID <= 0 {
+			return mcp.NewToolResultError("Missing or invalid pr_id parameter"), nil
+		}
+
+		repoOwner := request.GetString("repo_owner", "")
+		if repoOwner == "" {
+			return mcp.NewToolResultError("Missing or invalid repo_owner parameter"), nil
+		}
+
+		repoName := request.GetString("repo_name", "")
+		if repoName == "" {
+			return mcp.NewToolResultError("Missing or invalid repo_name parameter"), nil
+		}
+
+		// At least one of title or description must be provided
+		title := request.GetString("title", "")
+		description := request.GetString("description", "")
+
+		if title == "" && description == "" {
+			return mcp.NewToolResultError("At least one of title or description must be provided"), nil
+		}
+
+		// Optional parameters
+		account := request.GetString("account", "")
+
+		// Create parameters for the service layer
+		params := app.BitbucketUpdatePRParams{
+			PullRequestID: prID,
+			RepoOwner:     repoOwner,
+			RepoName:      repoName,
+			Title:         title,
+			Description:   description,
+			AccountName:   account,
+		}
+
+		// Call the service to update the pull request
+		pr, err := bc.bitbucketService.UpdatePR(ctx, params)
+		if err != nil {
+			bc.logger.Error("Failed to update pull request", "error", err)
+
+			// TODO: Refactor this. We have a middleware to handle such errors
+			// controller should return special error
+			return mcp.NewToolResultError(err.Error()), nil
+		}
+
+		// Create a response with the updated pull request details
+		return mcp.NewToolResultText(fmt.Sprintf("Updated pull request #%d: %s", pr.ID, pr.Title)), nil
 	}
 
 	return server.ServerTool{
