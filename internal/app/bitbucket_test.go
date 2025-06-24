@@ -913,26 +913,260 @@ func TestBitbucketService(t *testing.T) {
 	})
 
 	t.Run("MergePR", func(t *testing.T) {
-		t.Run("returns not implemented error", func(t *testing.T) {
+		t.Run("successfully merges pull request with default account", func(t *testing.T) {
 			// Arrange
 			deps := makeMockDeps(t)
+			mockClient := mocks.GetMock[*MockBitbucketClient](t, deps.Client)
+			mockAuth := mocks.GetMock[*MockbitbucketAuthFactory](t, deps.AuthFactory)
 			service := NewBitbucketService(deps)
 
+			// Create test data
 			repoOwner := "owner-" + faker.Username()
 			repoName := "repo-" + faker.Username()
-			prID := int(faker.RandomUnixTime())
+			pullRequestID := int(faker.RandomUnixTime()) % 10000
+			mergeStrategy := "merge_commit"
+			message := "Merging PR: " + faker.Sentence()
+			closeSourceBranch := true
+
+			expectedPR := bitbucket.NewRandomPullRequest(
+				bitbucket.WithPullRequestState("MERGED"),
+				bitbucket.WithPullRequestCloseSourceBranch(closeSourceBranch),
+			)
+			token := "token-" + faker.UUIDHyphenated()
+			tokenProvider := newStaticTokenProvider(token)
+
+			// Mock the auth factory to return our token provider
+			mockAuth.EXPECT().
+				getTokenProvider(mock.Anything, "").
+				Return(tokenProvider)
+
+			// Mock the client to return expected PR
+			mockClient.EXPECT().
+				MergePR(mock.Anything, mock.Anything, mock.MatchedBy(func(params bitbucket.MergePRParams) bool {
+					// Verify the parameters
+					assert.Equal(t, repoOwner, params.Username)
+					assert.Equal(t, repoName, params.RepoSlug)
+					assert.Equal(t, pullRequestID, params.PullRequestID)
+
+					// Verify merge parameters
+					require.NotNil(t, params.MergeParameters)
+					assert.Equal(t, message, params.MergeParameters.Message)
+					assert.Equal(t, mergeStrategy, params.MergeParameters.MergeStrategy)
+					assert.Equal(t, closeSourceBranch, params.MergeParameters.CloseSourceBranch)
+					return true
+				})).
+				Return(expectedPR, nil)
+
+			// Act
+			result, err := service.MergePR(t.Context(), BitbucketMergePRParams{
+				RepoOwner:         repoOwner,
+				RepoName:          repoName,
+				PullRequestID:     pullRequestID,
+				Message:           message,
+				CloseSourceBranch: closeSourceBranch,
+				MergeStrategy:     mergeStrategy,
+			})
+
+			// Assert
+			require.NoError(t, err)
+			assert.Equal(t, expectedPR, result)
+		})
+
+		t.Run("successfully merges pull request with named account", func(t *testing.T) {
+			// Arrange
+			deps := makeMockDeps(t)
+			mockClient := mocks.GetMock[*MockBitbucketClient](t, deps.Client)
+			mockAuth := mocks.GetMock[*MockbitbucketAuthFactory](t, deps.AuthFactory)
+			service := NewBitbucketService(deps)
+
+			// Create test data
+			accountName := "custom-account-" + faker.Username()
+			repoOwner := "owner-" + faker.Username()
+			repoName := "repo-" + faker.Username()
+			pullRequestID := int(faker.RandomUnixTime()) % 10000
+			mergeStrategy := "squash"
+			expectedPR := bitbucket.NewRandomPullRequest(
+				bitbucket.WithPullRequestState("MERGED"),
+			)
+			token := "token-" + faker.UUIDHyphenated()
+			tokenProvider := newStaticTokenProvider(token)
+
+			// Mock the auth factory to return our token provider for the named account
+			mockAuth.EXPECT().
+				getTokenProvider(mock.Anything, accountName).
+				Return(tokenProvider)
+
+			// Mock the client to return expected PR
+			mockClient.EXPECT().
+				MergePR(mock.Anything, mock.Anything, mock.MatchedBy(func(params bitbucket.MergePRParams) bool {
+					// Verify the parameters
+					assert.Equal(t, repoOwner, params.Username)
+					assert.Equal(t, repoName, params.RepoSlug)
+					assert.Equal(t, pullRequestID, params.PullRequestID)
+
+					// Verify merge strategy
+					require.NotNil(t, params.MergeParameters)
+					assert.Equal(t, mergeStrategy, params.MergeParameters.MergeStrategy)
+					return true
+				})).
+				Return(expectedPR, nil)
+
+			// Act
+			result, err := service.MergePR(t.Context(), BitbucketMergePRParams{
+				AccountName:   accountName,
+				RepoOwner:     repoOwner,
+				RepoName:      repoName,
+				PullRequestID: pullRequestID,
+				MergeStrategy: mergeStrategy,
+			})
+
+			// Assert
+			require.NoError(t, err)
+			assert.Equal(t, expectedPR, result)
+		})
+
+		t.Run("successfully uses fast-forward strategy", func(t *testing.T) {
+			// Arrange
+			deps := makeMockDeps(t)
+			mockClient := mocks.GetMock[*MockBitbucketClient](t, deps.Client)
+			mockAuth := mocks.GetMock[*MockbitbucketAuthFactory](t, deps.AuthFactory)
+			service := NewBitbucketService(deps)
+
+			// Create test data
+			repoOwner := "owner-" + faker.Username()
+			repoName := "repo-" + faker.Username()
+			pullRequestID := int(faker.RandomUnixTime()) % 10000
+			mergeStrategy := "fast_forward"
+			expectedPR := bitbucket.NewRandomPullRequest(
+				bitbucket.WithPullRequestState("MERGED"),
+			)
+			token := "token-" + faker.UUIDHyphenated()
+			tokenProvider := newStaticTokenProvider(token)
+
+			// Mock the auth factory to return our token provider
+			mockAuth.EXPECT().
+				getTokenProvider(mock.Anything, "").
+				Return(tokenProvider)
+
+			// Mock the client to return expected PR
+			mockClient.EXPECT().
+				MergePR(mock.Anything, mock.Anything, mock.MatchedBy(func(params bitbucket.MergePRParams) bool {
+					// Verify merge strategy
+					require.NotNil(t, params.MergeParameters)
+					assert.Equal(t, mergeStrategy, params.MergeParameters.MergeStrategy)
+					return true
+				})).
+				Return(expectedPR, nil)
 
 			// Act
 			result, err := service.MergePR(t.Context(), BitbucketMergePRParams{
 				RepoOwner:     repoOwner,
 				RepoName:      repoName,
-				PullRequestID: prID,
+				PullRequestID: pullRequestID,
+				MergeStrategy: mergeStrategy,
+			})
+
+			// Assert
+			require.NoError(t, err)
+			assert.Equal(t, expectedPR, result)
+		})
+
+		t.Run("fails when client returns error", func(t *testing.T) {
+			// Arrange
+			deps := makeMockDeps(t)
+			mockClient := mocks.GetMock[*MockBitbucketClient](t, deps.Client)
+			mockAuth := mocks.GetMock[*MockbitbucketAuthFactory](t, deps.AuthFactory)
+			service := NewBitbucketService(deps)
+
+			repoOwner := "owner-" + faker.Username()
+			repoName := "repo-" + faker.Username()
+			pullRequestID := int(faker.RandomUnixTime()) % 10000
+			token := "token-" + faker.UUIDHyphenated()
+			tokenProvider := newStaticTokenProvider(token)
+
+			clientErr := errors.New("client error: " + faker.Sentence())
+
+			// Mock auth factory
+			mockAuth.EXPECT().
+				getTokenProvider(mock.Anything, "").
+				Return(tokenProvider)
+
+			// Mock client error
+			mockClient.EXPECT().
+				MergePR(mock.Anything, mock.Anything, mock.Anything).
+				Return(nil, clientErr)
+
+			// Act
+			result, err := service.MergePR(t.Context(), BitbucketMergePRParams{
+				RepoOwner:     repoOwner,
+				RepoName:      repoName,
+				PullRequestID: pullRequestID,
 			})
 
 			// Assert
 			assert.Nil(t, result)
 			require.Error(t, err)
-			assert.Equal(t, "not implemented", err.Error())
+			assert.ErrorIs(t, err, clientErr)
+		})
+
+		t.Run("fails when missing required parameters", func(t *testing.T) {
+			// Arrange
+			deps := makeMockDeps(t)
+			service := NewBitbucketService(deps)
+
+			testCases := []struct {
+				name   string
+				params BitbucketMergePRParams
+				errMsg string
+			}{
+				{
+					name: "missing repo owner",
+					params: BitbucketMergePRParams{
+						RepoName:      "repo-" + faker.Username(),
+						PullRequestID: 1,
+					},
+					errMsg: "repository owner is required",
+				},
+				{
+					name: "missing repo name",
+					params: BitbucketMergePRParams{
+						RepoOwner:     "owner-" + faker.Username(),
+						PullRequestID: 1,
+					},
+					errMsg: "repository name is required",
+				},
+				{
+					name: "invalid pull request ID",
+					params: BitbucketMergePRParams{
+						RepoOwner:     "owner-" + faker.Username(),
+						RepoName:      "repo-" + faker.Username(),
+						PullRequestID: 0,
+					},
+					errMsg: "pull request ID must be positive",
+				},
+				{
+					name: "invalid merge strategy",
+					params: BitbucketMergePRParams{
+						RepoOwner:     "owner-" + faker.Username(),
+						RepoName:      "repo-" + faker.Username(),
+						PullRequestID: 1,
+						MergeStrategy: "invalid_strategy",
+					},
+					errMsg: "invalid merge strategy",
+				},
+			}
+
+			for _, tc := range testCases {
+				t.Run(tc.name, func(t *testing.T) {
+					// Act
+					result, err := service.MergePR(t.Context(), tc.params)
+
+					// Assert
+					assert.Nil(t, result)
+					require.Error(t, err)
+					assert.Contains(t, err.Error(), tc.errMsg)
+				})
+			}
 		})
 	})
 }

@@ -324,5 +324,56 @@ func (s *BitbucketService) MergePR(ctx context.Context, params BitbucketMergePRP
 		slog.Int("pr_id", params.PullRequestID),
 		slog.String("strategy", params.MergeStrategy))
 
-	return nil, errors.New("not implemented")
+	// Validate required parameters
+	if params.RepoOwner == "" {
+		return nil, errors.New("repository owner is required")
+	}
+	if params.RepoName == "" {
+		return nil, errors.New("repository name is required")
+	}
+	if params.PullRequestID <= 0 {
+		return nil, errors.New("pull request ID must be positive")
+	}
+
+	// Validate merge strategy if provided
+	if params.MergeStrategy != "" && !isValidMergeStrategy(params.MergeStrategy) {
+		return nil, errors.New("invalid merge strategy: must be one of merge_commit, squash, or fast_forward")
+	}
+
+	// Get token provider from auth factory
+	tokenProvider := s.authFactory.getTokenProvider(ctx, params.AccountName)
+
+	// Create merge parameters
+	mergeParams := &bitbucket.PullRequestMergeParameters{
+		CloseSourceBranch: params.CloseSourceBranch,
+		Message:           params.Message,
+	}
+
+	// Only add merge strategy if specified
+	if params.MergeStrategy != "" {
+		mergeParams.MergeStrategy = params.MergeStrategy
+	}
+
+	// Call the client to merge the pull request
+	pr, err := s.client.MergePR(ctx, tokenProvider, bitbucket.MergePRParams{
+		Username:        params.RepoOwner,
+		RepoSlug:        params.RepoName,
+		PullRequestID:   params.PullRequestID,
+		MergeParameters: mergeParams,
+	})
+	if err != nil {
+		return nil, fmt.Errorf("failed to merge pull request: %w", err)
+	}
+
+	return pr, nil
+}
+
+// isValidMergeStrategy checks if the provided merge strategy is valid.
+func isValidMergeStrategy(strategy string) bool {
+	validStrategies := map[string]bool{
+		"merge_commit": true,
+		"squash":       true,
+		"fast_forward": true,
+	}
+	return validStrategies[strategy]
 }
