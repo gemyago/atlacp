@@ -142,18 +142,18 @@ Please read referenced files to understand the problem:
   - [x] 4.7 Handle workspace and domain parameters from account configuration (not main config)
   - [x] 4.8 Create comprehensive unit tests in `internal/services/atlassian_accounts_test.go`
   - [x] 4.9 Register accounts repository in `internal/services/register.go`
-- [ ] 5.0 Bitbucket MCP Integration
+- [x] 5.0 Bitbucket MCP Integration
   - [x] 5.1 Create `internal/app/bitbucket.go` with business logic service with all method stubs and initial skeleton for unit tests
   - [x] 5.2 Implement `bitbucket_create_pr` tool: Create pull requests with template support and reviewer assignment
   - [x] 5.3 Implement `bitbucket_read_pr` tool: Retrieve comprehensive PR details including status and reviews
   - [x] 5.4 Implement `bitbucket_update_pr` tool: Update PR titles and descriptions with validation
   - [x] 5.5 Implement `bitbucket_approve_pr` tool: Approve pull requests with proper authorization
   - [x] 5.6 Implement `bitbucket_merge_pr` tool: Merge PRs with strategy selection and pre-merge validation
-  - [ ] 5.7 Create `internal/api/mcp/controllers/bitbucket.go` with MCP protocol handling for all tools
-  - [ ] 5.8 Add account parameter support to all tools with default account resolution
+  - [x] 5.7 Create `internal/api/mcp/controllers/bitbucket.go` with MCP protocol handling for all tools
+  - [x] 5.8 Add account parameter support to all tools with default account resolution
   - [x] 5.9 Create unit tests for business logic in `internal/app/bitbucket_test.go` (partial - CreatePR tests implemented)
-  - [ ] 5.10 Create unit tests for MCP controllers in `internal/api/mcp/controllers/bitbucket_test.go`
-  - [ ] 5.11 Register Bitbucket services in `internal/app/register.go` and controllers in `internal/api/mcp/controllers/register.go`
+  - [x] 5.10 Create unit tests for MCP controllers in `internal/api/mcp/controllers/bitbucket_test.go`
+  - [x] 5.11 Register Bitbucket services in `internal/app/register.go` and controllers in `internal/api/mcp/controllers/register.go`
 - [ ] 6.0 Jira MCP Integration
   - [ ] 6.1 Create `internal/app/jira.go` with business logic service interface and implementation
   - [ ] 6.2 Implement `jira_read_ticket` tool: Retrieve complete ticket information including metadata and comments
