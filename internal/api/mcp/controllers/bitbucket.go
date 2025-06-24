@@ -78,54 +78,28 @@ func (bc *BitbucketController) newCreatePRServerTool() server.ServerTool {
 	handler := func(ctx context.Context, request mcp.CallToolRequest) (*mcp.CallToolResult, error) {
 		bc.logger.Debug("Received bitbucket_create_pr request", "params", request.Params)
 
-		// Extract parameters from the request
-		args, ok := request.Params.Arguments.(map[string]interface{})
-		if !ok {
-			return mcp.NewToolResultError("Invalid arguments format"), nil
-		}
-
-		// Extract required parameters
-		title, ok := args["title"].(string)
-		if !ok {
+		// Extract parameters directly from the request using GetString method
+		title := request.GetString("title", "")
+		if title == "" {
 			return mcp.NewToolResultError("Missing or invalid title parameter"), nil
 		}
 
-		sourceBranch, ok := args["source_branch"].(string)
-		if !ok {
+		sourceBranch := request.GetString("source_branch", "")
+		if sourceBranch == "" {
 			return mcp.NewToolResultError("Missing or invalid source_branch parameter"), nil
 		}
 
-		targetBranch, ok := args["target_branch"].(string)
-		if !ok {
+		targetBranch := request.GetString("target_branch", "")
+		if targetBranch == "" {
 			return mcp.NewToolResultError("Missing or invalid target_branch parameter"), nil
 		}
 
-		// Extract optional parameters
-		var description string
-		if descVal, exists := args["description"]; exists {
-			if descStr, ok := descVal.(string); ok {
-				description = descStr
-			}
-		}
+		// Optional parameters
+		description := request.GetString("description", "")
+		account := request.GetString("account", "")
 
-		var account string
-		if accVal, exists := args["account"]; exists {
-			if accStr, ok := accVal.(string); ok {
-				account = accStr
-			}
-		}
-
-		// Extract reviewers (if any)
-		var reviewers []string
-		if reviewersVal, exists := args["reviewers"]; exists {
-			if reviewersArr, ok := reviewersVal.([]interface{}); ok {
-				for _, reviewer := range reviewersArr {
-					if reviewerStr, ok := reviewer.(string); ok {
-						reviewers = append(reviewers, reviewerStr)
-					}
-				}
-			}
-		}
+		// Extract reviewers
+		reviewers := request.GetStringSlice("reviewers", []string{})
 
 		// Create parameters for the service layer
 		params := app.BitbucketCreatePRParams{
