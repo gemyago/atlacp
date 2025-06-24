@@ -15,45 +15,41 @@ import (
 // Tests for BitbucketService.
 func TestBitbucketService(t *testing.T) {
 	// Helper function to create mock dependencies
-	makeMockDeps := func() BitbucketServiceDeps {
+	makeMockDeps := func(t *testing.T) BitbucketServiceDeps {
 		return BitbucketServiceDeps{
-			Client:       NewMockBitbucketClient(t),
-			AccountsRepo: NewMockAtlassianAccountsRepository(t),
-			RootLogger:   diag.RootTestLogger(),
-			AuthFactory:  NewMockbitbucketAuthFactory(t),
+			Client:      NewMockBitbucketClient(t),
+			AuthFactory: NewMockbitbucketAuthFactory(t),
+			RootLogger:  diag.RootTestLogger(),
 		}
 	}
 
 	t.Run("CreatePR", func(t *testing.T) {
 		t.Run("successfully creates pull request with default account", func(t *testing.T) {
 			// Arrange
-			deps := makeMockDeps()
+			deps := makeMockDeps(t)
 			mockClient, ok := deps.Client.(*MockBitbucketClient)
 			require.True(t, ok, "Client should be a MockBitbucketClient")
-			mockAccounts, ok := deps.AccountsRepo.(*MockAtlassianAccountsRepository)
-			require.True(t, ok, "AccountsRepo should be a MockAtlassianAccountsRepository")
+			mockAuth, ok := deps.AuthFactory.(*MockbitbucketAuthFactory)
+			require.True(t, ok, "AuthFactory should be a MockbitbucketAuthFactory")
 			service := NewBitbucketService(deps)
 
 			// Create test data
-			account := NewRandomAtlassianAccount(
-				WithAtlassianAccountName("default"),
-				WithAtlassianAccountDefault(true),
-				WithAtlassianAccountBitbucket(),
-			)
-
+			repoOwner := "owner-" + faker.Username()
 			repoName := "repo-" + faker.Username()
 			expectedPR := bitbucket.NewRandomPullRequest()
+			token := "token-" + faker.UUIDHyphenated()
+			tokenProvider := newStaticTokenProvider(token)
 
-			// Mock the accounts repo to return our test account
-			mockAccounts.EXPECT().
-				GetDefaultAccount(mock.Anything).
-				Return(&account, nil)
+			// Mock the auth factory to return our token provider
+			mockAuth.EXPECT().
+				getTokenProvider(mock.Anything, "").
+				Return(tokenProvider)
 
 			// Mock the client to return expected PR
 			mockClient.EXPECT().
 				CreatePR(mock.Anything, mock.Anything, mock.MatchedBy(func(params bitbucket.CreatePRParams) bool {
 					// Verify the parameters
-					assert.Equal(t, account.Bitbucket.Workspace, params.Username)
+					assert.Equal(t, repoOwner, params.Username)
 					assert.Equal(t, repoName, params.RepoSlug)
 
 					// Verify the PR request matches expected values
@@ -81,6 +77,7 @@ func TestBitbucketService(t *testing.T) {
 
 			// Act
 			result, err := service.CreatePR(t.Context(), BitbucketCreatePRParams{
+				RepoOwner:         repoOwner,
 				RepoName:          repoName,
 				Title:             expectedPR.Title,
 				Description:       expectedPR.Description,
@@ -96,36 +93,31 @@ func TestBitbucketService(t *testing.T) {
 
 		t.Run("successfully creates pull request with named account", func(t *testing.T) {
 			// Arrange
-			deps := makeMockDeps()
+			deps := makeMockDeps(t)
 			mockClient, ok := deps.Client.(*MockBitbucketClient)
 			require.True(t, ok, "Client should be a MockBitbucketClient")
-			mockAccounts, ok := deps.AccountsRepo.(*MockAtlassianAccountsRepository)
-			require.True(t, ok, "AccountsRepo should be a MockAtlassianAccountsRepository")
+			mockAuth, ok := deps.AuthFactory.(*MockbitbucketAuthFactory)
+			require.True(t, ok, "AuthFactory should be a MockbitbucketAuthFactory")
 			service := NewBitbucketService(deps)
 
 			// Create test data
 			accountName := "custom-account-" + faker.Username()
-			account := NewRandomAtlassianAccount(
-				WithAtlassianAccountName(accountName),
-				WithAtlassianAccountDefault(false),
-				WithAtlassianAccountBitbucket(
-					WithBitbucketAccountWorkspace("custom-workspace-"+faker.Username()),
-				),
-			)
-
+			repoOwner := "owner-" + faker.Username()
 			repoName := "repo-" + faker.Username()
 			expectedPR := bitbucket.NewRandomPullRequest()
+			token := "token-" + faker.UUIDHyphenated()
+			tokenProvider := newStaticTokenProvider(token)
 
-			// Mock the accounts repo to return our test account
-			mockAccounts.EXPECT().
-				GetAccountByName(mock.Anything, accountName).
-				Return(&account, nil)
+			// Mock the auth factory to return our token provider
+			mockAuth.EXPECT().
+				getTokenProvider(mock.Anything, accountName).
+				Return(tokenProvider)
 
 			// Mock the client to return expected PR
 			mockClient.EXPECT().
 				CreatePR(mock.Anything, mock.Anything, mock.MatchedBy(func(params bitbucket.CreatePRParams) bool {
 					// Verify the workspace from the custom account is used
-					assert.Equal(t, account.Bitbucket.Workspace, params.Username)
+					assert.Equal(t, repoOwner, params.Username)
 					return true
 				})).
 				Return(expectedPR, nil)
@@ -133,6 +125,7 @@ func TestBitbucketService(t *testing.T) {
 			// Act
 			result, err := service.CreatePR(t.Context(), BitbucketCreatePRParams{
 				AccountName:  accountName,
+				RepoOwner:    repoOwner,
 				RepoName:     repoName,
 				Title:        expectedPR.Title,
 				Description:  expectedPR.Description,
@@ -147,18 +140,12 @@ func TestBitbucketService(t *testing.T) {
 
 		t.Run("successfully creates pull request with reviewers", func(t *testing.T) {
 			// Arrange
-			deps := makeMockDeps()
+			deps := makeMockDeps(t)
 			mockClient, ok := deps.Client.(*MockBitbucketClient)
 			require.True(t, ok, "Client should be a MockBitbucketClient")
-			mockAccounts, ok := deps.AccountsRepo.(*MockAtlassianAccountsRepository)
-			require.True(t, ok, "AccountsRepo should be a MockAtlassianAccountsRepository")
+			mockAuth, ok := deps.AuthFactory.(*MockbitbucketAuthFactory)
+			require.True(t, ok, "AuthFactory should be a MockbitbucketAuthFactory")
 			service := NewBitbucketService(deps)
-
-			account := NewRandomAtlassianAccount(
-				WithAtlassianAccountName("default"),
-				WithAtlassianAccountDefault(true),
-				WithAtlassianAccountBitbucket(),
-			)
 
 			// Generate random reviewers
 			reviewers := []string{
@@ -166,13 +153,16 @@ func TestBitbucketService(t *testing.T) {
 				"user-" + faker.Username(),
 			}
 
+			repoOwner := "owner-" + faker.Username()
 			repoName := "repo-" + faker.Username()
 			expectedPR := bitbucket.NewRandomPullRequest()
+			token := "token-" + faker.UUIDHyphenated()
+			tokenProvider := newStaticTokenProvider(token)
 
-			// Mock the accounts repo
-			mockAccounts.EXPECT().
-				GetDefaultAccount(mock.Anything).
-				Return(&account, nil)
+			// Mock the auth factory
+			mockAuth.EXPECT().
+				getTokenProvider(mock.Anything, "").
+				Return(tokenProvider)
 
 			// Mock the client
 			mockClient.EXPECT().
@@ -188,6 +178,7 @@ func TestBitbucketService(t *testing.T) {
 
 			// Act
 			result, err := service.CreatePR(t.Context(), BitbucketCreatePRParams{
+				RepoOwner:    repoOwner,
 				RepoName:     repoName,
 				Title:        expectedPR.Title,
 				SourceBranch: expectedPR.Source.Branch.Name,
@@ -200,106 +191,9 @@ func TestBitbucketService(t *testing.T) {
 			assert.NotNil(t, result)
 		})
 
-		t.Run("fails when account resolution fails", func(t *testing.T) {
-			// Arrange
-			deps := makeMockDeps()
-			mockAccounts, ok := deps.AccountsRepo.(*MockAtlassianAccountsRepository)
-			require.True(t, ok, "AccountsRepo should be a MockAtlassianAccountsRepository")
-			service := NewBitbucketService(deps)
-
-			repoName := "repo-" + faker.Username()
-			expectedPR := bitbucket.NewRandomPullRequest()
-
-			// Account not found
-			mockAccounts.EXPECT().
-				GetDefaultAccount(mock.Anything).
-				Return(nil, ErrNoDefaultAccount)
-
-			// Act
-			result, err := service.CreatePR(t.Context(), BitbucketCreatePRParams{
-				RepoName:     repoName,
-				Title:        expectedPR.Title,
-				SourceBranch: expectedPR.Source.Branch.Name,
-				DestBranch:   expectedPR.Destination.Branch.Name,
-			})
-
-			// Assert
-			assert.Nil(t, result)
-			require.Error(t, err)
-			assert.ErrorIs(t, err, ErrNoDefaultAccount)
-		})
-
-		t.Run("fails when named account not found", func(t *testing.T) {
-			// Arrange
-			deps := makeMockDeps()
-			mockAccounts, ok := deps.AccountsRepo.(*MockAtlassianAccountsRepository)
-			require.True(t, ok, "AccountsRepo should be a MockAtlassianAccountsRepository")
-			service := NewBitbucketService(deps)
-
-			accountName := "non-existent-" + faker.Username()
-			repoName := "repo-" + faker.Username()
-			expectedPR := bitbucket.NewRandomPullRequest()
-
-			// Account not found
-			mockAccounts.EXPECT().
-				GetAccountByName(mock.Anything, accountName).
-				Return(nil, ErrAccountNotFound)
-
-			// Act
-			result, err := service.CreatePR(t.Context(), BitbucketCreatePRParams{
-				AccountName:  accountName,
-				RepoName:     repoName,
-				Title:        expectedPR.Title,
-				SourceBranch: expectedPR.Source.Branch.Name,
-				DestBranch:   expectedPR.Destination.Branch.Name,
-			})
-
-			// Assert
-			assert.Nil(t, result)
-			require.Error(t, err)
-			assert.ErrorIs(t, err, ErrAccountNotFound)
-		})
-
-		t.Run("fails when account has no Bitbucket config", func(t *testing.T) {
-			// Arrange
-			deps := makeMockDeps()
-			mockAccounts, ok := deps.AccountsRepo.(*MockAtlassianAccountsRepository)
-			require.True(t, ok, "AccountsRepo should be a MockAtlassianAccountsRepository")
-			service := NewBitbucketService(deps)
-
-			repoName := "repo-" + faker.Username()
-			expectedPR := bitbucket.NewRandomPullRequest()
-
-			// Account with no Bitbucket config, only Jira
-			account := NewRandomAtlassianAccount(
-				WithAtlassianAccountName("default"),
-				WithAtlassianAccountDefault(true),
-				WithAtlassianAccountJira(),
-			)
-			// Remove Bitbucket config
-			account.Bitbucket = nil
-
-			mockAccounts.EXPECT().
-				GetDefaultAccount(mock.Anything).
-				Return(&account, nil)
-
-			// Act
-			result, err := service.CreatePR(t.Context(), BitbucketCreatePRParams{
-				RepoName:     repoName,
-				Title:        expectedPR.Title,
-				SourceBranch: expectedPR.Source.Branch.Name,
-				DestBranch:   expectedPR.Destination.Branch.Name,
-			})
-
-			// Assert
-			assert.Nil(t, result)
-			require.Error(t, err)
-			assert.Contains(t, err.Error(), "bitbucket configuration not found")
-		})
-
 		t.Run("fails when missing required parameters", func(t *testing.T) {
 			// Arrange
-			deps := makeMockDeps()
+			deps := makeMockDeps(t)
 			service := NewBitbucketService(deps)
 
 			testCases := []struct {
@@ -308,7 +202,7 @@ func TestBitbucketService(t *testing.T) {
 				errMsg string
 			}{
 				{
-					name: "missing repo owner and name",
+					name: "missing repo name",
 					params: BitbucketCreatePRParams{
 						Title:        "PR-" + faker.Sentence(),
 						SourceBranch: "feature/" + faker.Word(),
@@ -360,28 +254,25 @@ func TestBitbucketService(t *testing.T) {
 
 		t.Run("fails when client returns error", func(t *testing.T) {
 			// Arrange
-			deps := makeMockDeps()
+			deps := makeMockDeps(t)
 			mockClient, ok := deps.Client.(*MockBitbucketClient)
 			require.True(t, ok, "Client should be a MockBitbucketClient")
-			mockAccounts, ok := deps.AccountsRepo.(*MockAtlassianAccountsRepository)
-			require.True(t, ok, "AccountsRepo should be a MockAtlassianAccountsRepository")
+			mockAuth, ok := deps.AuthFactory.(*MockbitbucketAuthFactory)
+			require.True(t, ok, "AuthFactory should be a MockbitbucketAuthFactory")
 			service := NewBitbucketService(deps)
 
+			repoOwner := "owner-" + faker.Username()
 			repoName := "repo-" + faker.Username()
 			expectedPR := bitbucket.NewRandomPullRequest()
-
-			account := NewRandomAtlassianAccount(
-				WithAtlassianAccountName("default"),
-				WithAtlassianAccountDefault(true),
-				WithAtlassianAccountBitbucket(),
-			)
+			token := "token-" + faker.UUIDHyphenated()
+			tokenProvider := newStaticTokenProvider(token)
 
 			clientErr := errors.New("client error: " + faker.Sentence())
 
-			// Mock account repo
-			mockAccounts.EXPECT().
-				GetDefaultAccount(mock.Anything).
-				Return(&account, nil)
+			// Mock auth factory
+			mockAuth.EXPECT().
+				getTokenProvider(mock.Anything, "").
+				Return(tokenProvider)
 
 			// Mock client error
 			mockClient.EXPECT().
@@ -390,6 +281,7 @@ func TestBitbucketService(t *testing.T) {
 
 			// Act
 			result, err := service.CreatePR(t.Context(), BitbucketCreatePRParams{
+				RepoOwner:    repoOwner,
 				RepoName:     repoName,
 				Title:        expectedPR.Title,
 				SourceBranch: expectedPR.Source.Branch.Name,
@@ -406,7 +298,7 @@ func TestBitbucketService(t *testing.T) {
 	t.Run("ReadPR", func(t *testing.T) {
 		t.Run("returns not implemented error", func(t *testing.T) {
 			// Arrange
-			deps := makeMockDeps()
+			deps := makeMockDeps(t)
 			service := NewBitbucketService(deps)
 
 			repoOwner := "owner-" + faker.Username()
@@ -430,7 +322,7 @@ func TestBitbucketService(t *testing.T) {
 	t.Run("UpdatePR", func(t *testing.T) {
 		t.Run("returns not implemented error", func(t *testing.T) {
 			// Arrange
-			deps := makeMockDeps()
+			deps := makeMockDeps(t)
 			service := NewBitbucketService(deps)
 
 			repoOwner := "owner-" + faker.Username()
@@ -454,7 +346,7 @@ func TestBitbucketService(t *testing.T) {
 	t.Run("ApprovePR", func(t *testing.T) {
 		t.Run("returns not implemented error", func(t *testing.T) {
 			// Arrange
-			deps := makeMockDeps()
+			deps := makeMockDeps(t)
 			service := NewBitbucketService(deps)
 
 			repoOwner := "owner-" + faker.Username()
@@ -478,7 +370,7 @@ func TestBitbucketService(t *testing.T) {
 	t.Run("MergePR", func(t *testing.T) {
 		t.Run("returns not implemented error", func(t *testing.T) {
 			// Arrange
-			deps := makeMockDeps()
+			deps := makeMockDeps(t)
 			service := NewBitbucketService(deps)
 
 			repoOwner := "owner-" + faker.Username()

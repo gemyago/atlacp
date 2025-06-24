@@ -11,27 +11,26 @@ import (
 
 // BitbucketService provides business logic for Bitbucket operations.
 type BitbucketService struct {
-	client       bitbucketClient
-	accountsRepo AtlassianAccountsRepository
-	logger       *slog.Logger
+	client      bitbucketClient
+	authFactory bitbucketAuthFactory
+	logger      *slog.Logger
 }
 
 // BitbucketServiceDeps contains dependencies for the Bitbucket service.
 type BitbucketServiceDeps struct {
 	dig.In
 
-	Client       bitbucketClient
-	AccountsRepo AtlassianAccountsRepository
-	RootLogger   *slog.Logger
-	AuthFactory  bitbucketAuthFactory
+	Client      bitbucketClient
+	AuthFactory bitbucketAuthFactory
+	RootLogger  *slog.Logger
 }
 
 // NewBitbucketService creates a new Bitbucket service.
 func NewBitbucketService(deps BitbucketServiceDeps) *BitbucketService {
 	return &BitbucketService{
-		client:       deps.Client,
-		accountsRepo: deps.AccountsRepo,
-		logger:       deps.RootLogger.WithGroup("app.bitbucket-service"),
+		client:      deps.Client,
+		authFactory: deps.AuthFactory,
+		logger:      deps.RootLogger.WithGroup("app.bitbucket-service"),
 	}
 }
 
@@ -164,28 +163,8 @@ func (s *BitbucketService) CreatePR(
 		return nil, errors.New("destination branch is required")
 	}
 
-	// Get account
-	var account *AtlassianAccount
-	var err error
-	if params.AccountName == "" {
-		account, err = s.accountsRepo.GetDefaultAccount(ctx)
-		if err != nil {
-			return nil, err
-		}
-	} else {
-		account, err = s.accountsRepo.GetAccountByName(ctx, params.AccountName)
-		if err != nil {
-			return nil, err
-		}
-	}
-
-	// Validate account has Bitbucket configuration
-	if account.Bitbucket == nil {
-		return nil, errors.New("bitbucket configuration not found for account: " + account.Name)
-	}
-
-	// Create token provider using account token
-	tokenProvider := newStaticTokenProvider(account.Bitbucket.Token)
+	// Get token provider from auth factory
+	tokenProvider := s.authFactory.getTokenProvider(ctx, params.AccountName)
 
 	// Build pull request object
 	prRequest := &bitbucket.PullRequest{
@@ -216,7 +195,7 @@ func (s *BitbucketService) CreatePR(
 
 	// Call the client to create the pull request
 	return s.client.CreatePR(ctx, tokenProvider, bitbucket.CreatePRParams{
-		Username: account.Bitbucket.Workspace,
+		Username: params.RepoOwner,
 		RepoSlug: params.RepoName,
 		Request:  prRequest,
 	})

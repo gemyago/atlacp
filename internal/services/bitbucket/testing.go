@@ -53,9 +53,9 @@ func WithPullRequestDestinationBranch(name string) PullRequestOpt {
 }
 
 // WithPullRequestCloseSourceBranch sets whether to close the source branch.
-func WithPullRequestCloseSourceBranch(close bool) PullRequestOpt {
+func WithPullRequestCloseSourceBranch(closeFlag bool) PullRequestOpt {
 	return func(pr *PullRequest) {
-		pr.CloseSourceBranch = close
+		pr.CloseSourceBranch = closeFlag
 	}
 }
 
