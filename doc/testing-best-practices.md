@@ -144,29 +144,69 @@ assert.Equal(t, expectedUser, actualUser)
 If your component has dependencies, use pattern below:
 ```go
 func TestMyService(t *testing.T) {
-    makeMockDeps := func() MyServiceDeps {
+
+    // Use explicit t parameter if mock constructor requires it
+    // do not use top-level t parameter
+    makeMockDeps := func(t *testing.T) MyServiceDeps {
+        mockRepo := NewMockMyRepository(t)
         return MyServiceDeps{
+            Repository: mockRepo,
             RootLogger: diag.RootTestLogger(),
         }
     }
     
     t.Run("some test", func(t *testing.T) {
-        deps := makeMockDeps()
-        // ... use deps
+        deps, mockRepo := makeMockDeps(t)
+        // ... use deps and mockRepo
     })
 }
 ```
 
-### Simple Mock Implementation
+**Important**: Use explicit `t *testing.T` parameter in `makeMockDeps` to ensure each test gets its own mock instance with proper cleanup.
+
+### Use Mockery EXPECT() Pattern
+
+When using mockery-generated mocks, prefer the `EXPECT()` pattern over the older `On()` pattern:
+
 ```go
-func (m *MockTransport) RoundTrip(req *http.Request) (*http.Response, error) {
-    args := m.Called(req)
-    res, _ := args.Get(0).(*http.Response)  // Simple, pragmatic
-    return res, args.Error(1)
-}
+// DO THIS: Use EXPECT() for better type safety and cleaner syntax
+mockRepo.EXPECT().GetUser(t.Context(), userID).Return(expectedUser, nil)
+
+// DON'T DO THIS: Older On() pattern
+mockRepo.On("GetUser", mock.Anything, userID).Return(expectedUser, nil)
 ```
 
-Larger structs/interfaces can be mocked with mockery by adding a new interface to [.mockery.yaml](../.mockery.yaml) and running `mockery` to generate the mock (from root folder)
+Benefits of `EXPECT()`:
+- Better type safety at compile time
+- Automatic cleanup with `NewMockXxx(t)` constructor
+- No need for manual `AssertExpectations(t)` calls
+
+### Follow TDD Strictly
+
+When implementing new features, always follow the TDD cycle strictly:
+
+1. **Write failing test first** - Test should fail because the behavior doesn't exist yet
+2. **Run test to confirm it fails** - This validates your test is actually testing something
+3. **Implement minimal code** - Write the smallest amount of code to make the test pass
+4. **Run test to confirm it passes** - Verify your implementation works
+5. **Refactor if needed** - Clean up the code while keeping tests green
+6. **Repeat** - Add more test cases and implement more behavior
+
+**Example TDD cycle:**
+```go
+// Step 1: Write failing test
+func TestMyService(t *testing.T) {
+    t.Run("should return error when account not found", func(t *testing.T) {
+        // Test expects specific error behavior
+        // This will fail because implementation returns nil, nil or stub data
+    })
+}
+
+// Step 2: Run test - it fails ✓
+// Step 3: Implement minimal code to make test pass
+// Step 4: Run test - it passes ✓
+// Step 5: Add more test cases and repeat
+```
 
 ## Test Structure
 
@@ -216,3 +256,7 @@ This approach:
 > "Test the code you wrote, not the code you didn't write." 
 
 Focus on your business logic and keep tests simple, relevant, and maintainable. 
+
+### Mocking with Mockery
+
+Add required interfaces to [.mockery.yaml](../.mockery.yaml) and run `mockery` (from root folder) to generate mocks.
