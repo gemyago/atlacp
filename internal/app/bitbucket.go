@@ -290,7 +290,31 @@ func (s *BitbucketService) ApprovePR(
 		slog.String("repo", params.RepoOwner+"/"+params.RepoName),
 		slog.Int("pr_id", params.PullRequestID))
 
-	return nil, errors.New("not implemented")
+	// Validate required parameters
+	if params.RepoOwner == "" {
+		return nil, errors.New("repository owner is required")
+	}
+	if params.RepoName == "" {
+		return nil, errors.New("repository name is required")
+	}
+	if params.PullRequestID <= 0 {
+		return nil, errors.New("pull request ID must be positive")
+	}
+
+	// Get token provider from auth factory
+	tokenProvider := s.authFactory.getTokenProvider(ctx, params.AccountName)
+
+	// Call the client to approve the pull request
+	participant, err := s.client.ApprovePR(ctx, tokenProvider, bitbucket.ApprovePRParams{
+		Username:      params.RepoOwner,
+		RepoSlug:      params.RepoName,
+		PullRequestID: params.PullRequestID,
+	})
+	if err != nil {
+		return nil, fmt.Errorf("failed to approve pull request: %w", err)
+	}
+
+	return participant, nil
 }
 
 // MergePR merges a pull request.
