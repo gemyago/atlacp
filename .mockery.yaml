@@ -18,3 +18,6 @@ packages:
       bitbucketAuthFactory:
       BitbucketClient:
       AtlassianAccountsRepository:
+  github.com/gemyago/atlacp/internal/api/mcp/controllers:
+    interfaces:
+      bitbucketService:

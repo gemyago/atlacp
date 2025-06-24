@@ -148,16 +148,18 @@ func TestMyService(t *testing.T) {
     // Use explicit t parameter if mock constructor requires it
     // do not use top-level t parameter
     makeMockDeps := func(t *testing.T) MyServiceDeps {
-        mockRepo := NewMockMyRepository(t)
         return MyServiceDeps{
-            Repository: mockRepo,
+            Repository: NewMockMyRepository(t),
             RootLogger: diag.RootTestLogger(),
         }
     }
     
     t.Run("some test", func(t *testing.T) {
-        deps, mockRepo := makeMockDeps(t)
-        // ... use deps and mockRepo
+        deps := makeMockDeps(t)
+
+        // Use mocks.GetMock from testing/mocks package to get mocked instance
+        mockRepo := mocks.GetMock[*MockMyRepository](t, deps.Repository)
+        // ... rest of the test
     })
 }
 ```
