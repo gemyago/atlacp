@@ -11,5 +11,6 @@ func Register(container *dig.Container) error {
 		NewTimeService,
 		NewMathService,
 		NewBitbucketService,
+		newBitbucketAuthFactory,
 	)
 }

@@ -25,9 +25,9 @@ type TokenProvider interface {
 	GetToken(ctx context.Context) (string, error)
 }
 
-// BitbucketClient defines the interface for Bitbucket API operations.
+// bitbucketClient defines the interface for Bitbucket API operations.
 // This is an outbound port that will be implemented by the infrastructure layer.
-type BitbucketClient interface {
+type bitbucketClient interface {
 	// CreatePR creates a new pull request in the specified repository.
 	CreatePR(
 		ctx context.Context,

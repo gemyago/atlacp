@@ -10,9 +10,9 @@ import (
 
 // bitbucketAuthFactory is a factory for creating bitbucketAuth implementations.
 type bitbucketAuthFactory interface {
-	// GetTokenProvider returns a TokenProvider for the specified account name.
+	// getTokenProvider returns a TokenProvider for the specified account name.
 	// If accountName is empty, uses the default account.
-	GetTokenProvider(ctx context.Context, accountName string) (TokenProvider, error)
+	getTokenProvider(ctx context.Context, accountName string) (TokenProvider, error)
 }
 
 // bitbucketAuthFactoryImpl provides authentication for Bitbucket operations by resolving

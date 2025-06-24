@@ -11,7 +11,7 @@ import (
 
 // BitbucketService provides business logic for Bitbucket operations.
 type BitbucketService struct {
-	client       BitbucketClient
+	client       bitbucketClient
 	accountsRepo AtlassianAccountsRepository
 	logger       *slog.Logger
 }
@@ -20,9 +20,10 @@ type BitbucketService struct {
 type BitbucketServiceDeps struct {
 	dig.In
 
-	Client       BitbucketClient
+	Client       bitbucketClient
 	AccountsRepo AtlassianAccountsRepository
 	RootLogger   *slog.Logger
+	AuthFactory  bitbucketAuthFactory
 }
 
 // NewBitbucketService creates a new Bitbucket service.

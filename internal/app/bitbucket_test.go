@@ -20,6 +20,7 @@ func TestBitbucketService(t *testing.T) {
 			Client:       NewMockBitbucketClient(t),
 			AccountsRepo: NewMockAtlassianAccountsRepository(t),
 			RootLogger:   diag.RootTestLogger(),
+			AuthFactory:  NewMockbitbucketAuthFactory(t),
 		}
 	}
 
