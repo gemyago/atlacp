@@ -6,6 +6,7 @@ import (
 
 	"github.com/gemyago/atlacp/internal/diag"
 	"github.com/gemyago/atlacp/internal/services/bitbucket"
+	"github.com/gemyago/atlacp/internal/testing/mocks"
 	"github.com/go-faker/faker/v4"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/mock"
@@ -27,10 +28,8 @@ func TestBitbucketService(t *testing.T) {
 		t.Run("successfully creates pull request with default account", func(t *testing.T) {
 			// Arrange
 			deps := makeMockDeps(t)
-			mockClient, ok := deps.Client.(*MockBitbucketClient)
-			require.True(t, ok, "Client should be a MockBitbucketClient")
-			mockAuth, ok := deps.AuthFactory.(*MockbitbucketAuthFactory)
-			require.True(t, ok, "AuthFactory should be a MockbitbucketAuthFactory")
+			mockClient := mocks.GetMock[*MockBitbucketClient](t, deps.Client)
+			mockAuth := mocks.GetMock[*MockbitbucketAuthFactory](t, deps.AuthFactory)
 			service := NewBitbucketService(deps)
 
 			// Create test data
@@ -94,10 +93,8 @@ func TestBitbucketService(t *testing.T) {
 		t.Run("successfully creates pull request with named account", func(t *testing.T) {
 			// Arrange
 			deps := makeMockDeps(t)
-			mockClient, ok := deps.Client.(*MockBitbucketClient)
-			require.True(t, ok, "Client should be a MockBitbucketClient")
-			mockAuth, ok := deps.AuthFactory.(*MockbitbucketAuthFactory)
-			require.True(t, ok, "AuthFactory should be a MockbitbucketAuthFactory")
+			mockClient := mocks.GetMock[*MockBitbucketClient](t, deps.Client)
+			mockAuth := mocks.GetMock[*MockbitbucketAuthFactory](t, deps.AuthFactory)
 			service := NewBitbucketService(deps)
 
 			// Create test data
@@ -141,10 +138,8 @@ func TestBitbucketService(t *testing.T) {
 		t.Run("successfully creates pull request with reviewers", func(t *testing.T) {
 			// Arrange
 			deps := makeMockDeps(t)
-			mockClient, ok := deps.Client.(*MockBitbucketClient)
-			require.True(t, ok, "Client should be a MockBitbucketClient")
-			mockAuth, ok := deps.AuthFactory.(*MockbitbucketAuthFactory)
-			require.True(t, ok, "AuthFactory should be a MockbitbucketAuthFactory")
+			mockClient := mocks.GetMock[*MockBitbucketClient](t, deps.Client)
+			mockAuth := mocks.GetMock[*MockbitbucketAuthFactory](t, deps.AuthFactory)
 			service := NewBitbucketService(deps)
 
 			// Generate random reviewers
@@ -255,10 +250,8 @@ func TestBitbucketService(t *testing.T) {
 		t.Run("fails when client returns error", func(t *testing.T) {
 			// Arrange
 			deps := makeMockDeps(t)
-			mockClient, ok := deps.Client.(*MockBitbucketClient)
-			require.True(t, ok, "Client should be a MockBitbucketClient")
-			mockAuth, ok := deps.AuthFactory.(*MockbitbucketAuthFactory)
-			require.True(t, ok, "AuthFactory should be a MockbitbucketAuthFactory")
+			mockClient := mocks.GetMock[*MockBitbucketClient](t, deps.Client)
+			mockAuth := mocks.GetMock[*MockbitbucketAuthFactory](t, deps.AuthFactory)
 			service := NewBitbucketService(deps)
 
 			repoOwner := "owner-" + faker.Username()
@@ -299,10 +292,8 @@ func TestBitbucketService(t *testing.T) {
 		t.Run("successfully retrieves pull request with default account", func(t *testing.T) {
 			// Arrange
 			deps := makeMockDeps(t)
-			mockClient, ok := deps.Client.(*MockBitbucketClient)
-			require.True(t, ok, "Client should be a MockBitbucketClient")
-			mockAuth, ok := deps.AuthFactory.(*MockbitbucketAuthFactory)
-			require.True(t, ok, "AuthFactory should be a MockbitbucketAuthFactory")
+			mockClient := mocks.GetMock[*MockBitbucketClient](t, deps.Client)
+			mockAuth := mocks.GetMock[*MockbitbucketAuthFactory](t, deps.AuthFactory)
 			service := NewBitbucketService(deps)
 
 			// Create test data
@@ -344,10 +335,8 @@ func TestBitbucketService(t *testing.T) {
 		t.Run("successfully retrieves pull request with named account", func(t *testing.T) {
 			// Arrange
 			deps := makeMockDeps(t)
-			mockClient, ok := deps.Client.(*MockBitbucketClient)
-			require.True(t, ok, "Client should be a MockBitbucketClient")
-			mockAuth, ok := deps.AuthFactory.(*MockbitbucketAuthFactory)
-			require.True(t, ok, "AuthFactory should be a MockbitbucketAuthFactory")
+			mockClient := mocks.GetMock[*MockBitbucketClient](t, deps.Client)
+			mockAuth := mocks.GetMock[*MockbitbucketAuthFactory](t, deps.AuthFactory)
 			service := NewBitbucketService(deps)
 
 			// Create test data
@@ -441,10 +430,8 @@ func TestBitbucketService(t *testing.T) {
 		t.Run("handles client error", func(t *testing.T) {
 			// Arrange
 			deps := makeMockDeps(t)
-			mockClient, ok := deps.Client.(*MockBitbucketClient)
-			require.True(t, ok, "Client should be a MockBitbucketClient")
-			mockAuth, ok := deps.AuthFactory.(*MockbitbucketAuthFactory)
-			require.True(t, ok, "AuthFactory should be a MockbitbucketAuthFactory")
+			mockClient := mocks.GetMock[*MockBitbucketClient](t, deps.Client)
+			mockAuth := mocks.GetMock[*MockbitbucketAuthFactory](t, deps.AuthFactory)
 			service := NewBitbucketService(deps)
 
 			// Create test data
@@ -483,10 +470,8 @@ func TestBitbucketService(t *testing.T) {
 		t.Run("successfully updates pull request with default account", func(t *testing.T) {
 			// Arrange
 			deps := makeMockDeps(t)
-			mockClient, ok := deps.Client.(*MockBitbucketClient)
-			require.True(t, ok, "Client should be a MockBitbucketClient")
-			mockAuth, ok := deps.AuthFactory.(*MockbitbucketAuthFactory)
-			require.True(t, ok, "AuthFactory should be a MockbitbucketAuthFactory")
+			mockClient := mocks.GetMock[*MockBitbucketClient](t, deps.Client)
+			mockAuth := mocks.GetMock[*MockbitbucketAuthFactory](t, deps.AuthFactory)
 			service := NewBitbucketService(deps)
 
 			// Create test data
@@ -541,10 +526,8 @@ func TestBitbucketService(t *testing.T) {
 		t.Run("successfully updates pull request with title only", func(t *testing.T) {
 			// Arrange
 			deps := makeMockDeps(t)
-			mockClient, ok := deps.Client.(*MockBitbucketClient)
-			require.True(t, ok, "Client should be a MockBitbucketClient")
-			mockAuth, ok := deps.AuthFactory.(*MockbitbucketAuthFactory)
-			require.True(t, ok, "AuthFactory should be a MockbitbucketAuthFactory")
+			mockClient := mocks.GetMock[*MockBitbucketClient](t, deps.Client)
+			mockAuth := mocks.GetMock[*MockbitbucketAuthFactory](t, deps.AuthFactory)
 			service := NewBitbucketService(deps)
 
 			// Create test data
@@ -596,10 +579,8 @@ func TestBitbucketService(t *testing.T) {
 		t.Run("successfully updates pull request with named account", func(t *testing.T) {
 			// Arrange
 			deps := makeMockDeps(t)
-			mockClient, ok := deps.Client.(*MockBitbucketClient)
-			require.True(t, ok, "Client should be a MockBitbucketClient")
-			mockAuth, ok := deps.AuthFactory.(*MockbitbucketAuthFactory)
-			require.True(t, ok, "AuthFactory should be a MockbitbucketAuthFactory")
+			mockClient := mocks.GetMock[*MockBitbucketClient](t, deps.Client)
+			mockAuth := mocks.GetMock[*MockbitbucketAuthFactory](t, deps.AuthFactory)
 			service := NewBitbucketService(deps)
 
 			// Create test data
@@ -715,10 +696,8 @@ func TestBitbucketService(t *testing.T) {
 		t.Run("handles client error", func(t *testing.T) {
 			// Arrange
 			deps := makeMockDeps(t)
-			mockClient, ok := deps.Client.(*MockBitbucketClient)
-			require.True(t, ok, "Client should be a MockBitbucketClient")
-			mockAuth, ok := deps.AuthFactory.(*MockbitbucketAuthFactory)
-			require.True(t, ok, "AuthFactory should be a MockbitbucketAuthFactory")
+			mockClient := mocks.GetMock[*MockBitbucketClient](t, deps.Client)
+			mockAuth := mocks.GetMock[*MockbitbucketAuthFactory](t, deps.AuthFactory)
 			service := NewBitbucketService(deps)
 
 			// Create test data
