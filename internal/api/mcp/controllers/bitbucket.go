@@ -138,23 +138,6 @@ func (bc *BitbucketController) newCreatePRServerTool() server.ServerTool {
 			return mcp.NewToolResultError(err.Error()), nil
 		}
 
-		// Create a response with the pull request details
-		result := map[string]interface{}{
-			"id":          pr.ID,
-			"title":       pr.Title,
-			"description": pr.Description,
-			"state":       pr.State,
-			"source":      pr.Source.Branch.Name,
-			"target":      pr.Destination.Branch.Name,
-			"created_on":  pr.CreatedOn,
-			"updated_on":  pr.UpdatedOn,
-		}
-
-		// Add optional fields only if they exist
-		if pr.Author != nil {
-			result["author"] = pr.Author.DisplayName
-		}
-
 		return mcp.NewToolResultText(fmt.Sprintf("Created pull request #%d: %s", pr.ID, pr.Title)), nil
 	}
 
@@ -221,26 +204,6 @@ func (bc *BitbucketController) newReadPRServerTool() server.ServerTool {
 		if err != nil {
 			bc.logger.Error("Failed to read pull request", "error", err)
 			return mcp.NewToolResultError(err.Error()), nil
-		}
-
-		// Create a response with the pull request details
-		result := map[string]interface{}{
-			"id":          pr.ID,
-			"title":       pr.Title,
-			"description": pr.Description,
-			"state":       pr.State,
-			"source":      pr.Source.Branch.Name,
-			"created_on":  pr.CreatedOn,
-			"updated_on":  pr.UpdatedOn,
-		}
-
-		// Add optional fields only if they exist
-		if pr.Author != nil {
-			result["author"] = pr.Author.DisplayName
-		}
-
-		if pr.Destination != nil {
-			result["target"] = pr.Destination.Branch.Name
 		}
 
 		// Format the result as text
@@ -332,7 +295,6 @@ func (bc *BitbucketController) newUpdatePRServerTool() server.ServerTool {
 			return mcp.NewToolResultError(err.Error()), nil
 		}
 
-		// Create a response with the updated pull request details
 		return mcp.NewToolResultText(fmt.Sprintf("Updated pull request #%d: %s", pr.ID, pr.Title)), nil
 	}
 
@@ -405,20 +367,8 @@ func (bc *BitbucketController) newApprovePRServerTool() server.ServerTool {
 		}
 
 		// Create a response with the approval details
-		var role string
-		if participant.Role != "" {
-			role = fmt.Sprintf(" as %s", participant.Role)
-		}
-
-		userName := "Unknown user"
-		if participant.User.DisplayName != "" {
-			userName = participant.User.DisplayName
-		} else if participant.User.Username != "" {
-			userName = participant.User.Username
-		}
-
-		return mcp.NewToolResultText(fmt.Sprintf("Pull request #%d approved by %s%s",
-			prID, userName, role)), nil
+		return mcp.NewToolResultText(fmt.Sprintf("Pull request #%d approved by %s",
+			prID, participant.User.DisplayName)), nil
 	}
 
 	return server.ServerTool{

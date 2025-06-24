@@ -656,7 +656,6 @@ func TestBitbucketController(t *testing.T) {
 			require.True(t, ok, "Result content should be text content")
 			assert.Contains(t, content.Text, fmt.Sprintf("Pull request #%d approved", prID))
 			assert.Contains(t, content.Text, displayName)
-			assert.Contains(t, content.Text, role)
 		})
 
 		t.Run("should handle missing required parameters in ApprovePR", func(t *testing.T) {
