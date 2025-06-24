@@ -86,30 +86,30 @@ func (bc *BitbucketController) newCreatePRServerTool() server.ServerTool {
 	handler := func(ctx context.Context, request mcp.CallToolRequest) (*mcp.CallToolResult, error) {
 		bc.logger.Debug("Received bitbucket_create_pr request", "params", request.Params)
 
-		// Extract parameters directly from the request using GetString method
-		title := request.GetString("title", "")
-		if title == "" {
-			return mcp.NewToolResultError("Missing or invalid title parameter"), nil
+		// Extract required parameters using RequireXXX methods
+		title, err := request.RequireString("title")
+		if err != nil {
+			return mcp.NewToolResultErrorFromErr("Missing or invalid title parameter", err), nil
 		}
 
-		sourceBranch := request.GetString("source_branch", "")
-		if sourceBranch == "" {
-			return mcp.NewToolResultError("Missing or invalid source_branch parameter"), nil
+		sourceBranch, err := request.RequireString("source_branch")
+		if err != nil {
+			return mcp.NewToolResultErrorFromErr("Missing or invalid source_branch parameter", err), nil
 		}
 
-		targetBranch := request.GetString("target_branch", "")
-		if targetBranch == "" {
-			return mcp.NewToolResultError("Missing or invalid target_branch parameter"), nil
+		targetBranch, err := request.RequireString("target_branch")
+		if err != nil {
+			return mcp.NewToolResultErrorFromErr("Missing or invalid target_branch parameter", err), nil
 		}
 
-		repoOwner := request.GetString("repo_owner", "")
-		if repoOwner == "" {
-			return mcp.NewToolResultError("Missing or invalid repo_owner parameter"), nil
+		repoOwner, err := request.RequireString("repo_owner")
+		if err != nil {
+			return mcp.NewToolResultErrorFromErr("Missing or invalid repo_owner parameter", err), nil
 		}
 
-		repoName := request.GetString("repo_name", "")
-		if repoName == "" {
-			return mcp.NewToolResultError("Missing or invalid repo_name parameter"), nil
+		repoName, err := request.RequireString("repo_name")
+		if err != nil {
+			return mcp.NewToolResultErrorFromErr("Missing or invalid repo_name parameter", err), nil
 		}
 
 		// Optional parameters
@@ -172,20 +172,20 @@ func (bc *BitbucketController) newReadPRServerTool() server.ServerTool {
 	handler := func(ctx context.Context, request mcp.CallToolRequest) (*mcp.CallToolResult, error) {
 		bc.logger.Debug("Received bitbucket_read_pr request", "params", request.Params)
 
-		// Extract parameters directly from the request
-		prID := request.GetInt("pr_id", 0)
-		if prID <= 0 {
-			return mcp.NewToolResultError("Missing or invalid pr_id parameter"), nil
+		// Extract required parameters using RequireXXX methods
+		prID, err := request.RequireInt("pr_id")
+		if err != nil {
+			return mcp.NewToolResultErrorFromErr("Missing or invalid pr_id parameter", err), nil
 		}
 
-		repoOwner := request.GetString("repo_owner", "")
-		if repoOwner == "" {
-			return mcp.NewToolResultError("Missing or invalid repo_owner parameter"), nil
+		repoOwner, err := request.RequireString("repo_owner")
+		if err != nil {
+			return mcp.NewToolResultErrorFromErr("Missing or invalid repo_owner parameter", err), nil
 		}
 
-		repoName := request.GetString("repo_name", "")
-		if repoName == "" {
-			return mcp.NewToolResultError("Missing or invalid repo_name parameter"), nil
+		repoName, err := request.RequireString("repo_name")
+		if err != nil {
+			return mcp.NewToolResultErrorFromErr("Missing or invalid repo_name parameter", err), nil
 		}
 
 		// Optional parameters
@@ -248,20 +248,20 @@ func (bc *BitbucketController) newUpdatePRServerTool() server.ServerTool {
 	handler := func(ctx context.Context, request mcp.CallToolRequest) (*mcp.CallToolResult, error) {
 		bc.logger.Debug("Received bitbucket_update_pr request", "params", request.Params)
 
-		// Extract required parameters directly from the request
-		prID := request.GetInt("pr_id", 0)
-		if prID <= 0 {
-			return mcp.NewToolResultError("Missing or invalid pr_id parameter"), nil
+		// Extract required parameters using RequireXXX methods
+		prID, err := request.RequireInt("pr_id")
+		if err != nil {
+			return mcp.NewToolResultErrorFromErr("Missing or invalid pr_id parameter", err), nil
 		}
 
-		repoOwner := request.GetString("repo_owner", "")
-		if repoOwner == "" {
-			return mcp.NewToolResultError("Missing or invalid repo_owner parameter"), nil
+		repoOwner, err := request.RequireString("repo_owner")
+		if err != nil {
+			return mcp.NewToolResultErrorFromErr("Missing or invalid repo_owner parameter", err), nil
 		}
 
-		repoName := request.GetString("repo_name", "")
-		if repoName == "" {
-			return mcp.NewToolResultError("Missing or invalid repo_name parameter"), nil
+		repoName, err := request.RequireString("repo_name")
+		if err != nil {
+			return mcp.NewToolResultErrorFromErr("Missing or invalid repo_name parameter", err), nil
 		}
 
 		// At least one of title or description must be provided
@@ -329,20 +329,20 @@ func (bc *BitbucketController) newApprovePRServerTool() server.ServerTool {
 	handler := func(ctx context.Context, request mcp.CallToolRequest) (*mcp.CallToolResult, error) {
 		bc.logger.Debug("Received bitbucket_approve_pr request", "params", request.Params)
 
-		// Extract required parameters directly from the request
-		prID := request.GetInt("pr_id", 0)
-		if prID <= 0 {
-			return mcp.NewToolResultError("Missing or invalid pr_id parameter"), nil
+		// Extract required parameters using RequireXXX methods
+		prID, err := request.RequireInt("pr_id")
+		if err != nil {
+			return mcp.NewToolResultErrorFromErr("Missing or invalid pr_id parameter", err), nil
 		}
 
-		repoOwner := request.GetString("repo_owner", "")
-		if repoOwner == "" {
-			return mcp.NewToolResultError("Missing or invalid repo_owner parameter"), nil
+		repoOwner, err := request.RequireString("repo_owner")
+		if err != nil {
+			return mcp.NewToolResultErrorFromErr("Missing or invalid repo_owner parameter", err), nil
 		}
 
-		repoName := request.GetString("repo_name", "")
-		if repoName == "" {
-			return mcp.NewToolResultError("Missing or invalid repo_name parameter"), nil
+		repoName, err := request.RequireString("repo_name")
+		if err != nil {
+			return mcp.NewToolResultErrorFromErr("Missing or invalid repo_name parameter", err), nil
 		}
 
 		// Optional parameters
@@ -411,20 +411,20 @@ func (bc *BitbucketController) newMergePRServerTool() server.ServerTool {
 	handler := func(ctx context.Context, request mcp.CallToolRequest) (*mcp.CallToolResult, error) {
 		bc.logger.Debug("Received bitbucket_merge_pr request", "params", request.Params)
 
-		// Extract required parameters directly from the request
-		prID := request.GetInt("pr_id", 0)
-		if prID <= 0 {
-			return mcp.NewToolResultError("Missing or invalid pr_id parameter"), nil
+		// Extract required parameters using RequireXXX methods
+		prID, err := request.RequireInt("pr_id")
+		if err != nil {
+			return mcp.NewToolResultErrorFromErr("Missing or invalid pr_id parameter", err), nil
 		}
 
-		repoOwner := request.GetString("repo_owner", "")
-		if repoOwner == "" {
-			return mcp.NewToolResultError("Missing or invalid repo_owner parameter"), nil
+		repoOwner, err := request.RequireString("repo_owner")
+		if err != nil {
+			return mcp.NewToolResultErrorFromErr("Missing or invalid repo_owner parameter", err), nil
 		}
 
-		repoName := request.GetString("repo_name", "")
-		if repoName == "" {
-			return mcp.NewToolResultError("Missing or invalid repo_name parameter"), nil
+		repoName, err := request.RequireString("repo_name")
+		if err != nil {
+			return mcp.NewToolResultErrorFromErr("Missing or invalid repo_name parameter", err), nil
 		}
 
 		// Optional parameters

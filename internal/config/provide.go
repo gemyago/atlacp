@@ -63,5 +63,6 @@ func Provide(container *dig.Container, cfg *viper.Viper) error {
 		// atlassian config
 		provideConfigValue(cfg, "atlassian.bitbucket.baseUrl").asString(),
 		provideConfigValue(cfg, "atlassian.jira.baseUrl").asString(),
+		provideConfigValue(cfg, "atlassian.accountsFilePath").asString(),
 	)
 }

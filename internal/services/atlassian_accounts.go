@@ -29,7 +29,7 @@ type AtlassianAccountsRepositoryDeps struct {
 	dig.In
 
 	RootLogger *slog.Logger
-	ConfigPath string `name:"config.atlassian.accountsFilePath" optional:"true"`
+	ConfigPath string `name:"config.atlassian.accountsFilePath"`
 }
 
 // NewAtlassianAccountsRepository creates a new Atlassian accounts repository.

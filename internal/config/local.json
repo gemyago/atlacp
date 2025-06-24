@@ -1,3 +1,6 @@
 {
-  "defaultLogLevel": "DEBUG"
+  "defaultLogLevel": "DEBUG",
+  "atlassian": {
+    "accountsFilePath": "examples/atlassian-accounts.json"
+  }
 }

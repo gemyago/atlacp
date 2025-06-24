@@ -2,6 +2,7 @@ package controllers
 
 import (
 	"github.com/gemyago/atlacp/internal/api/mcp/server"
+	"github.com/gemyago/atlacp/internal/app"
 	"github.com/gemyago/atlacp/internal/di"
 	"go.uber.org/dig"
 )
@@ -26,5 +27,6 @@ func Register(container *dig.Container) error {
 		newToolsFactory[*MathController],
 		newToolsFactory[*TimeController],
 		newToolsFactory[*BitbucketController],
+		di.ProvideAs[*app.BitbucketService, bitbucketService],
 	)
 }

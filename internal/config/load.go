@@ -72,9 +72,5 @@ func Load(cfg *viper.Viper, opts *LoadOpts) error {
 		}
 	}
 
-	// Some common aliases to have cli params with the same name as config keys
-	cfg.RegisterAlias("defaultLogLevel", "log-level")
-	cfg.RegisterAlias("jsonLogs", "json-logs")
-
 	return nil
 }
