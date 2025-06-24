@@ -134,8 +134,7 @@ func (bc *BitbucketController) newCreatePRServerTool() server.ServerTool {
 		// Call the service to create the pull request
 		pr, err := bc.bitbucketService.CreatePR(ctx, params)
 		if err != nil {
-			bc.logger.Error("Failed to create pull request", "error", err)
-			return mcp.NewToolResultError(err.Error()), nil
+			return nil, fmt.Errorf("failed to create pull request: %w", err)
 		}
 
 		return mcp.NewToolResultText(fmt.Sprintf("Created pull request #%d: %s", pr.ID, pr.Title)), nil
@@ -202,8 +201,7 @@ func (bc *BitbucketController) newReadPRServerTool() server.ServerTool {
 		// Call the service to read the pull request
 		pr, err := bc.bitbucketService.ReadPR(ctx, params)
 		if err != nil {
-			bc.logger.Error("Failed to read pull request", "error", err)
-			return mcp.NewToolResultError(err.Error()), nil
+			return nil, fmt.Errorf("failed to read pull request: %w", err)
 		}
 
 		// Format the result as text
@@ -288,11 +286,7 @@ func (bc *BitbucketController) newUpdatePRServerTool() server.ServerTool {
 		// Call the service to update the pull request
 		pr, err := bc.bitbucketService.UpdatePR(ctx, params)
 		if err != nil {
-			bc.logger.Error("Failed to update pull request", "error", err)
-
-			// TODO: Refactor this. We have a middleware to handle such errors
-			// controller should return special error
-			return mcp.NewToolResultError(err.Error()), nil
+			return nil, fmt.Errorf("failed to update pull request: %w", err)
 		}
 
 		return mcp.NewToolResultText(fmt.Sprintf("Updated pull request #%d: %s", pr.ID, pr.Title)), nil
@@ -359,11 +353,7 @@ func (bc *BitbucketController) newApprovePRServerTool() server.ServerTool {
 		// Call the service to approve the pull request
 		participant, err := bc.bitbucketService.ApprovePR(ctx, params)
 		if err != nil {
-			bc.logger.Error("Failed to approve pull request", "error", err)
-
-			// TODO: Refactor this. We have a middleware to handle such errors
-			// controller should return special error
-			return mcp.NewToolResultError(err.Error()), nil
+			return nil, fmt.Errorf("failed to approve pull request: %w", err)
 		}
 
 		// Create a response with the approval details
@@ -453,11 +443,7 @@ func (bc *BitbucketController) newMergePRServerTool() server.ServerTool {
 		// Call the service to merge the pull request
 		pr, err := bc.bitbucketService.MergePR(ctx, params)
 		if err != nil {
-			bc.logger.Error("Failed to merge pull request", "error", err)
-
-			// TODO: Refactor this. We have a middleware to handle such errors
-			// controller should return special error
-			return mcp.NewToolResultError(err.Error()), nil
+			return nil, fmt.Errorf("failed to merge pull request: %w", err)
 		}
 
 		// Create a response with the merge details

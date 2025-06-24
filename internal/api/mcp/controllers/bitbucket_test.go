@@ -463,14 +463,9 @@ func TestBitbucketController(t *testing.T) {
 			result, err := handler(ctx, request)
 
 			// Assert
-			require.NoError(t, err)
-			require.NotNil(t, result)
-			assert.True(t, result.IsError)
-
-			// Verify error message
-			content, ok := result.Content[0].(mcp.TextContent)
-			require.True(t, ok, "Error content should be text content")
-			assert.Contains(t, content.Text, expectedError.Error())
+			require.Error(t, err)
+			assert.Contains(t, err.Error(), expectedError.Error())
+			assert.Nil(t, result)
 		})
 
 		t.Run("should handle ReadPR call successfully", func(t *testing.T) {
@@ -724,14 +719,9 @@ func TestBitbucketController(t *testing.T) {
 			result, err := handler(ctx, request)
 
 			// Assert
-			require.NoError(t, err)
-			require.NotNil(t, result)
-			assert.True(t, result.IsError)
-
-			// Verify error message
-			content, ok := result.Content[0].(mcp.TextContent)
-			require.True(t, ok, "Error content should be text content")
-			assert.Contains(t, content.Text, expectedError.Error())
+			require.Error(t, err)
+			assert.Contains(t, err.Error(), expectedError.Error())
+			assert.Nil(t, result)
 		})
 
 		t.Run("should handle UpdatePR call successfully", func(t *testing.T) {
@@ -1002,14 +992,9 @@ func TestBitbucketController(t *testing.T) {
 			result, err := handler(ctx, request)
 
 			// Assert
-			require.NoError(t, err)
-			require.NotNil(t, result)
-			assert.True(t, result.IsError)
-
-			// Verify error message
-			content, ok := result.Content[0].(mcp.TextContent)
-			require.True(t, ok, "Error content should be text content")
-			assert.Contains(t, content.Text, expectedError.Error())
+			require.Error(t, err)
+			assert.Contains(t, err.Error(), expectedError.Error())
+			assert.Nil(t, result)
 		})
 
 		t.Run("should handle missing both title and description in UpdatePR", func(t *testing.T) {
@@ -1293,14 +1278,9 @@ func TestBitbucketController(t *testing.T) {
 			result, err := handler(ctx, request)
 
 			// Assert
-			require.NoError(t, err)
-			require.NotNil(t, result)
-			assert.True(t, result.IsError)
-
-			// Verify error message
-			content, ok := result.Content[0].(mcp.TextContent)
-			require.True(t, ok, "Error content should be text content")
-			assert.Contains(t, content.Text, expectedError.Error())
+			require.Error(t, err)
+			assert.Contains(t, err.Error(), expectedError.Error())
+			assert.Nil(t, result)
 		})
 
 		t.Run("should handle MergePR call successfully", func(t *testing.T) {
@@ -1509,14 +1489,9 @@ func TestBitbucketController(t *testing.T) {
 			result, err := handler(ctx, request)
 
 			// Assert
-			require.NoError(t, err)
-			require.NotNil(t, result)
-			assert.True(t, result.IsError)
-
-			// Verify error message
-			content, ok := result.Content[0].(mcp.TextContent)
-			require.True(t, ok, "Error content should be text content")
-			assert.Contains(t, content.Text, expectedError.Error())
+			require.Error(t, err)
+			assert.Contains(t, err.Error(), expectedError.Error())
+			assert.Nil(t, result)
 		})
 
 		t.Run("should handle MergePR with closeSourceBranch set to false", func(t *testing.T) {
