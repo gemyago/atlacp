@@ -3,6 +3,7 @@ package app
 import (
 	"context"
 	"errors"
+	"fmt"
 	"log/slog"
 
 	"github.com/gemyago/atlacp/internal/services/bitbucket"
@@ -207,7 +208,31 @@ func (s *BitbucketService) ReadPR(ctx context.Context, params BitbucketReadPRPar
 		slog.String("repo", params.RepoOwner+"/"+params.RepoName),
 		slog.Int("pr_id", params.PullRequestID))
 
-	return nil, errors.New("not implemented")
+	// Validate required parameters
+	if params.RepoOwner == "" {
+		return nil, errors.New("repository owner is required")
+	}
+	if params.RepoName == "" {
+		return nil, errors.New("repository name is required")
+	}
+	if params.PullRequestID <= 0 {
+		return nil, errors.New("pull request ID must be positive")
+	}
+
+	// Get token provider from auth factory
+	tokenProvider := s.authFactory.getTokenProvider(ctx, params.AccountName)
+
+	// Call the client to get the pull request
+	pr, err := s.client.GetPR(ctx, tokenProvider, bitbucket.GetPRParams{
+		Username:      params.RepoOwner,
+		RepoSlug:      params.RepoName,
+		PullRequestID: params.PullRequestID,
+	})
+	if err != nil {
+		return nil, fmt.Errorf("failed to get pull request: %w", err)
+	}
+
+	return pr, nil
 }
 
 // UpdatePR updates an existing pull request.

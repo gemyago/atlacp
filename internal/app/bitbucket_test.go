@@ -296,26 +296,186 @@ func TestBitbucketService(t *testing.T) {
 	})
 
 	t.Run("ReadPR", func(t *testing.T) {
-		t.Run("returns not implemented error", func(t *testing.T) {
+		t.Run("successfully retrieves pull request with default account", func(t *testing.T) {
 			// Arrange
 			deps := makeMockDeps(t)
+			mockClient, ok := deps.Client.(*MockBitbucketClient)
+			require.True(t, ok, "Client should be a MockBitbucketClient")
+			mockAuth, ok := deps.AuthFactory.(*MockbitbucketAuthFactory)
+			require.True(t, ok, "AuthFactory should be a MockbitbucketAuthFactory")
 			service := NewBitbucketService(deps)
 
+			// Create test data
 			repoOwner := "owner-" + faker.Username()
 			repoName := "repo-" + faker.Username()
-			prID := int(faker.RandomUnixTime())
+			pullRequestID := int(faker.RandomUnixTime()) % 10000
+			expectedPR := bitbucket.NewRandomPullRequest()
+			token := "token-" + faker.UUIDHyphenated()
+			tokenProvider := newStaticTokenProvider(token)
+
+			// Mock the auth factory to return our token provider
+			mockAuth.EXPECT().
+				getTokenProvider(mock.Anything, "").
+				Return(tokenProvider)
+
+			// Mock the client to return expected PR
+			mockClient.EXPECT().
+				GetPR(mock.Anything, mock.Anything, mock.MatchedBy(func(params bitbucket.GetPRParams) bool {
+					// Verify the parameters
+					assert.Equal(t, repoOwner, params.Username)
+					assert.Equal(t, repoName, params.RepoSlug)
+					assert.Equal(t, pullRequestID, params.PullRequestID)
+					return true
+				})).
+				Return(expectedPR, nil)
 
 			// Act
 			result, err := service.ReadPR(t.Context(), BitbucketReadPRParams{
 				RepoOwner:     repoOwner,
 				RepoName:      repoName,
-				PullRequestID: prID,
+				PullRequestID: pullRequestID,
+			})
+
+			// Assert
+			require.NoError(t, err)
+			assert.Equal(t, expectedPR, result)
+		})
+
+		t.Run("successfully retrieves pull request with named account", func(t *testing.T) {
+			// Arrange
+			deps := makeMockDeps(t)
+			mockClient, ok := deps.Client.(*MockBitbucketClient)
+			require.True(t, ok, "Client should be a MockBitbucketClient")
+			mockAuth, ok := deps.AuthFactory.(*MockbitbucketAuthFactory)
+			require.True(t, ok, "AuthFactory should be a MockbitbucketAuthFactory")
+			service := NewBitbucketService(deps)
+
+			// Create test data
+			accountName := "custom-account-" + faker.Username()
+			repoOwner := "owner-" + faker.Username()
+			repoName := "repo-" + faker.Username()
+			pullRequestID := int(faker.RandomUnixTime()) % 10000
+			expectedPR := bitbucket.NewRandomPullRequest()
+			token := "token-" + faker.UUIDHyphenated()
+			tokenProvider := newStaticTokenProvider(token)
+
+			// Mock the auth factory to return our token provider
+			mockAuth.EXPECT().
+				getTokenProvider(mock.Anything, accountName).
+				Return(tokenProvider)
+
+			// Mock the client to return expected PR
+			mockClient.EXPECT().
+				GetPR(mock.Anything, mock.Anything, mock.MatchedBy(func(params bitbucket.GetPRParams) bool {
+					// Verify the parameters
+					assert.Equal(t, repoOwner, params.Username)
+					assert.Equal(t, repoName, params.RepoSlug)
+					assert.Equal(t, pullRequestID, params.PullRequestID)
+					return true
+				})).
+				Return(expectedPR, nil)
+
+			// Act
+			result, err := service.ReadPR(t.Context(), BitbucketReadPRParams{
+				AccountName:   accountName,
+				RepoOwner:     repoOwner,
+				RepoName:      repoName,
+				PullRequestID: pullRequestID,
+			})
+
+			// Assert
+			require.NoError(t, err)
+			assert.Equal(t, expectedPR, result)
+		})
+
+		t.Run("fails when missing required parameters", func(t *testing.T) {
+			// Arrange
+			deps := makeMockDeps(t)
+			service := NewBitbucketService(deps)
+
+			testCases := []struct {
+				name   string
+				params BitbucketReadPRParams
+				errMsg string
+			}{
+				{
+					name: "missing repo owner",
+					params: BitbucketReadPRParams{
+						RepoName:      "repo-" + faker.Username(),
+						PullRequestID: 1,
+					},
+					errMsg: "repository owner is required",
+				},
+				{
+					name: "missing repo name",
+					params: BitbucketReadPRParams{
+						RepoOwner:     "owner-" + faker.Username(),
+						PullRequestID: 1,
+					},
+					errMsg: "repository name is required",
+				},
+				{
+					name: "invalid pull request ID",
+					params: BitbucketReadPRParams{
+						RepoOwner:     "owner-" + faker.Username(),
+						RepoName:      "repo-" + faker.Username(),
+						PullRequestID: 0,
+					},
+					errMsg: "pull request ID must be positive",
+				},
+			}
+
+			for _, tc := range testCases {
+				t.Run(tc.name, func(t *testing.T) {
+					// Act
+					result, err := service.ReadPR(t.Context(), tc.params)
+
+					// Assert
+					assert.Nil(t, result)
+					require.Error(t, err)
+					assert.Contains(t, err.Error(), tc.errMsg)
+				})
+			}
+		})
+
+		t.Run("handles client error", func(t *testing.T) {
+			// Arrange
+			deps := makeMockDeps(t)
+			mockClient, ok := deps.Client.(*MockBitbucketClient)
+			require.True(t, ok, "Client should be a MockBitbucketClient")
+			mockAuth, ok := deps.AuthFactory.(*MockbitbucketAuthFactory)
+			require.True(t, ok, "AuthFactory should be a MockbitbucketAuthFactory")
+			service := NewBitbucketService(deps)
+
+			// Create test data
+			repoOwner := "owner-" + faker.Username()
+			repoName := "repo-" + faker.Username()
+			pullRequestID := int(faker.RandomUnixTime()) % 10000
+			token := "token-" + faker.UUIDHyphenated()
+			tokenProvider := newStaticTokenProvider(token)
+			expectedErr := errors.New("API error: " + faker.Sentence())
+
+			// Mock the auth factory
+			mockAuth.EXPECT().
+				getTokenProvider(mock.Anything, "").
+				Return(tokenProvider)
+
+			// Mock the client to return an error
+			mockClient.EXPECT().
+				GetPR(mock.Anything, mock.Anything, mock.Anything).
+				Return(nil, expectedErr)
+
+			// Act
+			result, err := service.ReadPR(t.Context(), BitbucketReadPRParams{
+				RepoOwner:     repoOwner,
+				RepoName:      repoName,
+				PullRequestID: pullRequestID,
 			})
 
 			// Assert
 			assert.Nil(t, result)
 			require.Error(t, err)
-			assert.Equal(t, "not implemented", err.Error())
+			assert.Equal(t, expectedErr, errors.Unwrap(err))
 		})
 	})
 
