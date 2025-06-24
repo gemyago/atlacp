@@ -2,6 +2,7 @@ package controllers
 
 import (
 	"context"
+	"fmt"
 	"log/slog"
 
 	"github.com/gemyago/atlacp/internal/app"
@@ -74,9 +75,98 @@ func (bc *BitbucketController) newCreatePRServerTool() server.ServerTool {
 		),
 	)
 
-	handler := func(_ context.Context, _ mcp.CallToolRequest) (*mcp.CallToolResult, error) {
-		// TODO: Implement handler for create PR
-		return mcp.NewToolResultText("CreatePR functionality not implemented yet"), nil
+	handler := func(ctx context.Context, request mcp.CallToolRequest) (*mcp.CallToolResult, error) {
+		bc.logger.Debug("Received bitbucket_create_pr request", "params", request.Params)
+
+		// Extract parameters from the request
+		args, ok := request.Params.Arguments.(map[string]interface{})
+		if !ok {
+			return mcp.NewToolResultError("Invalid arguments format"), nil
+		}
+
+		// Extract required parameters
+		title, ok := args["title"].(string)
+		if !ok {
+			return mcp.NewToolResultError("Missing or invalid title parameter"), nil
+		}
+
+		sourceBranch, ok := args["source_branch"].(string)
+		if !ok {
+			return mcp.NewToolResultError("Missing or invalid source_branch parameter"), nil
+		}
+
+		targetBranch, ok := args["target_branch"].(string)
+		if !ok {
+			return mcp.NewToolResultError("Missing or invalid target_branch parameter"), nil
+		}
+
+		// Extract optional parameters
+		var description string
+		if descVal, exists := args["description"]; exists {
+			if descStr, ok := descVal.(string); ok {
+				description = descStr
+			}
+		}
+
+		var account string
+		if accVal, exists := args["account"]; exists {
+			if accStr, ok := accVal.(string); ok {
+				account = accStr
+			}
+		}
+
+		// Extract reviewers (if any)
+		var reviewers []string
+		if reviewersVal, exists := args["reviewers"]; exists {
+			if reviewersArr, ok := reviewersVal.([]interface{}); ok {
+				for _, reviewer := range reviewersArr {
+					if reviewerStr, ok := reviewer.(string); ok {
+						reviewers = append(reviewers, reviewerStr)
+					}
+				}
+			}
+		}
+
+		// Create parameters for the service layer
+		params := app.BitbucketCreatePRParams{
+			Title:        title,
+			SourceBranch: sourceBranch,
+			DestBranch:   targetBranch,
+			Description:  description,
+			AccountName:  account,
+			Reviewers:    reviewers,
+		}
+
+		// TODO: Need to add repo information - hardcoded for now during initial implementation
+		// This would typically come from configuration or additional parameters
+		params.RepoOwner = "your-workspace" // Will be replaced with actual parameter in future
+		params.RepoName = "your-repository" // Will be replaced with actual parameter in future
+
+		// Call the service to create the pull request
+		pr, err := bc.bitbucketService.CreatePR(ctx, params)
+		if err != nil {
+			bc.logger.Error("Failed to create pull request", "error", err)
+			return mcp.NewToolResultError(err.Error()), nil
+		}
+
+		// Create a response with the pull request details
+		result := map[string]interface{}{
+			"id":          pr.ID,
+			"title":       pr.Title,
+			"description": pr.Description,
+			"state":       pr.State,
+			"source":      pr.Source.Branch.Name,
+			"target":      pr.Destination.Branch.Name,
+			"created_on":  pr.CreatedOn,
+			"updated_on":  pr.UpdatedOn,
+		}
+
+		// Add optional fields only if they exist
+		if pr.Author != nil {
+			result["author"] = pr.Author.DisplayName
+		}
+
+		return mcp.NewToolResultText(fmt.Sprintf("Created pull request #%d: %s", pr.ID, pr.Title)), nil
 	}
 
 	return server.ServerTool{
