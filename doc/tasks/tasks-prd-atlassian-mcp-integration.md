@@ -146,7 +146,7 @@ Please read referenced files to understand the problem:
   - [x] 5.1 Create `internal/app/bitbucket.go` with business logic service with all method stubs and initial skeleton for unit tests
   - [x] 5.2 Implement `bitbucket_create_pr` tool: Create pull requests with template support and reviewer assignment
   - [x] 5.3 Implement `bitbucket_read_pr` tool: Retrieve comprehensive PR details including status and reviews
-  - [ ] 5.4 Implement `bitbucket_update_pr` tool: Update PR titles and descriptions with validation
+  - [x] 5.4 Implement `bitbucket_update_pr` tool: Update PR titles and descriptions with validation
   - [ ] 5.5 Implement `bitbucket_approve_pr` tool: Approve pull requests with proper authorization
   - [ ] 5.6 Implement `bitbucket_merge_pr` tool: Merge PRs with strategy selection and pre-merge validation
   - [ ] 5.7 Create `internal/api/mcp/controllers/bitbucket.go` with MCP protocol handling for all tools

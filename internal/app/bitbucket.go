@@ -244,7 +244,41 @@ func (s *BitbucketService) UpdatePR(
 		slog.String("repo", params.RepoOwner+"/"+params.RepoName),
 		slog.Int("pr_id", params.PullRequestID))
 
-	return nil, errors.New("not implemented")
+	// Validate required parameters
+	if params.RepoOwner == "" {
+		return nil, errors.New("repository owner is required")
+	}
+	if params.RepoName == "" {
+		return nil, errors.New("repository name is required")
+	}
+	if params.PullRequestID <= 0 {
+		return nil, errors.New("pull request ID must be positive")
+	}
+	if params.Title == "" && params.Description == "" {
+		return nil, errors.New("either title or description must be provided")
+	}
+
+	// Get token provider from auth factory
+	tokenProvider := s.authFactory.getTokenProvider(ctx, params.AccountName)
+
+	// Create update request with provided fields
+	updateRequest := &bitbucket.PullRequest{
+		Title:       params.Title,
+		Description: params.Description,
+	}
+
+	// Call the client to update the pull request
+	pr, err := s.client.UpdatePR(ctx, tokenProvider, bitbucket.UpdatePRParams{
+		Username:      params.RepoOwner,
+		RepoSlug:      params.RepoName,
+		PullRequestID: params.PullRequestID,
+		Request:       updateRequest,
+	})
+	if err != nil {
+		return nil, fmt.Errorf("failed to update pull request: %w", err)
+	}
+
+	return pr, nil
 }
 
 // ApprovePR approves a pull request.
