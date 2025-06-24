@@ -100,7 +100,7 @@ func NewMCPServer(deps MCPServerDeps) *MCPServer {
 							slog.String("tool", req.Params.Name),
 							slog.Any("error", err),
 						)
-						return nil, err
+						return mcp.NewToolResultError(err.Error()), nil
 					}
 
 					logger.InfoContext(nextCtx, "Tool call processed",

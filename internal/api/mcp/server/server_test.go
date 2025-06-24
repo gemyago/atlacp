@@ -148,7 +148,8 @@ func TestMCPServer(t *testing.T) {
 			deps := makeMockDeps()
 
 			wantCall := makeToolCallRequest()
-			wantError := errors.New(faker.Sentence())
+			errorMsg := faker.Sentence()
+			wantError := errors.New(errorMsg)
 
 			deps.Controllers = newToolsFactories(
 				wantCall.Params.Name,
@@ -165,9 +166,16 @@ func TestMCPServer(t *testing.T) {
 
 			client := testServer.Client()
 
-			_, err = client.CallTool(ctx, wantCall)
-			require.Error(t, err)
-			assert.Equal(t, wantError, err)
+			result, err := client.CallTool(ctx, wantCall)
+			require.NoError(t, err) // Now expecting no error
+			require.NotNil(t, result)
+			assert.True(t, result.IsError)
+
+			if len(result.Content) > 0 {
+				content, ok := mcp.AsTextContent(result.Content[0])
+				require.True(t, ok, "Error content should be text content")
+				assert.Contains(t, content.Text, errorMsg)
+			}
 		})
 	})
 }
