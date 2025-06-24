@@ -183,6 +183,18 @@ Benefits of `EXPECT()`:
 - Automatic cleanup with `NewMockXxx(t)` constructor
 - No need for manual `AssertExpectations(t)` calls
 
+### Check for errors properly
+
+Use below pattern to check for errors:
+
+```go
+require.NoError(t, err) // If you expect no error
+require.Error(t, err) // If you expect an error
+
+// Prefer this over assert.Contains(t, err.Error(), expectedError.Error())
+assert.ErrorIs(t, err, expectedError) 
+```
+
 ### Follow TDD Strictly
 
 When implementing new features, always follow the TDD cycle strictly:
