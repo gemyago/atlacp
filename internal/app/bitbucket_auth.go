@@ -12,7 +12,7 @@ import (
 type bitbucketAuthFactory interface {
 	// getTokenProvider returns a TokenProvider for the specified account name.
 	// If accountName is empty, uses the default account.
-	getTokenProvider(ctx context.Context, accountName string) (TokenProvider, error)
+	getTokenProvider(ctx context.Context, accountName string) TokenProvider
 }
 
 // bitbucketAuthFactoryImpl provides authentication for Bitbucket operations by resolving
@@ -31,38 +31,37 @@ type BitbucketAuthFactoryDeps struct {
 }
 
 // newBitbucketAuthFactory creates a new Bitbucket account auth component.
-func newBitbucketAuthFactory(deps BitbucketAuthFactoryDeps) *bitbucketAuthFactoryImpl {
+func newBitbucketAuthFactory(deps BitbucketAuthFactoryDeps) bitbucketAuthFactory {
 	return &bitbucketAuthFactoryImpl{
 		accountsRepo: deps.AccountsRepo,
 		logger:       deps.RootLogger.WithGroup("app.bitbucket-account-auth"),
 	}
 }
 
-// GetTokenProvider returns a TokenProvider for the specified account name.
+// getTokenProvider returns a TokenProvider for the specified account name.
 // If accountName is empty, uses the default account.
-func (a *bitbucketAuthFactoryImpl) GetTokenProvider(ctx context.Context, accountName string) (TokenProvider, error) {
-	var account *AtlassianAccount
-	var err error
+func (a *bitbucketAuthFactoryImpl) getTokenProvider(_ context.Context, accountName string) TokenProvider {
+	return tokenProviderFunc(func(ctx context.Context) (string, error) {
+		var account *AtlassianAccount
+		var err error
 
-	if accountName == "" {
-		account, err = a.accountsRepo.GetDefaultAccount(ctx)
-		if err != nil {
-			return nil, err
+		if accountName == "" {
+			account, err = a.accountsRepo.GetDefaultAccount(ctx)
+			if err != nil {
+				return "", err
+			}
+		} else {
+			account, err = a.accountsRepo.GetAccountByName(ctx, accountName)
+			if err != nil {
+				return "", err
+			}
 		}
-	} else {
-		account, err = a.accountsRepo.GetAccountByName(ctx, accountName)
-		if err != nil {
-			return nil, err
+
+		// Validate account has Bitbucket configuration
+		if account.Bitbucket == nil {
+			return "", errors.New("bitbucket configuration not found for account: " + account.Name)
 		}
-	}
 
-	// Validate account has Bitbucket configuration
-	if account.Bitbucket == nil {
-		return nil, errors.New("bitbucket configuration not found for account: " + account.Name)
-	}
-
-	// Create token provider using account token
-	tokenProvider := newStaticTokenProvider(account.Bitbucket.Token)
-
-	return tokenProvider, nil
+		return account.Bitbucket.Token, nil
+	})
 }

@@ -18,3 +18,9 @@ func newStaticTokenProvider(token string) *staticTokenProvider {
 func (p *staticTokenProvider) GetToken(_ context.Context) (string, error) {
 	return p.token, nil
 }
+
+type tokenProviderFunc func(ctx context.Context) (string, error)
+
+func (f tokenProviderFunc) GetToken(ctx context.Context) (string, error) {
+	return f(ctx)
+}

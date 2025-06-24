@@ -1,6 +1,7 @@
 package app
 
 import (
+	"errors"
 	"testing"
 
 	"github.com/go-faker/faker/v4"
@@ -19,14 +20,6 @@ func TestBitbucketAuthFactory(t *testing.T) {
 		}, mockRepo
 	}
 
-	t.Run("should create new auth factory", func(t *testing.T) {
-		deps, _ := makeMockDeps(t)
-		auth := newBitbucketAuthFactory(deps)
-
-		assert.NotNil(t, auth)
-		assert.NotNil(t, auth.logger)
-	})
-
 	t.Run("should get token provider for default account", func(t *testing.T) {
 		deps, mockRepo := makeMockDeps(t)
 		auth := newBitbucketAuthFactory(deps)
@@ -43,9 +36,7 @@ func TestBitbucketAuthFactory(t *testing.T) {
 
 		mockRepo.EXPECT().GetDefaultAccount(t.Context()).Return(expectedAccount, nil)
 
-		tokenProvider, err := auth.GetTokenProvider(t.Context(), "")
-
-		require.NoError(t, err)
+		tokenProvider := auth.getTokenProvider(t.Context(), "")
 		assert.NotNil(t, tokenProvider)
 
 		// Test that the token provider returns the correct token
@@ -71,9 +62,7 @@ func TestBitbucketAuthFactory(t *testing.T) {
 
 		mockRepo.EXPECT().GetAccountByName(t.Context(), accountName).Return(expectedAccount, nil)
 
-		tokenProvider, err := auth.GetTokenProvider(t.Context(), accountName)
-
-		require.NoError(t, err)
+		tokenProvider := auth.getTokenProvider(t.Context(), accountName)
 		assert.NotNil(t, tokenProvider)
 
 		// Test that the token provider returns the correct token
@@ -86,13 +75,14 @@ func TestBitbucketAuthFactory(t *testing.T) {
 		deps, mockRepo := makeMockDeps(t)
 		auth := newBitbucketAuthFactory(deps)
 
-		mockRepo.EXPECT().GetDefaultAccount(t.Context()).Return(nil, ErrNoDefaultAccount)
+		wantErr := errors.New(faker.Sentence())
+		mockRepo.EXPECT().GetDefaultAccount(t.Context()).Return(nil, wantErr)
 
-		tokenProvider, err := auth.GetTokenProvider(t.Context(), "")
+		tokenProvider := auth.getTokenProvider(t.Context(), "")
 
-		require.Error(t, err)
-		assert.Nil(t, tokenProvider)
-		assert.ErrorIs(t, err, ErrNoDefaultAccount)
+		token, err := tokenProvider.GetToken(t.Context())
+		assert.Empty(t, token)
+		assert.ErrorIs(t, err, wantErr)
 	})
 
 	t.Run("should return ErrAccountNotFound when default account returns ErrAccountNotFound", func(t *testing.T) {
@@ -101,10 +91,11 @@ func TestBitbucketAuthFactory(t *testing.T) {
 
 		mockRepo.EXPECT().GetDefaultAccount(t.Context()).Return(nil, ErrAccountNotFound)
 
-		tokenProvider, err := auth.GetTokenProvider(t.Context(), "")
+		tokenProvider := auth.getTokenProvider(t.Context(), "")
 
+		token, err := tokenProvider.GetToken(t.Context())
+		assert.Empty(t, token)
 		require.Error(t, err)
-		assert.Nil(t, tokenProvider)
 		assert.ErrorIs(t, err, ErrAccountNotFound)
 	})
 
@@ -115,10 +106,10 @@ func TestBitbucketAuthFactory(t *testing.T) {
 		accountName := faker.Username()
 		mockRepo.EXPECT().GetAccountByName(t.Context(), accountName).Return(nil, ErrAccountNotFound)
 
-		tokenProvider, err := auth.GetTokenProvider(t.Context(), accountName)
+		tokenProvider := auth.getTokenProvider(t.Context(), accountName)
 
-		require.Error(t, err)
-		assert.Nil(t, tokenProvider)
+		token, err := tokenProvider.GetToken(t.Context())
+		assert.Empty(t, token)
 		assert.ErrorIs(t, err, ErrAccountNotFound)
 	})
 
@@ -134,10 +125,11 @@ func TestBitbucketAuthFactory(t *testing.T) {
 
 		mockRepo.EXPECT().GetDefaultAccount(t.Context()).Return(expectedAccount, nil)
 
-		tokenProvider, err := auth.GetTokenProvider(t.Context(), "")
+		tokenProvider := auth.getTokenProvider(t.Context(), "")
+		token, err := tokenProvider.GetToken(t.Context())
 
+		assert.Empty(t, token)
 		require.Error(t, err)
-		assert.Nil(t, tokenProvider)
 		assert.Contains(t, err.Error(), "bitbucket configuration not found")
 	})
 }

@@ -24,7 +24,7 @@ func (_m *MockbitbucketAuthFactory) EXPECT() *MockbitbucketAuthFactory_Expecter 
 }
 
 // getTokenProvider provides a mock function with given fields: ctx, accountName
-func (_m *MockbitbucketAuthFactory) getTokenProvider(ctx context.Context, accountName string) (TokenProvider, error) {
+func (_m *MockbitbucketAuthFactory) getTokenProvider(ctx context.Context, accountName string) TokenProvider {
 	ret := _m.Called(ctx, accountName)
 
 	if len(ret) == 0 {
@@ -32,10 +32,6 @@ func (_m *MockbitbucketAuthFactory) getTokenProvider(ctx context.Context, accoun
 	}
 
 	var r0 TokenProvider
-	var r1 error
-	if rf, ok := ret.Get(0).(func(context.Context, string) (TokenProvider, error)); ok {
-		return rf(ctx, accountName)
-	}
 	if rf, ok := ret.Get(0).(func(context.Context, string) TokenProvider); ok {
 		r0 = rf(ctx, accountName)
 	} else {
@@ -44,13 +40,7 @@ func (_m *MockbitbucketAuthFactory) getTokenProvider(ctx context.Context, accoun
 		}
 	}
 
-	if rf, ok := ret.Get(1).(func(context.Context, string) error); ok {
-		r1 = rf(ctx, accountName)
-	} else {
-		r1 = ret.Error(1)
-	}
-
-	return r0, r1
+	return r0
 }
 
 // MockbitbucketAuthFactory_getTokenProvider_Call is a *mock.Call that shadows Run/Return methods with type explicit version for method 'getTokenProvider'
@@ -72,12 +62,12 @@ func (_c *MockbitbucketAuthFactory_getTokenProvider_Call) Run(run func(ctx conte
 	return _c
 }
 
-func (_c *MockbitbucketAuthFactory_getTokenProvider_Call) Return(_a0 TokenProvider, _a1 error) *MockbitbucketAuthFactory_getTokenProvider_Call {
-	_c.Call.Return(_a0, _a1)
+func (_c *MockbitbucketAuthFactory_getTokenProvider_Call) Return(_a0 TokenProvider) *MockbitbucketAuthFactory_getTokenProvider_Call {
+	_c.Call.Return(_a0)
 	return _c
 }
 
-func (_c *MockbitbucketAuthFactory_getTokenProvider_Call) RunAndReturn(run func(context.Context, string) (TokenProvider, error)) *MockbitbucketAuthFactory_getTokenProvider_Call {
+func (_c *MockbitbucketAuthFactory_getTokenProvider_Call) RunAndReturn(run func(context.Context, string) TokenProvider) *MockbitbucketAuthFactory_getTokenProvider_Call {
 	_c.Call.Return(run)
 	return _c
 }
