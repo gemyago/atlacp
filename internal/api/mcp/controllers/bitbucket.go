@@ -351,14 +351,74 @@ func (bc *BitbucketController) newApprovePRServerTool() server.ServerTool {
 			mcp.Description("Pull request ID"),
 			mcp.Required(),
 		),
+		mcp.WithString("repo_owner",
+			mcp.Description("Repository owner (username/workspace)"),
+			mcp.Required(),
+		),
+		mcp.WithString("repo_name",
+			mcp.Description("Repository name (slug)"),
+			mcp.Required(),
+		),
 		mcp.WithString("account",
 			mcp.Description("Atlassian account name to use (optional, uses default if not specified)"),
 		),
 	)
 
-	handler := func(_ context.Context, _ mcp.CallToolRequest) (*mcp.CallToolResult, error) {
-		// TODO: Implement handler for approve PR
-		return mcp.NewToolResultText("ApprovePR functionality not implemented yet"), nil
+	handler := func(ctx context.Context, request mcp.CallToolRequest) (*mcp.CallToolResult, error) {
+		bc.logger.Debug("Received bitbucket_approve_pr request", "params", request.Params)
+
+		// Extract required parameters directly from the request
+		prID := request.GetInt("pr_id", 0)
+		if prID <= 0 {
+			return mcp.NewToolResultError("Missing or invalid pr_id parameter"), nil
+		}
+
+		repoOwner := request.GetString("repo_owner", "")
+		if repoOwner == "" {
+			return mcp.NewToolResultError("Missing or invalid repo_owner parameter"), nil
+		}
+
+		repoName := request.GetString("repo_name", "")
+		if repoName == "" {
+			return mcp.NewToolResultError("Missing or invalid repo_name parameter"), nil
+		}
+
+		// Optional parameters
+		account := request.GetString("account", "")
+
+		// Create parameters for the service layer
+		params := app.BitbucketApprovePRParams{
+			PullRequestID: prID,
+			RepoOwner:     repoOwner,
+			RepoName:      repoName,
+			AccountName:   account,
+		}
+
+		// Call the service to approve the pull request
+		participant, err := bc.bitbucketService.ApprovePR(ctx, params)
+		if err != nil {
+			bc.logger.Error("Failed to approve pull request", "error", err)
+
+			// TODO: Refactor this. We have a middleware to handle such errors
+			// controller should return special error
+			return mcp.NewToolResultError(err.Error()), nil
+		}
+
+		// Create a response with the approval details
+		var role string
+		if participant.Role != "" {
+			role = fmt.Sprintf(" as %s", participant.Role)
+		}
+
+		userName := "Unknown user"
+		if participant.User.DisplayName != "" {
+			userName = participant.User.DisplayName
+		} else if participant.User.Username != "" {
+			userName = participant.User.Username
+		}
+
+		return mcp.NewToolResultText(fmt.Sprintf("Pull request #%d approved by %s%s",
+			prID, userName, role)), nil
 	}
 
 	return server.ServerTool{
@@ -376,21 +436,93 @@ func (bc *BitbucketController) newMergePRServerTool() server.ServerTool {
 			mcp.Description("Pull request ID"),
 			mcp.Required(),
 		),
+		mcp.WithString("repo_owner",
+			mcp.Description("Repository owner (username/workspace)"),
+			mcp.Required(),
+		),
+		mcp.WithString("repo_name",
+			mcp.Description("Repository name (slug)"),
+			mcp.Required(),
+		),
 		mcp.WithString("merge_strategy",
-			mcp.Description("Merge strategy to use"),
-			mcp.Enum("merge_commit", "squash", "fast_forward"),
+			mcp.Description("Merge strategy (merge_commit, squash, fast_forward)"),
 		),
 		mcp.WithString("commit_message",
-			mcp.Description("Custom commit message for merge commit"),
+			mcp.Description("Custom commit message for the merge (optional)"),
+		),
+		mcp.WithString("close_source_branch",
+			mcp.Description("Whether to close the source branch after merge (true/false)"),
 		),
 		mcp.WithString("account",
 			mcp.Description("Atlassian account name to use (optional, uses default if not specified)"),
 		),
 	)
 
-	handler := func(_ context.Context, _ mcp.CallToolRequest) (*mcp.CallToolResult, error) {
-		// TODO: Implement handler for merge PR
-		return mcp.NewToolResultText("MergePR functionality not implemented yet"), nil
+	handler := func(ctx context.Context, request mcp.CallToolRequest) (*mcp.CallToolResult, error) {
+		bc.logger.Debug("Received bitbucket_merge_pr request", "params", request.Params)
+
+		// Extract required parameters directly from the request
+		prID := request.GetInt("pr_id", 0)
+		if prID <= 0 {
+			return mcp.NewToolResultError("Missing or invalid pr_id parameter"), nil
+		}
+
+		repoOwner := request.GetString("repo_owner", "")
+		if repoOwner == "" {
+			return mcp.NewToolResultError("Missing or invalid repo_owner parameter"), nil
+		}
+
+		repoName := request.GetString("repo_name", "")
+		if repoName == "" {
+			return mcp.NewToolResultError("Missing or invalid repo_name parameter"), nil
+		}
+
+		// Optional parameters
+		mergeStrategy := request.GetString("merge_strategy", "")
+		commitMessage := request.GetString("commit_message", "")
+		closeSourceBranchStr := request.GetString("close_source_branch", "")
+		account := request.GetString("account", "")
+
+		// Parse boolean parameter
+		var closeSourceBranch bool
+		if closeSourceBranchStr != "" {
+			closeSourceBranch = closeSourceBranchStr == "true"
+		}
+
+		// Create parameters for the service layer
+		params := app.BitbucketMergePRParams{
+			PullRequestID:     prID,
+			RepoOwner:         repoOwner,
+			RepoName:          repoName,
+			MergeStrategy:     mergeStrategy,
+			Message:           commitMessage,
+			CloseSourceBranch: closeSourceBranch,
+			AccountName:       account,
+		}
+
+		// Call the service to merge the pull request
+		pr, err := bc.bitbucketService.MergePR(ctx, params)
+		if err != nil {
+			bc.logger.Error("Failed to merge pull request", "error", err)
+
+			// TODO: Refactor this. We have a middleware to handle such errors
+			// controller should return special error
+			return mcp.NewToolResultError(err.Error()), nil
+		}
+
+		// Create a response with the merge details
+		var strategyText string
+		if mergeStrategy != "" {
+			strategyText = fmt.Sprintf(" using %s strategy", mergeStrategy)
+		}
+
+		var closeBranchText string
+		if closeSourceBranch {
+			closeBranchText = " and source branch was closed"
+		}
+
+		return mcp.NewToolResultText(fmt.Sprintf("Pull request #%d successfully merged%s%s",
+			pr.ID, strategyText, closeBranchText)), nil
 	}
 
 	return server.ServerTool{
@@ -399,8 +531,7 @@ func (bc *BitbucketController) newMergePRServerTool() server.ServerTool {
 	}
 }
 
-// NewTools returns all Bitbucket tools.
-// Satisfies the ToolsFactory interface.
+// NewTools returns the tools for this controller.
 func (bc *BitbucketController) NewTools() []server.ServerTool {
 	return []server.ServerTool{
 		bc.newCreatePRServerTool(),
