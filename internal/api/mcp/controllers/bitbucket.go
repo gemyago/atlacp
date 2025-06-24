@@ -64,6 +64,14 @@ func (bc *BitbucketController) newCreatePRServerTool() server.ServerTool {
 			mcp.Description("Target branch name"),
 			mcp.Required(),
 		),
+		mcp.WithString("repo_owner",
+			mcp.Description("Repository owner (username/workspace)"),
+			mcp.Required(),
+		),
+		mcp.WithString("repo_name",
+			mcp.Description("Repository name (slug)"),
+			mcp.Required(),
+		),
 		mcp.WithString("description",
 			mcp.Description("Pull request description"),
 		),
@@ -94,6 +102,16 @@ func (bc *BitbucketController) newCreatePRServerTool() server.ServerTool {
 			return mcp.NewToolResultError("Missing or invalid target_branch parameter"), nil
 		}
 
+		repoOwner := request.GetString("repo_owner", "")
+		if repoOwner == "" {
+			return mcp.NewToolResultError("Missing or invalid repo_owner parameter"), nil
+		}
+
+		repoName := request.GetString("repo_name", "")
+		if repoName == "" {
+			return mcp.NewToolResultError("Missing or invalid repo_name parameter"), nil
+		}
+
 		// Optional parameters
 		description := request.GetString("description", "")
 		account := request.GetString("account", "")
@@ -109,12 +127,9 @@ func (bc *BitbucketController) newCreatePRServerTool() server.ServerTool {
 			Description:  description,
 			AccountName:  account,
 			Reviewers:    reviewers,
+			RepoOwner:    repoOwner,
+			RepoName:     repoName,
 		}
-
-		// TODO: Need to add repo information - hardcoded for now during initial implementation
-		// This would typically come from configuration or additional parameters
-		params.RepoOwner = "your-workspace" // Will be replaced with actual parameter in future
-		params.RepoName = "your-repository" // Will be replaced with actual parameter in future
 
 		// Call the service to create the pull request
 		pr, err := bc.bitbucketService.CreatePR(ctx, params)
@@ -158,14 +173,79 @@ func (bc *BitbucketController) newReadPRServerTool() server.ServerTool {
 			mcp.Description("Pull request ID"),
 			mcp.Required(),
 		),
+		mcp.WithString("repo_owner",
+			mcp.Description("Repository owner (username/workspace)"),
+			mcp.Required(),
+		),
+		mcp.WithString("repo_name",
+			mcp.Description("Repository name (slug)"),
+			mcp.Required(),
+		),
 		mcp.WithString("account",
 			mcp.Description("Atlassian account name to use (optional, uses default if not specified)"),
 		),
 	)
 
-	handler := func(_ context.Context, _ mcp.CallToolRequest) (*mcp.CallToolResult, error) {
-		// TODO: Implement handler for read PR
-		return mcp.NewToolResultText("ReadPR functionality not implemented yet"), nil
+	handler := func(ctx context.Context, request mcp.CallToolRequest) (*mcp.CallToolResult, error) {
+		bc.logger.Debug("Received bitbucket_read_pr request", "params", request.Params)
+
+		// Extract parameters directly from the request
+		prID := request.GetInt("pr_id", 0)
+		if prID <= 0 {
+			return mcp.NewToolResultError("Missing or invalid pr_id parameter"), nil
+		}
+
+		repoOwner := request.GetString("repo_owner", "")
+		if repoOwner == "" {
+			return mcp.NewToolResultError("Missing or invalid repo_owner parameter"), nil
+		}
+
+		repoName := request.GetString("repo_name", "")
+		if repoName == "" {
+			return mcp.NewToolResultError("Missing or invalid repo_name parameter"), nil
+		}
+
+		// Optional parameters
+		account := request.GetString("account", "")
+
+		// Create parameters for the service layer
+		params := app.BitbucketReadPRParams{
+			PullRequestID: prID,
+			AccountName:   account,
+			RepoOwner:     repoOwner,
+			RepoName:      repoName,
+		}
+
+		// Call the service to read the pull request
+		pr, err := bc.bitbucketService.ReadPR(ctx, params)
+		if err != nil {
+			bc.logger.Error("Failed to read pull request", "error", err)
+			return mcp.NewToolResultError(err.Error()), nil
+		}
+
+		// Create a response with the pull request details
+		result := map[string]interface{}{
+			"id":          pr.ID,
+			"title":       pr.Title,
+			"description": pr.Description,
+			"state":       pr.State,
+			"source":      pr.Source.Branch.Name,
+			"created_on":  pr.CreatedOn,
+			"updated_on":  pr.UpdatedOn,
+		}
+
+		// Add optional fields only if they exist
+		if pr.Author != nil {
+			result["author"] = pr.Author.DisplayName
+		}
+
+		if pr.Destination != nil {
+			result["target"] = pr.Destination.Branch.Name
+		}
+
+		// Format the result as text
+		return mcp.NewToolResultText(fmt.Sprintf("Pull request #%d: %s (Status: %s)",
+			pr.ID, pr.Title, pr.State)), nil
 	}
 
 	return server.ServerTool{
