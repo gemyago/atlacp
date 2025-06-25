@@ -31,7 +31,7 @@ Please read referenced files to understand the problem:
 - `internal/app/ports.go` - Application layer ports (interfaces) for repositories (✓ created)
 - `internal/app/auth.go` - Token provider implementation for API authentication (✓ created)
 - `doc/atlassian-accounts-schema.md` - JSON schema documentation for Atlassian accounts (✓ created)
-- `examples/atlassian-accounts.json` - Example Atlassian accounts configuration (✓ created)
+- `examples/atlassian-accounts-stub.json` - Example Atlassian accounts configuration (✓ created)
 - `internal/services/atlassian_client.go` - Atlassian-specific HTTP client implementation
 - `internal/services/atlassian_accounts.go` - Accounts repository for managing multiple named Atlassian accounts (✓ created)
 - `internal/app/bitbucket.go` - Business logic for Bitbucket operations (✓ created with CreatePR implemented)
@@ -73,30 +73,12 @@ Please read referenced files to understand the problem:
 - `.mockery.yaml` - Mockery configuration for generating mocks (if needed)
 - `go.mod` - Go module dependencies (if new packages needed)
 
-### Notes
-
-- **Testing Framework:** Use testify for assertions and table-driven tests
-- **Architecture:** Follow clean architecture with layers: MCP → App → Services
-- **HTTP Client Infrastructure:** Built on standard Go `http.Client` and `http.RoundTripper` with middleware pattern
-- **Code Organization:** Follow the existing structure:
-  - `internal/api/mcp/` - MCP protocol layer (controllers)
-  - `internal/app/` - Application layer (business logic)
-  - `internal/services/` - Infrastructure layer (HTTP clients, repositories)
-  - `internal/services/http/` - HTTP client infrastructure and middleware
-- **Naming Conventions:** Use Go conventions (PascalCase for exported, camelCase for unexported)
-- **Authentication:** API token-based authentication via middleware for MVP
-- **Multi-Account Support:** Named accounts (e.g., "user", "merge-bot") with default account configuration
-- **Error Handling:** Use Go's idiomatic error handling with clear, actionable error messages
-- **MCP Tools:** Use service-based naming (`bitbucket_*`, `jira_*`)
-- **OpenAPI Integration:** Use official Bitbucket and Jira OpenAPI specifications for client generation
-- **Instructional Development:** Create comprehensive instructions for generating API clients
-- **Testing Commands:**
-  - `make test` - Run all tests with coverage
-  - `go test -v ./internal/path/... --run TestName` - Run specific tests
-  - `gow test -v ./internal/path/... --run TestName` - Watch mode for test development
-- **Mock Generation:** Use `go generate` with mockery for interface mocks if needed
-- **Dependency Injection:** Use uber/dig for dependency management
-- **Configuration:** Extend existing viper-based configuration system with base URLs for Atlassian APIs
+### Example and Testing Files
+- `examples/docker-compose.yml` - Docker compose configuration for testing MCP integration (✓ created)
+- `examples/test-client/package.json` - Node.js package for test client (✓ created)
+- `examples/test-client/test-bitbucket-workflow.js` - Complete Bitbucket workflow test script (✓ created)
+- `examples/test-client/test-multi-account.js` - Multi-account functionality test script (✓ created)
+- `examples/README.md` - Comprehensive documentation for examples and testing (✓ created)
 
 ## Tasks
 
@@ -155,7 +137,7 @@ Please read referenced files to understand the problem:
   - [x] 5.10 Create unit tests for MCP controllers in `internal/api/mcp/controllers/bitbucket_test.go`
   - [x] 5.11 Register Bitbucket services in `internal/app/register.go` and controllers in `internal/api/mcp/controllers/register.go`
 - [ ] 6.0 Bitbucket Integration Testing and Usage Documentation
-  - [ ] 6.1 Create example docker compose
+  - [x] 6.1 Create example docker compose
   - [ ] 6.3 Test end-to-end bitbucket workflow (from AI code editor): Create PR → Read PR → Update PR → Approve PR → Merge PR. Automate this with instructions for AI code editor.
   - [ ] 6.4 Validate multi-account functionality: Create PR as user -> Approve PR as bot -> Merge PR as user. Automate this with instructions for AI code editor.
   - [ ] 6.5 Test default account resolution and named account selection: Create PR as default account -> Approve PR as bot. Automate this with instructions for AI code editor.

@@ -9,3 +9,6 @@ test.log
 
 # Ignore MCP config file for now
 .cursor/mcp.json
+
+# Ignore some examples
+examples/atlassian-accounts.json
