@@ -1,5 +1,5 @@
 ---
-description: 
+description: Use this rule when need to create a pull request
 globs: 
 alwaysApply: false
 ---
