@@ -42,7 +42,9 @@ func newRootCmd(container *dig.Container) *cobra.Command {
 		"Env that the process is running in.",
 	)
 	cfg := config.New()
-	lo.Must0(cfg.BindPFlags(cmd.PersistentFlags()))
+	lo.Must0(cfg.BindPFlag("jsonLogs", cmd.PersistentFlags().Lookup("json-logs")))
+	lo.Must0(cfg.BindPFlag("defaultLogLevel", cmd.PersistentFlags().Lookup("log-level")))
+	lo.Must0(cfg.BindPFlag("env", cmd.PersistentFlags().Lookup("env")))
 	cmd.PersistentPreRunE = func(_ *cobra.Command, _ []string) error {
 		err := config.Load(cfg, config.NewLoadOpts().WithEnv(cfg.GetString("env")))
 		if err != nil {

@@ -13,3 +13,11 @@ packages:
           dir: 'internal/diag'
           filename: "mock_slog_handler.go"
           mockname: MockSlogHandler
+  github.com/gemyago/atlacp/internal/app:
+    interfaces:
+      bitbucketAuthFactory:
+      BitbucketClient:
+      AtlassianAccountsRepository:
+  github.com/gemyago/atlacp/internal/api/mcp/controllers:
+    interfaces:
+      bitbucketService:

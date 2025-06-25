@@ -46,8 +46,8 @@ func TestAtlassianAccountsRepository(t *testing.T) {
 	t.Run("GetDefaultAccount", func(t *testing.T) {
 		t.Run("should return default account when configuration is valid", func(t *testing.T) {
 			// Arrange
-			defaultAccount := NewRandomAtlassianAccount(WithAtlassianAccountDefault(true))
-			nonDefaultAccount := NewRandomAtlassianAccount()
+			defaultAccount := app.NewRandomAtlassianAccount(app.WithAtlassianAccountDefault(true))
+			nonDefaultAccount := app.NewRandomAtlassianAccount()
 
 			accounts := []app.AtlassianAccount{nonDefaultAccount, defaultAccount}
 
@@ -72,8 +72,8 @@ func TestAtlassianAccountsRepository(t *testing.T) {
 			// Arrange - create a repository with accounts but no default
 			// Generate two accounts without the default flag set
 			nonDefaultAccounts := []app.AtlassianAccount{
-				NewRandomAtlassianAccount(),
-				NewRandomAtlassianAccount(),
+				app.NewRandomAtlassianAccount(),
+				app.NewRandomAtlassianAccount(),
 			}
 
 			// Create repository manually, bypassing validation
@@ -117,10 +117,13 @@ func TestAtlassianAccountsRepository(t *testing.T) {
 			botName := "bot-" + faker.Username()
 			adminName := "admin-" + faker.Username()
 
-			defaultAccount := NewRandomAtlassianAccount(WithAtlassianAccountDefault(true), WithAtlassianAccountName(defaultName))
-			account1 := NewRandomAtlassianAccount(WithAtlassianAccountName(userName))
-			account2 := NewRandomAtlassianAccount(WithAtlassianAccountName(botName))
-			account3 := NewRandomAtlassianAccount(WithAtlassianAccountName(adminName))
+			defaultAccount := app.NewRandomAtlassianAccount(
+				app.WithAtlassianAccountDefault(true),
+				app.WithAtlassianAccountName(defaultName),
+			)
+			account1 := app.NewRandomAtlassianAccount(app.WithAtlassianAccountName(userName))
+			account2 := app.NewRandomAtlassianAccount(app.WithAtlassianAccountName(botName))
+			account3 := app.NewRandomAtlassianAccount(app.WithAtlassianAccountName(adminName))
 
 			accounts := []app.AtlassianAccount{defaultAccount, account1, account2, account3}
 
@@ -151,9 +154,12 @@ func TestAtlassianAccountsRepository(t *testing.T) {
 			// Generate a non-existent name that's guaranteed to be different
 			nonExistentName := "nonexistent-" + faker.Username()
 
-			defaultAccount := NewRandomAtlassianAccount(WithAtlassianAccountDefault(true), WithAtlassianAccountName(defaultName))
-			account1 := NewRandomAtlassianAccount(WithAtlassianAccountName(userName))
-			account2 := NewRandomAtlassianAccount(WithAtlassianAccountName(botName))
+			defaultAccount := app.NewRandomAtlassianAccount(
+				app.WithAtlassianAccountDefault(true),
+				app.WithAtlassianAccountName(defaultName),
+			)
+			account1 := app.NewRandomAtlassianAccount(app.WithAtlassianAccountName(userName))
+			account2 := app.NewRandomAtlassianAccount(app.WithAtlassianAccountName(botName))
 
 			accounts := []app.AtlassianAccount{defaultAccount, account1, account2}
 
@@ -225,8 +231,8 @@ func TestAtlassianAccountsRepository(t *testing.T) {
 		t.Run("should fail with duplicate account names", func(t *testing.T) {
 			// Arrange
 			name := "duplicate-" + faker.Username()
-			account1 := NewRandomAtlassianAccount(WithAtlassianAccountName(name))
-			account2 := NewRandomAtlassianAccount(WithAtlassianAccountName(name))
+			account1 := app.NewRandomAtlassianAccount(app.WithAtlassianAccountName(name))
+			account2 := app.NewRandomAtlassianAccount(app.WithAtlassianAccountName(name))
 
 			config := &atlassianAccountsConfig{
 				Accounts: []app.AtlassianAccount{account1, account2},
@@ -242,8 +248,8 @@ func TestAtlassianAccountsRepository(t *testing.T) {
 
 		t.Run("should fail with multiple default accounts", func(t *testing.T) {
 			// Arrange
-			account1 := NewRandomAtlassianAccount(WithAtlassianAccountDefault(true))
-			account2 := NewRandomAtlassianAccount(WithAtlassianAccountDefault(true))
+			account1 := app.NewRandomAtlassianAccount(app.WithAtlassianAccountDefault(true))
+			account2 := app.NewRandomAtlassianAccount(app.WithAtlassianAccountDefault(true))
 
 			config := &atlassianAccountsConfig{
 				Accounts: []app.AtlassianAccount{account1, account2},
@@ -259,9 +265,9 @@ func TestAtlassianAccountsRepository(t *testing.T) {
 
 		t.Run("should fail with no default account", func(t *testing.T) {
 			// Arrange
-			account1 := NewRandomAtlassianAccount()
+			account1 := app.NewRandomAtlassianAccount()
 			account1.Default = false
-			account2 := NewRandomAtlassianAccount()
+			account2 := app.NewRandomAtlassianAccount()
 			account2.Default = false
 
 			config := &atlassianAccountsConfig{
@@ -280,7 +286,7 @@ func TestAtlassianAccountsRepository(t *testing.T) {
 	t.Run("validateBasicAccountProperties", func(t *testing.T) {
 		t.Run("should fail with empty account name", func(t *testing.T) {
 			// Arrange
-			account := NewRandomAtlassianAccount()
+			account := app.NewRandomAtlassianAccount()
 			account.Name = ""
 			existingNames := make(map[string]bool)
 
@@ -294,7 +300,7 @@ func TestAtlassianAccountsRepository(t *testing.T) {
 
 		t.Run("should fail with no services configured", func(t *testing.T) {
 			// Arrange
-			account := NewRandomAtlassianAccount()
+			account := app.NewRandomAtlassianAccount()
 			account.Bitbucket = nil
 			account.Jira = nil
 			existingNames := make(map[string]bool)
@@ -312,7 +318,7 @@ func TestAtlassianAccountsRepository(t *testing.T) {
 	t.Run("validateBitbucketConfig", func(t *testing.T) {
 		t.Run("should fail with empty token", func(t *testing.T) {
 			// Arrange
-			account := NewRandomAtlassianAccount()
+			account := app.NewRandomAtlassianAccount()
 			account.Bitbucket.Token = ""
 
 			// Act
@@ -325,7 +331,7 @@ func TestAtlassianAccountsRepository(t *testing.T) {
 
 		t.Run("should fail with empty workspace", func(t *testing.T) {
 			// Arrange
-			account := NewRandomAtlassianAccount()
+			account := app.NewRandomAtlassianAccount()
 			account.Bitbucket.Workspace = ""
 
 			// Act
@@ -340,7 +346,7 @@ func TestAtlassianAccountsRepository(t *testing.T) {
 	t.Run("validateJiraConfig", func(t *testing.T) {
 		t.Run("should fail with empty token", func(t *testing.T) {
 			// Arrange
-			account := NewRandomAtlassianAccount()
+			account := app.NewRandomAtlassianAccount()
 			account.Jira.Token = ""
 
 			// Act
@@ -353,7 +359,7 @@ func TestAtlassianAccountsRepository(t *testing.T) {
 
 		t.Run("should fail with empty domain", func(t *testing.T) {
 			// Arrange
-			account := NewRandomAtlassianAccount()
+			account := app.NewRandomAtlassianAccount()
 			account.Jira.Domain = ""
 
 			// Act
