@@ -138,10 +138,13 @@ Please read referenced files to understand the problem:
   - [x] 5.11 Register Bitbucket services in `internal/app/register.go` and controllers in `internal/api/mcp/controllers/register.go`
 - [ ] 6.0 Bitbucket Integration Testing and Usage Documentation
   - [x] 6.1 Create example docker compose
-  - [ ] 6.3 Test end-to-end bitbucket workflow (from AI code editor): Create PR → Read PR → Update PR → Approve PR → Merge PR. Automate this with instructions for AI code editor.
-  - [ ] 6.4 Validate multi-account functionality: Create PR as user -> Approve PR as bot -> Merge PR as user. Automate this with instructions for AI code editor.
-  - [ ] 6.5 Test default account resolution and named account selection: Create PR as default account -> Approve PR as bot. Automate this with instructions for AI code editor.
-  - [ ] 6.2 Update README with quick start and usage instruction
+  - [ ] 6.2 Support user token authentication (Basic token)
+  - [ ] 6.3 Allow draft PRs to be created
+  - [ ] 6.4 Create a tool to allow checking for statuses of a PR
+  - [ ] 6.5 Test end-to-end bitbucket workflow (from AI code editor): Create PR → Read PR → Update PR → Approve PR → Merge PR. Automate this with instructions for AI code editor.
+  - [ ] 6.6 Validate multi-account functionality: Create PR as user -> Approve PR as bot -> Merge PR as user. Automate this with instructions for AI code editor.
+  - [ ] 6.7 Test default account resolution and named account selection: Create PR as default account -> Approve PR as bot. Automate this with instructions for AI code editor.
+  - [ ] 6.8 Update README with quick start and usage instruction
 - [ ] 7.0 Jira MCP Integration
   - [ ] 7.1 Create `internal/app/jira.go` with business logic service interface and implementation
   - [ ] 7.2 Implement `jira_read_ticket` tool: Retrieve complete ticket information including metadata and comments
