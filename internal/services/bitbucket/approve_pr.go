@@ -15,7 +15,7 @@ type ApprovePRParams struct {
 	PullRequestID int    `json:"-"`
 }
 
-// ApprovePR approves a pull request as the authenticated user.
+// ApprovePR approves a specific pull request.
 // POST /repositories/{username}/{repo_slug}/pullrequests/{pull_request_id}/approve.
 func (c *Client) ApprovePR(
 	ctx context.Context,
@@ -26,13 +26,10 @@ func (c *Client) ApprovePR(
 	if err != nil {
 		return nil, fmt.Errorf("failed to get token: %w", err)
 	}
-	ctxWithAuth := middleware.WithAuthToken(ctx, token)
+	ctxWithAuth := middleware.WithAuthTokenV2(ctx, token)
 
 	var participant Participant
-	path := fmt.Sprintf(
-		"/repositories/%s/%s/pullrequests/%d/approve",
-		params.Username, params.RepoSlug, params.PullRequestID,
-	)
+	path := fmt.Sprintf("/repositories/%s/%s/pullrequests/%d/approve", params.Username, params.RepoSlug, params.PullRequestID)
 	err = httpservices.SendRequest(ctxWithAuth, c.httpClient, httpservices.SendRequestParams[interface{}, Participant]{
 		Method: "POST",
 		URL:    c.baseURL + path,

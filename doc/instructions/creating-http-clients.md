@@ -50,7 +50,7 @@ Use context-based authentication via existing middleware. Use token provider int
 **Implementation Pattern**:
 ```go
 type TokenProvider interface {
-    GetToken(ctx context.Context) (string, error)
+    GetToken(ctx context.Context) (middleware.Token, error)
 }
 
 // In the client method - always use params struct even for single parameters.
@@ -63,7 +63,7 @@ func (c *Client) CreateResource(ctx context.Context, tokenProvider TokenProvider
     if err != nil {
         return nil, fmt.Errorf("failed to get token: %w", err)
     }
-    ctxWithAuth := middleware.WithAuthToken(ctx, token)
+    ctxWithAuth := middleware.WithAuthTokenV2(ctx, token)
     // ... rest of implementation
 }
 ```
@@ -84,7 +84,7 @@ func (c *Client) CreateResource(ctx context.Context, tokenProvider TokenProvider
     if err != nil {
         return nil, fmt.Errorf("failed to get token: %w", err)
     }
-    ctxWithAuth := middleware.WithAuthToken(ctx, token)
+    ctxWithAuth := middleware.WithAuthTokenV2(ctx, token)
     
     // Make API call
     var resource Resource
@@ -112,7 +112,7 @@ func (c *Client) GetResource(ctx context.Context, tokenProvider TokenProvider, p
     if err != nil {
         return nil, fmt.Errorf("failed to get token: %w", err)
     }
-    ctxWithAuth := middleware.WithAuthToken(ctx, token)
+    ctxWithAuth := middleware.WithAuthTokenV2(ctx, token)
     
     var resource Resource
     path := fmt.Sprintf("/resources/%s", params.ResourceID)
@@ -316,11 +316,11 @@ type MockTokenProvider struct {
     err   error
 }
 
-func (m *MockTokenProvider) GetToken(ctx context.Context) (string, error) {
+func (m *MockTokenProvider) GetToken(ctx context.Context) (middleware.Token, error) {
     if m.err != nil {
-        return "", m.err
+        return middleware.Token{}, m.err
     }
-    return m.token, nil
+    return middleware.Token{Type: "Bearer", Value: m.token}, nil
 }
 ```
 

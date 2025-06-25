@@ -27,38 +27,16 @@ func (c *Client) MergePR(
 	if err != nil {
 		return nil, fmt.Errorf("failed to get token: %w", err)
 	}
-	ctxWithAuth := middleware.WithAuthToken(ctx, token)
+	ctxWithAuth := middleware.WithAuthTokenV2(ctx, token)
 
 	var pullRequest PullRequest
-	path := fmt.Sprintf(
-		"/repositories/%s/%s/pullrequests/%d/merge",
-		params.Username, params.RepoSlug, params.PullRequestID,
-	)
-
-	// Use SendRequest with merge parameters if provided, otherwise send empty body
-	if params.MergeParameters != nil {
-		err = httpservices.SendRequest(
-			ctxWithAuth,
-			c.httpClient,
-			httpservices.SendRequestParams[PullRequestMergeParameters, PullRequest]{
-				Method: "POST",
-				URL:    c.baseURL + path,
-				Body:   params.MergeParameters,
-				Target: &pullRequest,
-			},
-		)
-	} else {
-		err = httpservices.SendRequest(
-			ctxWithAuth,
-			c.httpClient,
-			httpservices.SendRequestParams[interface{}, PullRequest]{
-				Method: "POST",
-				URL:    c.baseURL + path,
-				Target: &pullRequest,
-			},
-		)
-	}
-
+	path := fmt.Sprintf("/repositories/%s/%s/pullrequests/%d/merge", params.Username, params.RepoSlug, params.PullRequestID)
+	err = httpservices.SendRequest(ctxWithAuth, c.httpClient, httpservices.SendRequestParams[PullRequestMergeParameters, PullRequest]{
+		Method: "POST",
+		URL:    c.baseURL + path,
+		Body:   params.MergeParameters,
+		Target: &pullRequest,
+	})
 	if err != nil {
 		return nil, fmt.Errorf("merge pull request failed: %w", err)
 	}
