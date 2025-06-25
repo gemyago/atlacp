@@ -18,7 +18,7 @@ func TestMain(t *testing.T) {
 				"--logs-file",
 				"../../test.log",
 				"--atlassian-accounts-file",
-				"../../examples/atlassian-accounts.json",
+				"../../examples/atlassian-accounts-stub.json",
 			})
 			require.NoError(t, rootCmd.Execute())
 		})
@@ -34,7 +34,7 @@ func TestMain(t *testing.T) {
 				"--logs-file",
 				"../../test.log",
 				"--atlassian-accounts-file",
-				"../../examples/atlassian-accounts.json",
+				"../../examples/atlassian-accounts-stub.json",
 			})
 			assert.Error(t, rootCmd.Execute())
 		})
@@ -50,7 +50,7 @@ func TestMain(t *testing.T) {
 				"--logs-file",
 				"../../test.log",
 				"--atlassian-accounts-file",
-				"../../examples/atlassian-accounts.json",
+				"../../examples/atlassian-accounts-stub.json",
 			})
 			gotErr := rootCmd.Execute()
 			assert.ErrorContains(t, gotErr, "failed to read config")
@@ -65,7 +65,7 @@ func TestMain(t *testing.T) {
 				"--logs-file",
 				"../../test.log",
 				"--atlassian-accounts-file",
-				"../../examples/atlassian-accounts.json",
+				"../../examples/atlassian-accounts-stub.json",
 			})
 			require.NoError(t, rootCmd.Execute())
 		})
@@ -81,7 +81,7 @@ func TestMain(t *testing.T) {
 				"--logs-file",
 				"../../test.log",
 				"--atlassian-accounts-file",
-				"../../examples/atlassian-accounts.json",
+				"../../examples/atlassian-accounts-stub.json",
 			})
 			assert.Error(t, rootCmd.Execute())
 		})
@@ -97,7 +97,7 @@ func TestMain(t *testing.T) {
 				"--logs-file",
 				"../../test.log",
 				"--atlassian-accounts-file",
-				"../../examples/atlassian-accounts.json",
+				"../../examples/atlassian-accounts-stub.json",
 			})
 			gotErr := rootCmd.Execute()
 			assert.ErrorContains(t, gotErr, "failed to read config")
