@@ -68,7 +68,8 @@ func TestClient_CreatePR(t *testing.T) {
 				"comment_count": 0,
 				"task_count": 0,
 				"created_on": "2023-01-01T00:00:00Z",
-				"updated_on": "2023-01-01T00:00:00Z"
+				"updated_on": "2023-01-01T00:00:00Z",
+				"draft": false
 			}`)
 		}))
 		defer server.Close()
@@ -115,6 +116,7 @@ func TestClient_CreatePR(t *testing.T) {
 		assert.True(t, result.CloseSourceBranch)
 		assert.Equal(t, createdOn.UTC(), result.CreatedOn.UTC())
 		assert.Equal(t, updatedOn.UTC(), result.UpdatedOn.UTC())
+		assert.False(t, result.Draft)
 	})
 
 	t.Run("success with required parameters only", func(t *testing.T) {

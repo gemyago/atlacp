@@ -339,7 +339,41 @@ func (m *MockTokenProvider) GetToken(ctx context.Context) (middleware.Token, err
 - Never log authentication tokens or sensitive data
 - Use context for passing authentication tokens
 
-### 4. Code Quality and Linting
+### 4. Endpoints Documentation
+
+**IMPORTANT**: After implementing all endpoints, create an `ENDPOINTS.md` file in the client package directory to document all implemented API endpoints.
+
+#### ENDPOINTS.md Format
+
+Create a concise file listing all implemented endpoints in this format:
+
+```markdown
+# [Service Name] API Client Endpoints
+
+POST /path/to/resource
+Client method: CreateResource(ctx, tokenProvider, CreateResourceParams)
+
+GET /path/to/resource/{id}
+Client method: GetResource(ctx, tokenProvider, GetResourceParams)
+
+.....e.t.c.....
+```
+
+#### Purpose of ENDPOINTS.md
+
+- **Quick Reference**: Easily see what endpoints are implemented
+- **Maintenance**: Track which API operations are available
+- **Updates**: Identify what needs to be added or modified
+- **Onboarding**: Help new developers understand the client scope
+
+#### When to Update
+
+- After adding new endpoints
+- After removing deprecated endpoints
+- When refactoring endpoint signatures
+- Before major releases
+
+### 5. Code Quality and Linting
 
 **IMPORTANT**: After completing implementation, always run linting to ensure code quality:
 
