@@ -78,9 +78,6 @@ func (bc *BitbucketController) newCreatePRServerTool() server.ServerTool {
 		mcp.WithString("account",
 			mcp.Description("Atlassian account name to use (optional, uses default if not specified)"),
 		),
-		mcp.WithArray("reviewers",
-			mcp.Description("Usernames of reviewers to assign"),
-		),
 	)
 
 	handler := func(ctx context.Context, request mcp.CallToolRequest) (*mcp.CallToolResult, error) {
@@ -116,9 +113,6 @@ func (bc *BitbucketController) newCreatePRServerTool() server.ServerTool {
 		description := request.GetString("description", "")
 		account := request.GetString("account", "")
 
-		// Extract reviewers
-		reviewers := request.GetStringSlice("reviewers", []string{})
-
 		// Create parameters for the service layer
 		params := app.BitbucketCreatePRParams{
 			Title:        title,
@@ -126,7 +120,6 @@ func (bc *BitbucketController) newCreatePRServerTool() server.ServerTool {
 			DestBranch:   targetBranch,
 			Description:  description,
 			AccountName:  account,
-			Reviewers:    reviewers,
 			RepoOwner:    repoOwner,
 			RepoName:     repoName,
 		}

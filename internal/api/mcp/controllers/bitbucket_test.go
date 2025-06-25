@@ -135,7 +135,6 @@ func TestBitbucketController(t *testing.T) {
 			sourceBranch := "feature/" + faker.Username()
 			targetBranch := "main"
 			description := faker.Paragraph()
-			reviewers := []string{"user-" + faker.Username(), "user-" + faker.Username()}
 			repoOwner := "workspace-" + faker.Username()
 			repoName := "repo-" + faker.Word()
 
@@ -145,7 +144,6 @@ func TestBitbucketController(t *testing.T) {
 				SourceBranch: sourceBranch,
 				DestBranch:   targetBranch,
 				Description:  description,
-				Reviewers:    reviewers,
 				RepoOwner:    repoOwner,
 				RepoName:     repoName,
 			}
@@ -198,7 +196,6 @@ func TestBitbucketController(t *testing.T) {
 						"source_branch": sourceBranch,
 						"target_branch": targetBranch,
 						"description":   description,
-						"reviewers":     reviewers,
 						"repo_owner":    repoOwner,
 						"repo_name":     repoName,
 					},
