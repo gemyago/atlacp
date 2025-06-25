@@ -2,6 +2,7 @@ package controllers
 
 import (
 	"context"
+	"encoding/json"
 	"fmt"
 	"log/slog"
 
@@ -197,9 +198,28 @@ func (bc *BitbucketController) newReadPRServerTool() server.ServerTool {
 			return nil, fmt.Errorf("failed to read pull request: %w", err)
 		}
 
-		// Format the result as text
-		return mcp.NewToolResultText(fmt.Sprintf("Pull request #%d: %s (Status: %s)",
-			pr.ID, pr.Title, pr.State)), nil
+		// Convert PR to JSON for the resource
+		prJSON, err := json.MarshalIndent(pr, "", "  ")
+		if err != nil {
+			return nil, fmt.Errorf("failed to marshal pull request to JSON: %w", err)
+		}
+
+		// Create a summary text for the PR
+		summaryText := fmt.Sprintf("Pull request #%d: %s (Status: %s)", pr.ID, pr.Title, pr.State)
+
+		// Return both a summary text and the full PR data as a resource
+		return &mcp.CallToolResult{
+			Content: []mcp.Content{
+				mcp.TextContent{
+					Type: "text",
+					Text: summaryText,
+				},
+
+				// Sending json as text since some clients (Cursor)
+				// do not support resources (at least not yet)
+				mcp.NewTextContent(string(prJSON)),
+			},
+		}, nil
 	}
 
 	return server.ServerTool{

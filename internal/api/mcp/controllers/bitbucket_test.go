@@ -1,6 +1,7 @@
 package controllers
 
 import (
+	"encoding/json"
 	"errors"
 	"fmt"
 	"testing"
@@ -547,12 +548,103 @@ func TestBitbucketController(t *testing.T) {
 			require.NotNil(t, result)
 			assert.False(t, result.IsError)
 
-			// Verify the content of the result
-			content, ok := result.Content[0].(mcp.TextContent)
-			require.True(t, ok, "Result content should be text content")
-			assert.Contains(t, content.Text, fmt.Sprintf("Pull request #%d", prID))
-			assert.Contains(t, content.Text, expectedPR.Title)
-			assert.Contains(t, content.Text, expectedPR.State)
+			// Verify the result has both text content items
+			require.Len(t, result.Content, 2, "Result should have two text content items")
+
+			// Check first text content (summary)
+			textContent, ok := result.Content[0].(mcp.TextContent)
+			require.True(t, ok, "First content item should be text")
+			assert.Contains(t, textContent.Text, fmt.Sprintf("Pull request #%d", prID))
+
+			// Check second text content (JSON data)
+			jsonContent, ok := result.Content[1].(mcp.TextContent)
+			require.True(t, ok, "Second content item should also be text")
+
+			// Parse the JSON back to a PullRequest struct
+			var receivedPR bitbucket.PullRequest
+			err = json.Unmarshal([]byte(jsonContent.Text), &receivedPR)
+			require.NoError(t, err, "Should be able to parse JSON back to PullRequest struct")
+
+			// Compare structs directly
+			assert.Equal(t, expectedPR.Title, receivedPR.Title)
+			assert.Equal(t, expectedPR.State, receivedPR.State)
+		})
+
+		t.Run("should return PR details as embedded resource", func(t *testing.T) {
+			// Arrange
+			deps := makeBitbucketControllerDeps(t)
+			mockService := mocks.GetMock[*MockbitbucketService](t, deps.BitbucketService)
+			controller := NewBitbucketController(deps)
+			ctx := t.Context()
+
+			// Create test data with randomized values
+			prID := int(faker.RandomUnixTime()) % 1000000
+			repoOwner := "workspace-" + faker.Username()
+			repoName := "repo-" + faker.Word()
+			accountName := "account-" + faker.Username()
+
+			// Use testing utility to generate random pull request
+			expectedPR := bitbucket.NewRandomPullRequest(
+				bitbucket.WithPullRequestID(prID),
+			)
+			expectedPR.MergeCommit = &bitbucket.PullRequestCommit{
+				Hash: faker.UUIDHyphenated(),
+			}
+
+			// Setup mock expectations
+			mockService.EXPECT().
+				ReadPR(mock.Anything, mock.MatchedBy(func(params app.BitbucketReadPRParams) bool {
+					return params.PullRequestID == prID &&
+						params.AccountName == accountName &&
+						params.RepoOwner == repoOwner &&
+						params.RepoName == repoName
+				})).
+				Return(expectedPR, nil)
+
+			// Create the request
+			request := mcp.CallToolRequest{
+				Params: mcp.CallToolParams{
+					Name: "bitbucket_read_pr",
+					Arguments: map[string]interface{}{
+						"pr_id":      prID,
+						"account":    accountName,
+						"repo_owner": repoOwner,
+						"repo_name":  repoName,
+					},
+				},
+			}
+
+			// Get the handler
+			serverTool := controller.newReadPRServerTool()
+			handler := serverTool.Handler
+
+			// Act
+			result, err := handler(ctx, request)
+
+			// Assert
+			require.NoError(t, err)
+			require.NotNil(t, result)
+			assert.False(t, result.IsError)
+
+			// Verify the result has two text content items instead of text + resource
+			require.Len(t, result.Content, 2, "Result should have two text content items")
+
+			// Check first text content (summary)
+			textContent, ok := result.Content[0].(mcp.TextContent)
+			require.True(t, ok, "First content item should be text")
+			assert.Contains(t, textContent.Text, fmt.Sprintf("Pull request #%d", prID))
+
+			// Check second text content (JSON data)
+			jsonContent, ok := result.Content[1].(mcp.TextContent)
+			require.True(t, ok, "Second content item should also be text")
+
+			// Parse the JSON back to a PullRequest struct
+			var receivedPR bitbucket.PullRequest
+			err = json.Unmarshal([]byte(jsonContent.Text), &receivedPR)
+			require.NoError(t, err, "Should be able to parse JSON back to PullRequest struct")
+
+			// Compare structs directly
+			assert.Equal(t, *expectedPR, receivedPR)
 		})
 
 		t.Run("should handle missing PR ID parameter in ReadPR", func(t *testing.T) {
