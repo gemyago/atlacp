@@ -5,6 +5,7 @@ import (
 	"errors"
 
 	"github.com/gemyago/atlacp/internal/services/bitbucket"
+	"github.com/gemyago/atlacp/internal/services/http/middleware"
 )
 
 // AtlassianAccountsRepository defines the port for accessing Atlassian account information.
@@ -22,7 +23,7 @@ type AtlassianAccountsRepository interface {
 // TokenProvider provides authentication tokens for API requests.
 type TokenProvider interface {
 	// GetToken returns an authentication token for API requests.
-	GetToken(ctx context.Context) (string, error)
+	GetToken(ctx context.Context) (middleware.Token, error)
 }
 
 // bitbucketClient defines the interface for Bitbucket API operations.

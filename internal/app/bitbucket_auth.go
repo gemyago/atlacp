@@ -5,6 +5,7 @@ import (
 	"errors"
 	"log/slog"
 
+	"github.com/gemyago/atlacp/internal/services/http/middleware"
 	"go.uber.org/dig"
 )
 
@@ -41,27 +42,30 @@ func newBitbucketAuthFactory(deps BitbucketAuthFactoryDeps) bitbucketAuthFactory
 // getTokenProvider returns a TokenProvider for the specified account name.
 // If accountName is empty, uses the default account.
 func (a *bitbucketAuthFactoryImpl) getTokenProvider(_ context.Context, accountName string) TokenProvider {
-	return tokenProviderFunc(func(ctx context.Context) (string, error) {
+	return tokenProviderFunc(func(ctx context.Context) (middleware.Token, error) {
 		var account *AtlassianAccount
 		var err error
 
 		if accountName == "" {
 			account, err = a.accountsRepo.GetDefaultAccount(ctx)
 			if err != nil {
-				return "", err
+				return middleware.Token{}, err
 			}
 		} else {
 			account, err = a.accountsRepo.GetAccountByName(ctx, accountName)
 			if err != nil {
-				return "", err
+				return middleware.Token{}, err
 			}
 		}
 
 		// Validate account has Bitbucket configuration
 		if account.Bitbucket == nil {
-			return "", errors.New("bitbucket configuration not found for account: " + account.Name)
+			return middleware.Token{}, errors.New("bitbucket configuration not found for account: " + account.Name)
 		}
 
-		return account.Bitbucket.Token, nil
+		return middleware.Token{
+			Type:  "Bearer",
+			Value: account.Bitbucket.Token,
+		}, nil
 	})
 }

@@ -7,6 +7,8 @@ import (
 	"github.com/go-faker/faker/v4"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
+
+	"github.com/gemyago/atlacp/internal/services/http/middleware"
 )
 
 // Tests for authentication providers.
@@ -14,8 +16,9 @@ func TestTokenProviders(t *testing.T) {
 	t.Run("StaticTokenProvider", func(t *testing.T) {
 		t.Run("should return the provided token", func(t *testing.T) {
 			// Arrange
-			expectedToken := "token-" + faker.UUIDHyphenated()
-			provider := newStaticTokenProvider(expectedToken)
+			expectedTokenValue := "token-" + faker.UUIDHyphenated()
+			expectedToken := middleware.Token{Type: "Bearer", Value: expectedTokenValue}
+			provider := newStaticTokenProvider(expectedTokenValue)
 
 			// Act
 			token, err := provider.GetToken(t.Context())
@@ -34,7 +37,7 @@ func TestTokenProviders(t *testing.T) {
 
 			// Assert
 			require.NoError(t, err)
-			assert.Empty(t, token)
+			assert.Equal(t, middleware.Token{Type: "Bearer", Value: ""}, token)
 		})
 
 		t.Run("should handle context cancellation gracefully", func(t *testing.T) {
@@ -48,7 +51,7 @@ func TestTokenProviders(t *testing.T) {
 
 			// Assert - should still work because the implementation doesn't use the context
 			require.NoError(t, err)
-			assert.Equal(t, "test-token", token)
+			assert.Equal(t, middleware.Token{Type: "Bearer", Value: "test-token"}, token)
 		})
 	})
 }

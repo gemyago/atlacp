@@ -9,6 +9,7 @@ import (
 	"github.com/stretchr/testify/require"
 
 	"github.com/gemyago/atlacp/internal/diag"
+	"github.com/gemyago/atlacp/internal/services/http/middleware"
 )
 
 func TestBitbucketAuthFactory(t *testing.T) {
@@ -24,12 +25,13 @@ func TestBitbucketAuthFactory(t *testing.T) {
 		deps, mockRepo := makeMockDeps(t)
 		auth := newBitbucketAuthFactory(deps)
 
-		expectedToken := faker.UUIDHyphenated()
+		expectedTokenValue := faker.UUIDHyphenated()
+		expectedToken := middleware.Token{Type: "Bearer", Value: expectedTokenValue}
 		expectedAccount := &AtlassianAccount{
 			Name:    faker.Name(),
 			Default: true,
 			Bitbucket: &BitbucketAccount{
-				Token:     expectedToken,
+				Token:     expectedTokenValue,
 				Workspace: faker.Username(),
 			},
 		}
@@ -50,12 +52,13 @@ func TestBitbucketAuthFactory(t *testing.T) {
 		auth := newBitbucketAuthFactory(deps)
 
 		accountName := faker.Username()
-		expectedToken := faker.UUIDHyphenated()
+		expectedTokenValue := faker.UUIDHyphenated()
+		expectedToken := middleware.Token{Type: "Bearer", Value: expectedTokenValue}
 		expectedAccount := &AtlassianAccount{
 			Name:    accountName,
 			Default: false,
 			Bitbucket: &BitbucketAccount{
-				Token:     expectedToken,
+				Token:     expectedTokenValue,
 				Workspace: faker.Username(),
 			},
 		}
@@ -81,7 +84,7 @@ func TestBitbucketAuthFactory(t *testing.T) {
 		tokenProvider := auth.getTokenProvider(t.Context(), "")
 
 		token, err := tokenProvider.GetToken(t.Context())
-		assert.Empty(t, token)
+		assert.Equal(t, middleware.Token{}, token)
 		assert.ErrorIs(t, err, wantErr)
 	})
 
@@ -94,7 +97,7 @@ func TestBitbucketAuthFactory(t *testing.T) {
 		tokenProvider := auth.getTokenProvider(t.Context(), "")
 
 		token, err := tokenProvider.GetToken(t.Context())
-		assert.Empty(t, token)
+		assert.Equal(t, middleware.Token{}, token)
 		require.Error(t, err)
 		assert.ErrorIs(t, err, ErrAccountNotFound)
 	})
@@ -109,7 +112,7 @@ func TestBitbucketAuthFactory(t *testing.T) {
 		tokenProvider := auth.getTokenProvider(t.Context(), accountName)
 
 		token, err := tokenProvider.GetToken(t.Context())
-		assert.Empty(t, token)
+		assert.Equal(t, middleware.Token{}, token)
 		assert.ErrorIs(t, err, ErrAccountNotFound)
 	})
 
@@ -128,7 +131,7 @@ func TestBitbucketAuthFactory(t *testing.T) {
 		tokenProvider := auth.getTokenProvider(t.Context(), "")
 		token, err := tokenProvider.GetToken(t.Context())
 
-		assert.Empty(t, token)
+		assert.Equal(t, middleware.Token{}, token)
 		require.Error(t, err)
 		assert.Contains(t, err.Error(), "bitbucket configuration not found")
 	})
