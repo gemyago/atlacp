@@ -20,3 +20,20 @@ Please also apply [general.mdc](mdc:.cursor/rules/general.mdc) rules
 - when tests ready show command to run tests in form and offer to run it: 
   `go test -v ./<package path> --run <test name>`
 - Use mockery to create mocks for dependencies, read [mockery.mdc](mdc:.cursor/rules/mockery.mdc) prior to using it
+
+## Code Quality and Linting
+
+**IMPORTANT**: After completing any implementation, always run linting to ensure code quality:
+
+```bash
+make lint
+```
+
+### Common linting issues to avoid:
+- **Unused parameters**: Use `_` for unused parameters (e.g., `func(w http.ResponseWriter, _ *http.Request)`)
+- **Naming conventions**: Use proper casing for acronyms (e.g., `ShowPetByID` not `ShowPetById`)
+- **Context in tests**: Use `t.Context()` instead of `context.Background()` in tests
+- **Testing assertions**: Use `assert.NoError` instead of `require.NoError` in HTTP handlers
+- **Mock implementations**: Mark unused parameters with `_` in mock methods
+
+Always fix linting issues immediately and ensure `make lint` passes cleanly before considering implementation complete.
