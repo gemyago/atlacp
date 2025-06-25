@@ -30,13 +30,22 @@ func (c *Client) MergePR(
 	ctxWithAuth := middleware.WithAuthTokenV2(ctx, token)
 
 	var pullRequest PullRequest
-	path := fmt.Sprintf("/repositories/%s/%s/pullrequests/%d/merge", params.Username, params.RepoSlug, params.PullRequestID)
-	err = httpservices.SendRequest(ctxWithAuth, c.httpClient, httpservices.SendRequestParams[PullRequestMergeParameters, PullRequest]{
-		Method: "POST",
-		URL:    c.baseURL + path,
-		Body:   params.MergeParameters,
-		Target: &pullRequest,
-	})
+	path := fmt.Sprintf(
+		"/repositories/%s/%s/pullrequests/%d/merge",
+		params.Username,
+		params.RepoSlug,
+		params.PullRequestID,
+	)
+	err = httpservices.SendRequest(
+		ctxWithAuth,
+		c.httpClient,
+		httpservices.SendRequestParams[PullRequestMergeParameters, PullRequest]{
+			Method: "POST",
+			URL:    c.baseURL + path,
+			Body:   params.MergeParameters,
+			Target: &pullRequest,
+		},
+	)
 	if err != nil {
 		return nil, fmt.Errorf("merge pull request failed: %w", err)
 	}

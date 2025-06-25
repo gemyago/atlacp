@@ -29,7 +29,12 @@ func (c *Client) ApprovePR(
 	ctxWithAuth := middleware.WithAuthTokenV2(ctx, token)
 
 	var participant Participant
-	path := fmt.Sprintf("/repositories/%s/%s/pullrequests/%d/approve", params.Username, params.RepoSlug, params.PullRequestID)
+	path := fmt.Sprintf(
+		"/repositories/%s/%s/pullrequests/%d/approve",
+		params.Username,
+		params.RepoSlug,
+		params.PullRequestID,
+	)
 	err = httpservices.SendRequest(ctxWithAuth, c.httpClient, httpservices.SendRequestParams[interface{}, Participant]{
 		Method: "POST",
 		URL:    c.baseURL + path,
