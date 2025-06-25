@@ -26,13 +26,13 @@ func TestBitbucketAuthFactory(t *testing.T) {
 		auth := newBitbucketAuthFactory(deps)
 
 		expectedTokenValue := faker.UUIDHyphenated()
-		expectedToken := middleware.Token{Type: "Bearer", Value: expectedTokenValue}
+		expectedToken := middleware.Token{Type: faker.Word(), Value: expectedTokenValue}
 		expectedAccount := &AtlassianAccount{
 			Name:    faker.Name(),
 			Default: true,
-			Bitbucket: &BitbucketAccount{
-				Token:     expectedTokenValue,
-				Workspace: faker.Username(),
+			Bitbucket: &AtlassianToken{
+				Value: expectedTokenValue,
+				Type:  expectedToken.Type,
 			},
 		}
 
@@ -53,13 +53,13 @@ func TestBitbucketAuthFactory(t *testing.T) {
 
 		accountName := faker.Username()
 		expectedTokenValue := faker.UUIDHyphenated()
-		expectedToken := middleware.Token{Type: "Bearer", Value: expectedTokenValue}
+		expectedToken := middleware.Token{Type: faker.Word(), Value: expectedTokenValue}
 		expectedAccount := &AtlassianAccount{
 			Name:    accountName,
 			Default: false,
-			Bitbucket: &BitbucketAccount{
-				Token:     expectedTokenValue,
-				Workspace: faker.Username(),
+			Bitbucket: &AtlassianToken{
+				Value: expectedTokenValue,
+				Type:  expectedToken.Type,
 			},
 		}
 

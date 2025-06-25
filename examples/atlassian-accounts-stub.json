@@ -4,24 +4,24 @@
       "name": "user",
       "default": true,
       "bitbucket": {
-        "token": "ATBBxxxxxxxxxxxxxxxx",
-        "workspace": "my-workspace"
+        "type": "Bearer",
+        "value": "ATBBxxxxxxxxxxxxxxxx"
       },
       "jira": {
-        "token": "ATATxxxxxxxxxxxxxxxx",
-        "domain": "mycompany"
+        "type": "Bearer",
+        "value": "ATATxxxxxxxxxxxxxxxx"
       }
     },
     {
       "name": "bot",
       "default": false,
       "bitbucket": {
-        "token": "ATBBxxxxxxxxxxxxxxxx",
-        "workspace": "my-workspace"
+        "type": "Bearer",
+        "value": "ATBBxxxxxxxxxxxxxxxx"
       },
       "jira": {
-        "token": "ATATxxxxxxxxxxxxxxxx",
-        "domain": "mycompany"
+        "type": "Bearer",
+        "value": "ATATxxxxxxxxxxxxxxxx"
       }
     }
   ]

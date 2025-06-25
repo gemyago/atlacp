@@ -64,8 +64,8 @@ func (a *bitbucketAuthFactoryImpl) getTokenProvider(_ context.Context, accountNa
 		}
 
 		return middleware.Token{
-			Type:  "Bearer",
-			Value: account.Bitbucket.Token,
+			Type:  account.Bitbucket.Type,
+			Value: account.Bitbucket.Value,
 		}, nil
 	})
 }
