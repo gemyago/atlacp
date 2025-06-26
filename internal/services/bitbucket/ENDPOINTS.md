@@ -16,4 +16,7 @@ POST /repositories/{username}/{repo_slug}/pullrequests/{pull_request_id}/merge
 Client method: MergePR(ctx, tokenProvider, MergePRParams)
 
 GET /repositories/{username}/{repo_slug}/pullrequests/{pull_request_id}/tasks
-Client method: ListPullRequestTasks(ctx, tokenProvider, ListPullRequestTasksParams) 
+Client method: ListPullRequestTasks(ctx, tokenProvider, ListPullRequestTasksParams)
+
+GET /repositories/{workspace}/{repo_slug}/pullrequests/{pull_request_id}/tasks/{task_id}
+Client method: GetTask(ctx, tokenProvider, GetTaskParams) 
