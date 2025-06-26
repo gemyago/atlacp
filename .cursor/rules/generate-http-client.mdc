@@ -20,6 +20,3 @@ When user provides an OpenAPI specification and asks to generate an API client, 
 
 4. **Process Per Operation**:
    - Stub → Test → Implementation → Run Test
-
-## Example User Request
-<!-- "Given the @openapi.yaml generate client as per [http-client-generation.mdc](mdc:.cursor/rules/http-client-generation.mdc) instruction." -->

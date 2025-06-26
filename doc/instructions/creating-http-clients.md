@@ -178,6 +178,7 @@ import (
     "context"
     "errors"
     "fmt"
+    "math/rand/v2"
     "net/http"
     "net/http/httptest"
     "testing"
@@ -207,6 +208,7 @@ func TestClient_CreateResource(t *testing.T) {
         // Arrange - Use randomized data
         resourceName := "resource-" + faker.Word()
         resourceDesc := faker.Sentence()
+        resourceAmount := 100 + rand.IntN(10000)
         mockTokenProvider := &MockTokenProvider{
           TokenType:  faker.Word(),
           TokenValue: faker.UUIDHyphenated(),
@@ -217,11 +219,15 @@ func TestClient_CreateResource(t *testing.T) {
             assert.Equal(t, "POST", r.Method)
             assert.Equal(t, "/resources", r.URL.Path)
             assert.Equal(t, "application/json", r.Header.Get("Content-Type"))
+
+            // Important to check token
             assert.Equal(t, mockTokenProvider.TokenType+" "+mockTokenProvider.TokenValue, r.Header.Get("Authorization"))
             
             // Return complete successful response
             w.Header().Set("Content-Type", "application/json")
             w.WriteHeader(http.StatusCreated)
+
+            // It's ok to have below data static. We're testing if serialization works. (keep this comment)
             fmt.Fprint(w, `{
                 "id": "resource-123",
                 "name": "test-resource",
@@ -241,6 +247,7 @@ func TestClient_CreateResource(t *testing.T) {
         req := &CreateResourceRequest{
             Name:        resourceName,
             Description: resourceDesc,
+            Amount:      resourceAmount,
             Tags:        []string{faker.Word(), faker.Word()},
         }
         
