@@ -32,9 +32,9 @@ Please read referenced files to understand the problem:
 
 ## Tasks
 
-- [ ] 1.0 Update App Layer Interfaces
-  - [ ] 1.1 Extend bitbucketClient interface with ListPullRequestTasks and UpdateTask methods
-  - [ ] 1.2 Regenerate mocks if needed
+- [x] 1.0 Update App Layer Interfaces
+  - [x] 1.1 Extend bitbucketClient interface with ListPullRequestTasks and UpdateTask methods
+  - [x] 1.2 Regenerate mocks if needed
 
 - [ ] 2.0 Implement App Layer Services
   - [ ] 2.1 Create BitbucketListTasksParams struct in bitbucket.go

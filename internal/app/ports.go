@@ -63,6 +63,20 @@ type bitbucketClient interface {
 		tokenProvider bitbucket.TokenProvider,
 		params bitbucket.MergePRParams,
 	) (*bitbucket.PullRequest, error)
+
+	// ListPullRequestTasks returns a paginated list of tasks on a pull request.
+	ListPullRequestTasks(
+		ctx context.Context,
+		tokenProvider bitbucket.TokenProvider,
+		params bitbucket.ListPullRequestTasksParams,
+	) (*bitbucket.PaginatedTasks, error)
+
+	// UpdateTask updates an existing task on a pull request.
+	UpdateTask(
+		ctx context.Context,
+		tokenProvider bitbucket.TokenProvider,
+		params bitbucket.UpdateTaskParams,
+	) (*bitbucket.PullRequestCommentTask, error)
 }
 
 // Error types for account-related operations.
