@@ -21,24 +21,24 @@ This directory contains examples and test scripts for the Atlassian MCP Integrat
       "name": "user",
       "default": true,
       "bitbucket": {
-        "token": "YOUR_BITBUCKET_TOKEN",
-        "workspace": "YOUR_WORKSPACE"
+        "type": "Basic",
+        "value": "ATBBxxxxxxxxxxxxxxxx"
       },
       "jira": {
-        "token": "YOUR_JIRA_TOKEN",
-        "domain": "YOUR_DOMAIN"
+        "type": "Basic",
+        "value": "ATATxxxxxxxxxxxxxxxx"
       }
     },
     {
       "name": "bot",
       "default": false,
       "bitbucket": {
-        "token": "YOUR_BOT_TOKEN",
-        "workspace": "YOUR_WORKSPACE"
+        "type": "Bearer",
+        "value": "ATBBxxxxxxxxxxxxxxxx"
       },
       "jira": {
-        "token": "YOUR_BOT_TOKEN",
-        "domain": "YOUR_DOMAIN"
+        "type": "Bearer",
+        "value": "ATATxxxxxxxxxxxxxxxx"
       }
     }
   ]
