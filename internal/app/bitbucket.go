@@ -167,6 +167,30 @@ type BitbucketListTasksParams struct {
 	PageLen int `json:"page_len,omitempty"`
 }
 
+// BitbucketUpdateTaskParams contains parameters for updating a task on a pull request.
+type BitbucketUpdateTaskParams struct {
+	// Account name to use for authentication (optional, uses default if empty)
+	AccountName string `json:"account_name,omitempty"`
+
+	// Repository owner (username/workspace)
+	RepoOwner string `json:"repo_owner"`
+
+	// Repository name (slug)
+	RepoName string `json:"repo_name"`
+
+	// Pull request ID
+	PullRequestID int `json:"pull_request_id"`
+
+	// Task ID to update
+	TaskID int `json:"task_id"`
+
+	// Updated task content (optional)
+	Content string `json:"content,omitempty"`
+
+	// Updated task state: "RESOLVED" or "UNRESOLVED" (optional)
+	State string `json:"state,omitempty"`
+}
+
 // CreatePR creates a new pull request.
 func (s *BitbucketService) CreatePR(
 	ctx context.Context,
@@ -444,4 +468,50 @@ func (s *BitbucketService) ListTasks(
 	}
 
 	return tasks, nil
+}
+
+// UpdateTask updates a task on a pull request.
+func (s *BitbucketService) UpdateTask(
+	ctx context.Context,
+	params BitbucketUpdateTaskParams,
+) (*bitbucket.PullRequestCommentTask, error) {
+	s.logger.InfoContext(ctx, "Updating pull request task",
+		slog.String("repo", params.RepoOwner+"/"+params.RepoName),
+		slog.Int("pr_id", params.PullRequestID),
+		slog.Int("task_id", params.TaskID))
+
+	// Validate required parameters
+	if params.RepoOwner == "" {
+		return nil, errors.New("repository owner is required")
+	}
+	if params.RepoName == "" {
+		return nil, errors.New("repository name is required")
+	}
+	if params.PullRequestID <= 0 {
+		return nil, errors.New("pull request ID must be positive")
+	}
+	if params.TaskID <= 0 {
+		return nil, errors.New("task ID must be positive")
+	}
+	if params.Content == "" && params.State == "" {
+		return nil, errors.New("either content or state must be provided")
+	}
+
+	// Get token provider from auth factory
+	tokenProvider := s.authFactory.getTokenProvider(ctx, params.AccountName)
+
+	// Call the client to update the task
+	task, err := s.client.UpdateTask(ctx, tokenProvider, bitbucket.UpdateTaskParams{
+		Workspace: params.RepoOwner,
+		RepoSlug:  params.RepoName,
+		PullReqID: params.PullRequestID,
+		TaskID:    params.TaskID,
+		Content:   params.Content,
+		State:     params.State,
+	})
+	if err != nil {
+		return nil, fmt.Errorf("failed to update task: %w", err)
+	}
+
+	return task, nil
 }

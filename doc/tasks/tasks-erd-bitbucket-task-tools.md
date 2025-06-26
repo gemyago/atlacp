@@ -41,10 +41,10 @@ Please read referenced files to understand the problem:
   - [x] 2.2 Create minimal stub implementation for ListTasks that compiles but fails the test
   - [x] 2.3 Write test for BitbucketService.ListTasks method
   - [x] 2.4 Implement BitbucketService.ListTasks method to pass the test
-  - [ ] 2.5 Create BitbucketUpdateTaskParams struct in bitbucket.go
-  - [ ] 2.6 Create minimal stub implementation for UpdateTask that compiles but fails the test
-  - [ ] 2.7 Write test for BitbucketService.UpdateTask method
-  - [ ] 2.8 Implement BitbucketService.UpdateTask method to pass the test
+  - [x] 2.5 Create BitbucketUpdateTaskParams struct in bitbucket.go
+  - [x] 2.6 Create minimal stub implementation for UpdateTask that compiles but fails the test
+  - [x] 2.7 Write test for BitbucketService.UpdateTask method
+  - [x] 2.8 Implement BitbucketService.UpdateTask method to pass the test
   - [ ] 2.9 Review tests if they follow [testing-best-practices](../testing-best-practices.md)
   - [ ] 2.10 Run `lint-and-test`
 

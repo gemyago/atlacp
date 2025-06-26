@@ -1447,6 +1447,295 @@ func TestBitbucketService(t *testing.T) {
 			}
 		})
 	})
+
+	t.Run("UpdateTask", func(t *testing.T) {
+		t.Run("successfully updates task content", func(t *testing.T) {
+			// Arrange
+			deps := makeMockDeps(t)
+			mockClient := mocks.GetMock[*MockbitbucketClient](t, deps.Client)
+			mockAuth := mocks.GetMock[*MockbitbucketAuthFactory](t, deps.AuthFactory)
+			service := NewBitbucketService(deps)
+
+			// Create test data
+			repoOwner := "owner-" + faker.Username()
+			repoName := "repo-" + faker.Username()
+			prID := int(100 + faker.RandomUnixTime()%900)
+			taskID := int(100 + faker.RandomUnixTime()%900)
+			content := "Updated task content - " + faker.Sentence()
+
+			expectedTask := &bitbucket.PullRequestCommentTask{
+				PullRequestTask: bitbucket.PullRequestTask{
+					Task: bitbucket.Task{
+						ID:      int64(taskID),
+						State:   "UNRESOLVED",
+						Content: &bitbucket.TaskContent{Raw: content},
+					},
+				},
+			}
+
+			token := "token-" + faker.UUIDHyphenated()
+			tokenProvider := newStaticTokenProvider(token)
+
+			// Mock the auth factory to return our token provider
+			mockAuth.EXPECT().
+				getTokenProvider(mock.Anything, "").
+				Return(tokenProvider)
+
+			// Mock the client to return expected task
+			mockClient.EXPECT().
+				UpdateTask(
+					mock.Anything,
+					mock.Anything,
+					mock.MatchedBy(func(params bitbucket.UpdateTaskParams) bool {
+						// Verify the parameters
+						assert.Equal(t, repoOwner, params.Workspace)
+						assert.Equal(t, repoName, params.RepoSlug)
+						assert.Equal(t, prID, params.PullReqID)
+						assert.Equal(t, taskID, params.TaskID)
+						assert.Equal(t, content, params.Content)
+						assert.Empty(t, params.State)
+
+						return true
+					})).
+				Return(expectedTask, nil)
+
+			// Act
+			result, err := service.UpdateTask(t.Context(), BitbucketUpdateTaskParams{
+				RepoOwner:     repoOwner,
+				RepoName:      repoName,
+				PullRequestID: prID,
+				TaskID:        taskID,
+				Content:       content,
+			})
+
+			// Assert
+			require.NoError(t, err)
+			assert.Equal(t, expectedTask, result)
+		})
+
+		t.Run("successfully updates task state", func(t *testing.T) {
+			// Arrange
+			deps := makeMockDeps(t)
+			mockClient := mocks.GetMock[*MockbitbucketClient](t, deps.Client)
+			mockAuth := mocks.GetMock[*MockbitbucketAuthFactory](t, deps.AuthFactory)
+			service := NewBitbucketService(deps)
+
+			// Create test data
+			repoOwner := "owner-" + faker.Username()
+			repoName := "repo-" + faker.Username()
+			prID := int(100 + faker.RandomUnixTime()%900)
+			taskID := int(100 + faker.RandomUnixTime()%900)
+			state := "RESOLVED"
+
+			expectedTask := &bitbucket.PullRequestCommentTask{
+				PullRequestTask: bitbucket.PullRequestTask{
+					Task: bitbucket.Task{
+						ID:      int64(taskID),
+						State:   state,
+						Content: &bitbucket.TaskContent{Raw: "Original content"},
+					},
+				},
+			}
+
+			token := "token-" + faker.UUIDHyphenated()
+			tokenProvider := newStaticTokenProvider(token)
+
+			// Mock the auth factory
+			mockAuth.EXPECT().
+				getTokenProvider(mock.Anything, "").
+				Return(tokenProvider)
+
+			// Mock the client
+			mockClient.EXPECT().
+				UpdateTask(
+					mock.Anything,
+					mock.Anything,
+					mock.MatchedBy(func(params bitbucket.UpdateTaskParams) bool {
+						// Verify state is updated
+						assert.Equal(t, state, params.State)
+						assert.Empty(t, params.Content)
+						return true
+					})).
+				Return(expectedTask, nil)
+
+			// Act
+			result, err := service.UpdateTask(t.Context(), BitbucketUpdateTaskParams{
+				RepoOwner:     repoOwner,
+				RepoName:      repoName,
+				PullRequestID: prID,
+				TaskID:        taskID,
+				State:         state,
+			})
+
+			// Assert
+			require.NoError(t, err)
+			assert.Equal(t, expectedTask, result)
+		})
+
+		t.Run("successfully updates task with custom account", func(t *testing.T) {
+			// Arrange
+			deps := makeMockDeps(t)
+			mockClient := mocks.GetMock[*MockbitbucketClient](t, deps.Client)
+			mockAuth := mocks.GetMock[*MockbitbucketAuthFactory](t, deps.AuthFactory)
+			service := NewBitbucketService(deps)
+
+			// Create test data
+			accountName := "custom-account-" + faker.Username()
+			repoOwner := "owner-" + faker.Username()
+			repoName := "repo-" + faker.Username()
+			prID := int(100 + faker.RandomUnixTime()%900)
+			taskID := int(100 + faker.RandomUnixTime()%900)
+			content := "Updated content"
+			state := "RESOLVED"
+
+			expectedTask := &bitbucket.PullRequestCommentTask{
+				PullRequestTask: bitbucket.PullRequestTask{
+					Task: bitbucket.Task{
+						ID:      int64(taskID),
+						State:   state,
+						Content: &bitbucket.TaskContent{Raw: content},
+					},
+				},
+			}
+
+			token := "token-" + faker.UUIDHyphenated()
+			tokenProvider := newStaticTokenProvider(token)
+
+			// Mock the auth factory to use custom account
+			mockAuth.EXPECT().
+				getTokenProvider(mock.Anything, accountName).
+				Return(tokenProvider)
+
+			// Mock the client
+			mockClient.EXPECT().
+				UpdateTask(
+					mock.Anything,
+					mock.Anything,
+					mock.MatchedBy(func(_ bitbucket.UpdateTaskParams) bool {
+						return true
+					})).
+				Return(expectedTask, nil)
+
+			// Act
+			result, err := service.UpdateTask(t.Context(), BitbucketUpdateTaskParams{
+				AccountName:   accountName,
+				RepoOwner:     repoOwner,
+				RepoName:      repoName,
+				PullRequestID: prID,
+				TaskID:        taskID,
+				Content:       content,
+				State:         state,
+			})
+
+			// Assert
+			require.NoError(t, err)
+			assert.Equal(t, expectedTask, result)
+		})
+
+		t.Run("fails when client returns error", func(t *testing.T) {
+			// Arrange
+			deps := makeMockDeps(t)
+			mockClient := mocks.GetMock[*MockbitbucketClient](t, deps.Client)
+			mockAuth := mocks.GetMock[*MockbitbucketAuthFactory](t, deps.AuthFactory)
+			service := NewBitbucketService(deps)
+
+			expectedErr := errors.New("client error")
+			token := "token-" + faker.UUIDHyphenated()
+			tokenProvider := newStaticTokenProvider(token)
+
+			// Mock the auth factory
+			mockAuth.EXPECT().
+				getTokenProvider(mock.Anything, "").
+				Return(tokenProvider)
+
+			// Mock the client to return error
+			mockClient.EXPECT().
+				UpdateTask(mock.Anything, mock.Anything, mock.Anything).
+				Return(nil, expectedErr)
+
+			// Act
+			result, err := service.UpdateTask(t.Context(), BitbucketUpdateTaskParams{
+				RepoOwner:     "owner",
+				RepoName:      "repo",
+				PullRequestID: 123,
+				TaskID:        456,
+				Content:       "content",
+			})
+
+			// Assert
+			require.Error(t, err)
+			assert.Nil(t, result)
+			assert.ErrorIs(t, err, expectedErr)
+		})
+
+		t.Run("fails when required parameters are missing", func(t *testing.T) {
+			// Arrange
+			deps := makeMockDeps(t)
+			service := NewBitbucketService(deps)
+
+			testCases := []struct {
+				name   string
+				params BitbucketUpdateTaskParams
+				errMsg string
+			}{
+				{
+					name: "missing repository owner",
+					params: BitbucketUpdateTaskParams{
+						RepoName:      "repo",
+						PullRequestID: 123,
+						TaskID:        456,
+					},
+					errMsg: "repository owner is required",
+				},
+				{
+					name: "missing repository name",
+					params: BitbucketUpdateTaskParams{
+						RepoOwner:     "owner",
+						PullRequestID: 123,
+						TaskID:        456,
+					},
+					errMsg: "repository name is required",
+				},
+				{
+					name: "missing pull request ID",
+					params: BitbucketUpdateTaskParams{
+						RepoOwner: "owner",
+						RepoName:  "repo",
+						TaskID:    456,
+					},
+					errMsg: "pull request ID must be positive",
+				},
+				{
+					name: "missing task ID",
+					params: BitbucketUpdateTaskParams{
+						RepoOwner:     "owner",
+						RepoName:      "repo",
+						PullRequestID: 123,
+					},
+					errMsg: "task ID must be positive",
+				},
+				{
+					name: "no update content or state specified",
+					params: BitbucketUpdateTaskParams{
+						RepoOwner:     "owner",
+						RepoName:      "repo",
+						PullRequestID: 123,
+						TaskID:        456,
+					},
+					errMsg: "either content or state must be provided",
+				},
+			}
+
+			for _, tc := range testCases {
+				t.Run(tc.name, func(t *testing.T) {
+					result, err := service.UpdateTask(t.Context(), tc.params)
+					require.Error(t, err)
+					assert.Nil(t, result)
+					assert.Contains(t, err.Error(), tc.errMsg)
+				})
+			}
+		})
+	})
 }
 
 // Helper for creating random tasks.
