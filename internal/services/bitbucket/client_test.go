@@ -10,8 +10,9 @@ import (
 
 // MockTokenProvider is a simple mock implementation for testing.
 type MockTokenProvider struct {
-	Token string
-	Err   error
+	TokenType  string
+	TokenValue string
+	Err        error
 }
 
 // GetToken implements the TokenProvider interface for testing.
@@ -19,7 +20,7 @@ func (m *MockTokenProvider) GetToken(_ context.Context) (middleware.Token, error
 	if m.Err != nil {
 		return middleware.Token{}, m.Err
 	}
-	return middleware.Token{Type: "Bearer", Value: m.Token}, nil
+	return middleware.Token{Type: m.TokenType, Value: m.TokenValue}, nil
 }
 
 // makeMockDeps creates mock dependencies for testing.

@@ -202,20 +202,22 @@ func TestClient_CreateResource(t *testing.T) {
         }
     }
     
-    mockTokenProvider := &MockTokenProvider{}
-    tokenError := errors.New("failed to get token")
     
     t.Run("success with all parameters and fields", func(t *testing.T) {
         // Arrange - Use randomized data
         resourceName := "resource-" + faker.Word()
         resourceDesc := faker.Sentence()
+        mockTokenProvider := &MockTokenProvider{
+          TokenType:  faker.Word(),
+          TokenValue: faker.UUIDHyphenated(),
+        }
         
         server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
             // Verify request details
             assert.Equal(t, "POST", r.Method)
             assert.Equal(t, "/resources", r.URL.Path)
             assert.Equal(t, "application/json", r.Header.Get("Content-Type"))
-            assert.Equal(t, "Bearer test-token", r.Header.Get("Authorization"))
+            assert.Equal(t, mockTokenProvider.TokenType+" "+mockTokenProvider.TokenValue, r.Header.Get("Authorization"))
             
             // Return complete successful response
             w.Header().Set("Content-Type", "application/json")
@@ -242,8 +244,6 @@ func TestClient_CreateResource(t *testing.T) {
             Tags:        []string{faker.Word(), faker.Word()},
         }
         
-        mockTokenProvider.Token = "test-token"
-        
         // Act
         resource, err := client.CreateResource(t.Context(), mockTokenProvider, CreateResourceParams{
             Request: req,
@@ -264,6 +264,10 @@ func TestClient_CreateResource(t *testing.T) {
     t.Run("success with required parameters only", func(t *testing.T) {
         // Arrange - Use randomized data
         resourceName := "resource-" + faker.Word()
+        mockTokenProvider := &MockTokenProvider{
+          TokenType:  faker.Word(),
+          TokenValue: faker.UUIDHyphenated(),
+        }
         
         server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
             // Return minimal successful response
@@ -283,8 +287,6 @@ func TestClient_CreateResource(t *testing.T) {
             Name: resourceName, // Only required field
         }
         
-        mockTokenProvider.Token = "test-token"
-        
         // Act
         resource, err := client.CreateResource(t.Context(), mockTokenProvider, CreateResourceParams{
             Request: req,
@@ -299,6 +301,10 @@ func TestClient_CreateResource(t *testing.T) {
     t.Run("handles API error", func(t *testing.T) {
         // Arrange
         resourceName := "resource-" + faker.Word()
+        mockTokenProvider := &MockTokenProvider{
+          TokenType:  faker.Word(),
+          TokenValue: faker.UUIDHyphenated(),
+        }
         
         server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
             w.Header().Set("Content-Type", "application/json")
@@ -312,8 +318,6 @@ func TestClient_CreateResource(t *testing.T) {
         req := &CreateResourceRequest{
             Name: resourceName,
         }
-        
-        mockTokenProvider.Token = "test-token"
         
         // Act
         result, err := client.CreateResource(t.Context(), mockTokenProvider, CreateResourceParams{
@@ -329,11 +333,13 @@ func TestClient_CreateResource(t *testing.T) {
     t.Run("handles token provider error", func(t *testing.T) {
         // Arrange
         resourceName := "resource-" + faker.Word()
+        mockTokenProvider := &MockTokenProvider{
+          Err: errors.New(faker.Sentence()),
+        }
         
         deps := makeMockDeps(t, "http://example.com")
         client := NewClient(deps)
         
-        mockTokenProvider.Err = tokenError
         req := &CreateResourceRequest{
             Name: resourceName,
         }
@@ -346,22 +352,24 @@ func TestClient_CreateResource(t *testing.T) {
         // Assert
         require.Error(t, err)
         assert.Nil(t, result)
-        expectedError := fmt.Errorf("failed to get token: %w", tokenError)
+        expectedError := fmt.Errorf("failed to get token: %w", mockTokenProvider.Err)
         assert.Equal(t, expectedError.Error(), err.Error())
     })
 }
 
 // MockTokenProvider is a simple mock implementation for testing.
+// Usually implemented once in client_test.go file.
 type MockTokenProvider struct {
-    Token string
-    Err   error
+	TokenType  string
+	TokenValue string
+	Err        error
 }
 
 func (m *MockTokenProvider) GetToken(_ context.Context) (middleware.Token, error) {
-    if m.Err != nil {
-        return middleware.Token{}, m.Err
-    }
-    return middleware.Token{Type: "Bearer", Value: m.Token}, nil
+	if m.Err != nil {
+		return middleware.Token{}, m.Err
+	}
+	return middleware.Token{Type: m.TokenType, Value: m.TokenValue}, nil
 }
 ```
 

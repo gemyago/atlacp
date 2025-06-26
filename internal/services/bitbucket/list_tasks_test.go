@@ -27,9 +27,6 @@ func TestClient_ListPullRequestTasks(t *testing.T) {
 		}
 	}
 
-	mockTokenProvider := &MockTokenProvider{}
-	tokenError := errors.New("failed to get token")
-
 	t.Run("success with all parameters", func(t *testing.T) {
 		// Arrange - Use randomized data
 		workspace := "workspace-" + faker.Word()
@@ -39,11 +36,16 @@ func TestClient_ListPullRequestTasks(t *testing.T) {
 		sortParam := "created_on"
 		pageLen := 50
 
+		mockTokenProvider := &MockTokenProvider{
+			TokenType:  faker.Word(),
+			TokenValue: faker.UUIDHyphenated(),
+		}
+
 		server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 			// Verify request details
 			assert.Equal(t, "GET", r.Method)
 			assert.Equal(t, fmt.Sprintf("/repositories/%s/%s/pullrequests/%d/tasks", workspace, repoSlug, pullReqID), r.URL.Path)
-			assert.Equal(t, "Bearer test-token", r.Header.Get("Authorization"))
+			assert.Equal(t, mockTokenProvider.TokenType+" "+mockTokenProvider.TokenValue, r.Header.Get("Authorization"))
 			assert.Equal(t, queryParam, r.URL.Query().Get("q"))
 			assert.Equal(t, sortParam, r.URL.Query().Get("sort"))
 			assert.Equal(t, "50", r.URL.Query().Get("pagelen"))
@@ -111,7 +113,6 @@ func TestClient_ListPullRequestTasks(t *testing.T) {
 		deps := makeMockDeps(t, server.URL)
 		client := NewClient(deps)
 
-		mockTokenProvider.Token = "test-token"
 		params := ListPullRequestTasksParams{
 			Workspace: workspace,
 			RepoSlug:  repoSlug,
@@ -151,6 +152,11 @@ func TestClient_ListPullRequestTasks(t *testing.T) {
 		repoSlug := "repo-" + faker.Word()
 		pullReqID := 123
 
+		mockTokenProvider := &MockTokenProvider{
+			TokenType:  faker.Word(),
+			TokenValue: faker.UUIDHyphenated(),
+		}
+
 		server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 			// Verify request details
 			assert.Equal(t, "GET", r.Method)
@@ -184,7 +190,6 @@ func TestClient_ListPullRequestTasks(t *testing.T) {
 		deps := makeMockDeps(t, server.URL)
 		client := NewClient(deps)
 
-		mockTokenProvider.Token = "test-token"
 		params := ListPullRequestTasksParams{
 			Workspace: workspace,
 			RepoSlug:  repoSlug,
@@ -212,6 +217,11 @@ func TestClient_ListPullRequestTasks(t *testing.T) {
 		repoSlug := "repo-" + faker.Word()
 		pullReqID := 123
 
+		mockTokenProvider := &MockTokenProvider{
+			TokenType:  faker.Word(),
+			TokenValue: faker.UUIDHyphenated(),
+		}
+
 		server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) {
 			w.Header().Set("Content-Type", "application/json")
 			w.WriteHeader(http.StatusNotFound)
@@ -227,7 +237,6 @@ func TestClient_ListPullRequestTasks(t *testing.T) {
 		deps := makeMockDeps(t, server.URL)
 		client := NewClient(deps)
 
-		mockTokenProvider.Token = "test-token"
 		params := ListPullRequestTasksParams{
 			Workspace: workspace,
 			RepoSlug:  repoSlug,
@@ -249,10 +258,13 @@ func TestClient_ListPullRequestTasks(t *testing.T) {
 		repoSlug := "repo-" + faker.Word()
 		pullReqID := 123
 
+		mockTokenProvider := &MockTokenProvider{
+			Err: errors.New(faker.Sentence()),
+		}
+
 		deps := makeMockDeps(t, "https://api.example.com")
 		client := NewClient(deps)
 
-		mockTokenProvider.Err = tokenError
 		params := ListPullRequestTasksParams{
 			Workspace: workspace,
 			RepoSlug:  repoSlug,
@@ -265,7 +277,7 @@ func TestClient_ListPullRequestTasks(t *testing.T) {
 		// Assert
 		require.Error(t, err)
 		assert.Nil(t, result)
-		expectedError := fmt.Errorf("failed to get token: %w", tokenError)
+		expectedError := fmt.Errorf("failed to get token: %w", mockTokenProvider.Err)
 		assert.Equal(t, expectedError.Error(), err.Error())
 	})
 }

@@ -79,7 +79,7 @@ func TestClient_CreatePR(t *testing.T) {
 		client := NewClient(deps)
 
 		// Create test request
-		mockTokenProvider.Token = "test-token"
+		mockTokenProvider.TokenValue = "test-token"
 		createdOn, _ := time.Parse(time.RFC3339, "2023-01-01T00:00:00Z")
 		updatedOn := createdOn
 
@@ -143,7 +143,7 @@ func TestClient_CreatePR(t *testing.T) {
 		client := NewClient(deps)
 
 		// Create minimal test request
-		mockTokenProvider.Token = "test-token"
+		mockTokenProvider.TokenValue = "test-token"
 		mockTokenProvider.Err = nil
 
 		// Execute the request
@@ -187,7 +187,7 @@ func TestClient_CreatePR(t *testing.T) {
 		client := NewClient(deps)
 
 		// Create test request with missing required fields
-		mockTokenProvider.Token = "test-token"
+		mockTokenProvider.TokenValue = "test-token"
 		mockTokenProvider.Err = nil
 
 		// Execute the request

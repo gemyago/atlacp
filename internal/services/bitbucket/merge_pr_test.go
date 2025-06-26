@@ -80,7 +80,7 @@ func TestClient_MergePR(t *testing.T) {
 		client := NewClient(deps)
 
 		// Setup token provider
-		mockTokenProvider.Token = "test-token"
+		mockTokenProvider.TokenValue = "test-token"
 		mockTokenProvider.Err = nil
 
 		updatedOn, _ := time.Parse(time.RFC3339, "2023-01-02T00:00:00Z")
@@ -141,7 +141,7 @@ func TestClient_MergePR(t *testing.T) {
 		client := NewClient(deps)
 
 		// Setup token provider
-		mockTokenProvider.Token = "test-token"
+		mockTokenProvider.TokenValue = "test-token"
 		mockTokenProvider.Err = nil
 
 		// Execute the request with no merge parameters (using defaults)
@@ -181,7 +181,7 @@ func TestClient_MergePR(t *testing.T) {
 		client := NewClient(deps)
 
 		// Setup token provider
-		mockTokenProvider.Token = "test-token"
+		mockTokenProvider.TokenValue = "test-token"
 		mockTokenProvider.Err = nil
 
 		// Execute the request

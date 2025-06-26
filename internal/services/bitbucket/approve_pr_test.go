@@ -47,7 +47,7 @@ func TestClient_ApprovePR(t *testing.T) {
 		client := NewClient(deps)
 
 		// Setup token provider
-		mockTokenProvider.Token = "test-token"
+		mockTokenProvider.TokenValue = "test-token"
 		mockTokenProvider.Err = nil
 
 		// Execute the request
@@ -89,7 +89,7 @@ func TestClient_ApprovePR(t *testing.T) {
 		client := NewClient(deps)
 
 		// Setup token provider
-		mockTokenProvider.Token = "test-token"
+		mockTokenProvider.TokenValue = "test-token"
 		mockTokenProvider.Err = nil
 
 		// Execute the request
@@ -125,7 +125,7 @@ func TestClient_ApprovePR(t *testing.T) {
 		client := NewClient(deps)
 
 		// Setup token provider
-		mockTokenProvider.Token = "test-token"
+		mockTokenProvider.TokenValue = "test-token"
 		mockTokenProvider.Err = nil
 
 		// Execute the request
