@@ -2,6 +2,7 @@ package bitbucket
 
 import (
 	"context"
+	"testing"
 
 	"github.com/gemyago/atlacp/internal/diag"
 	httpservices "github.com/gemyago/atlacp/internal/services/http"
@@ -23,13 +24,14 @@ func (m *MockTokenProvider) GetToken(_ context.Context) (middleware.Token, error
 	return middleware.Token{Type: m.TokenType, Value: m.TokenValue}, nil
 }
 
-// makeMockDeps creates mock dependencies for testing.
-func makeMockDeps(baseURL string) ClientDeps {
+// makeMockDepsWithTestName creates mock dependencies for testing with test name in the logger.
+func makeMockDepsWithTestName(t *testing.T, baseURL string) ClientDeps {
+	rootLogger := diag.RootTestLogger().With("test", t.Name())
 	return ClientDeps{
 		ClientFactory: httpservices.NewClientFactory(httpservices.ClientFactoryDeps{
-			RootLogger: diag.RootTestLogger(),
+			RootLogger: rootLogger,
 		}),
-		RootLogger: diag.RootTestLogger(),
+		RootLogger: rootLogger,
 		BaseURL:    baseURL,
 	}
 }

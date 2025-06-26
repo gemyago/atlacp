@@ -3,34 +3,56 @@ package bitbucket
 import (
 	"errors"
 	"fmt"
+	"math/rand"
 	"net/http"
 	"net/http/httptest"
 	"testing"
 	"time"
 
+	"github.com/go-faker/faker/v4"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
 
 func TestClient_MergePR(t *testing.T) {
-	mockTokenProvider := &MockTokenProvider{}
-
 	t.Run("success with all parameters and fields", func(t *testing.T) {
-		// Setup mock server
+		// Arrange
+		username := "test-user-" + faker.Word()
+		repoSlug := "test-repo-" + faker.Word()
+		pullRequestID := rand.Intn(1000) + 1
+		prTitle := "Merged PR " + faker.Sentence()
+		prDescription := faker.Paragraph()
+		sourceBranch := "feature-" + faker.Word()
+		targetBranch := "main-" + faker.Word()
+		commitHash := faker.UUIDHyphenated()
+		mergeCommitHash := faker.UUIDHyphenated()
+		mergeMessage := "Merging " + faker.Sentence()
+
+		mockTokenProvider := &MockTokenProvider{
+			TokenType:  "Bearer",
+			TokenValue: faker.UUIDHyphenated(),
+		}
+
+		updatedOn := time.Now().UTC().Truncate(time.Second)
+		updatedOnStr := updatedOn.Format(time.RFC3339)
+		createdOnStr := updatedOn.Add(-24 * time.Hour).Format(time.RFC3339)
+
 		server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 			// Verify request details
 			assert.Equal(t, "POST", r.Method)
-			assert.Equal(t, "/repositories/test-user/test-repo/pullrequests/1/merge", r.URL.Path)
+			expectedPath := fmt.Sprintf("/repositories/%s/%s/pullrequests/%d/merge",
+				username, repoSlug, pullRequestID)
+			assert.Equal(t, expectedPath, r.URL.Path)
 			assert.Equal(t, "application/json", r.Header.Get("Content-Type"))
-			assert.Equal(t, "Bearer test-token", r.Header.Get("Authorization"))
+			assert.Equal(t, "Bearer "+mockTokenProvider.TokenValue, r.Header.Get("Authorization"))
 
 			// Return complete successful response
 			w.Header().Set("Content-Type", "application/json")
 			w.WriteHeader(http.StatusOK)
-			fmt.Fprint(w, `{
-				"id": 1,
-				"title": "Merged PR",
-				"description": "Test description",
+			fmt.Fprintf(w, `{
+				"id": %d,
+				"title": "%s",
+				"description": "%s",
 				"state": "MERGED",
 				"author": {
 					"account_id": "123456",
@@ -42,128 +64,142 @@ func TestClient_MergePR(t *testing.T) {
 				},
 				"source": {
 					"branch": {
-						"name": "feature-branch"
+						"name": "%s"
 					},
 					"commit": {
-						"hash": "abcdef123456"
+						"hash": "%s"
 					},
 					"repository": {
-						"full_name": "test-user/test-repo",
-						"name": "test-repo",
+						"full_name": "%s/%s",
+						"name": "%s",
 						"uuid": "{7708d810-964c-403f-aa6d-4e949280d614}"
 					}
 				},
 				"destination": {
 					"branch": {
-						"name": "main"
+						"name": "%s"
 					},
 					"repository": {
-						"full_name": "test-user/test-repo",
-						"name": "test-repo",
+						"full_name": "%s/%s",
+						"name": "%s",
 						"uuid": "{7708d810-964c-403f-aa6d-4e949280d614}"
 					}
 				},
 				"close_source_branch": true,
 				"merge_commit": {
-					"hash": "fedcba654321"
+					"hash": "%s"
 				},
 				"comment_count": 0,
 				"task_count": 0,
-				"created_on": "2023-01-01T00:00:00Z",
-				"updated_on": "2023-01-02T00:00:00Z"
-			}`)
+				"created_on": "%s",
+				"updated_on": "%s"
+			}`, pullRequestID, prTitle, prDescription, sourceBranch, commitHash,
+				username, repoSlug, repoSlug, targetBranch, username, repoSlug, repoSlug,
+				mergeCommitHash, createdOnStr, updatedOnStr)
 		}))
 		defer server.Close()
 
 		// Create client with mock dependencies
-		deps := makeMockDeps(server.URL)
+		deps := makeMockDepsWithTestName(t, server.URL)
 		client := NewClient(deps)
 
-		// Setup token provider
-		mockTokenProvider.TokenValue = "test-token"
-		mockTokenProvider.Err = nil
-
-		updatedOn, _ := time.Parse(time.RFC3339, "2023-01-02T00:00:00Z")
-
-		// Execute the request
+		// Act
 		result, err := client.MergePR(t.Context(), mockTokenProvider, MergePRParams{
-			Username:      "test-user",
-			RepoSlug:      "test-repo",
-			PullRequestID: 1,
+			Username:      username,
+			RepoSlug:      repoSlug,
+			PullRequestID: pullRequestID,
 			MergeParameters: &PullRequestMergeParameters{
 				CloseSourceBranch: true,
-				Message:           "Merging feature into main",
+				Message:           mergeMessage,
 				MergeStrategy:     "merge_commit",
 			},
 		})
 
-		// Verify the result
+		// Assert
 		require.NoError(t, err)
-		assert.Equal(t, 1, result.ID)
-		assert.Equal(t, "Merged PR", result.Title)
+		assert.Equal(t, pullRequestID, result.ID)
+		assert.Equal(t, prTitle, result.Title)
 		assert.Equal(t, "MERGED", result.State)
-		assert.Equal(t, "feature-branch", result.Source.Branch.Name)
-		assert.Equal(t, "main", result.Destination.Branch.Name)
+		assert.Equal(t, sourceBranch, result.Source.Branch.Name)
+		assert.Equal(t, targetBranch, result.Destination.Branch.Name)
 		assert.True(t, result.CloseSourceBranch)
-		assert.Equal(t, "fedcba654321", result.MergeCommit.Hash)
-		assert.Equal(t, updatedOn.UTC(), result.UpdatedOn.UTC())
+		assert.Equal(t, mergeCommitHash, result.MergeCommit.Hash)
+		assert.Equal(t, updatedOn, result.UpdatedOn.UTC())
 	})
 
 	t.Run("success with required parameters only", func(t *testing.T) {
-		// Setup mock server
+		// Arrange
+		username := "test-user-" + faker.Word()
+		repoSlug := "test-repo-" + faker.Word()
+		pullRequestID := rand.Intn(1000) + 1
+		prTitle := "Simple Merge " + faker.Word()
+		sourceBranch := "feature-" + faker.Word()
+		targetBranch := "main-" + faker.Word()
+		mergeCommitHash := faker.UUIDHyphenated()
+
+		mockTokenProvider := &MockTokenProvider{
+			TokenType:  "Bearer",
+			TokenValue: faker.UUIDHyphenated(),
+		}
+
 		server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) {
 			// Return minimal successful response
 			w.Header().Set("Content-Type", "application/json")
 			w.WriteHeader(http.StatusOK)
-			fmt.Fprint(w, `{
-				"id": 2,
-				"title": "Simple Merge",
+			fmt.Fprintf(w, `{
+				"id": %d,
+				"title": "%s",
 				"state": "MERGED",
 				"source": {
 					"branch": {
-						"name": "feature-branch"
+						"name": "%s"
 					}
 				},
 				"destination": {
 					"branch": {
-						"name": "main"
+						"name": "%s"
 					}
 				},
 				"merge_commit": {
-					"hash": "abcdef123456"
+					"hash": "%s"
 				}
-			}`)
+			}`, pullRequestID, prTitle, sourceBranch, targetBranch, mergeCommitHash)
 		}))
 		defer server.Close()
 
 		// Create client with mock dependencies
-		deps := makeMockDeps(server.URL)
+		deps := makeMockDepsWithTestName(t, server.URL)
 		client := NewClient(deps)
 
-		// Setup token provider
-		mockTokenProvider.TokenValue = "test-token"
-		mockTokenProvider.Err = nil
-
-		// Execute the request with no merge parameters (using defaults)
+		// Act
 		result, err := client.MergePR(t.Context(), mockTokenProvider, MergePRParams{
-			Username:      "test-user",
-			RepoSlug:      "test-repo",
-			PullRequestID: 2,
+			Username:      username,
+			RepoSlug:      repoSlug,
+			PullRequestID: pullRequestID,
 			// No merge parameters, using defaults
 		})
 
-		// Verify the result
+		// Assert
 		require.NoError(t, err)
-		assert.Equal(t, 2, result.ID)
-		assert.Equal(t, "Simple Merge", result.Title)
+		assert.Equal(t, pullRequestID, result.ID)
+		assert.Equal(t, prTitle, result.Title)
 		assert.Equal(t, "MERGED", result.State)
-		assert.Equal(t, "feature-branch", result.Source.Branch.Name)
-		assert.Equal(t, "main", result.Destination.Branch.Name)
-		assert.Equal(t, "abcdef123456", result.MergeCommit.Hash)
+		assert.Equal(t, sourceBranch, result.Source.Branch.Name)
+		assert.Equal(t, targetBranch, result.Destination.Branch.Name)
+		assert.Equal(t, mergeCommitHash, result.MergeCommit.Hash)
 	})
 
 	t.Run("handles API error", func(t *testing.T) {
-		// Setup mock server
+		// Arrange
+		username := "test-user-" + faker.Word()
+		repoSlug := "test-repo-" + faker.Word()
+		pullRequestID := rand.Intn(1000) + 1
+
+		mockTokenProvider := &MockTokenProvider{
+			TokenType:  "Bearer",
+			TokenValue: faker.UUIDHyphenated(),
+		}
+
 		server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) {
 			// Return error response
 			w.Header().Set("Content-Type", "application/json")
@@ -177,42 +213,47 @@ func TestClient_MergePR(t *testing.T) {
 		defer server.Close()
 
 		// Create client with mock dependencies
-		deps := makeMockDeps(server.URL)
+		deps := makeMockDepsWithTestName(t, server.URL)
 		client := NewClient(deps)
 
-		// Setup token provider
-		mockTokenProvider.TokenValue = "test-token"
-		mockTokenProvider.Err = nil
-
-		// Execute the request
-		_, err := client.MergePR(t.Context(), mockTokenProvider, MergePRParams{
-			Username:      "test-user",
-			RepoSlug:      "test-repo",
-			PullRequestID: 3,
+		// Act
+		result, err := client.MergePR(t.Context(), mockTokenProvider, MergePRParams{
+			Username:      username,
+			RepoSlug:      repoSlug,
+			PullRequestID: pullRequestID,
 		})
 
-		// Verify the error
+		// Assert
 		require.Error(t, err)
-		assert.Contains(t, err.Error(), "merge pull request failed")
+		assert.Nil(t, result)
+		assert.ErrorContains(t, err, "merge pull request failed")
 	})
 
 	t.Run("handles token provider error", func(t *testing.T) {
+		// Arrange
+		username := "test-user-" + faker.Word()
+		repoSlug := "test-repo-" + faker.Word()
+		pullRequestID := rand.Intn(1000) + 1
+
+		mockTokenProvider := &MockTokenProvider{
+			Err: errors.New(faker.Sentence()),
+		}
+
 		// Create client with mock dependencies
-		deps := makeMockDeps("http://example.com")
+		deps := makeMockDepsWithTestName(t, "http://example.com")
 		client := NewClient(deps)
 
-		// Setup token provider to return an error
-		mockTokenProvider.Err = errors.New("token error")
-
-		// Execute the request
-		_, err := client.MergePR(t.Context(), mockTokenProvider, MergePRParams{
-			Username:      "test-user",
-			RepoSlug:      "test-repo",
-			PullRequestID: 1,
+		// Act
+		result, err := client.MergePR(t.Context(), mockTokenProvider, MergePRParams{
+			Username:      username,
+			RepoSlug:      repoSlug,
+			PullRequestID: pullRequestID,
 		})
 
-		// Verify the error
+		// Assert
 		require.Error(t, err)
-		assert.Contains(t, err.Error(), "failed to get token")
+		assert.Nil(t, result)
+		expectedError := fmt.Errorf("failed to get token: %w", mockTokenProvider.Err)
+		assert.Equal(t, expectedError.Error(), err.Error())
 	})
 }

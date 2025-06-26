@@ -7,26 +7,12 @@ import (
 	"net/http/httptest"
 	"testing"
 
-	"github.com/gemyago/atlacp/internal/diag"
-	httpservices "github.com/gemyago/atlacp/internal/services/http"
 	"github.com/go-faker/faker/v4"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
 
 func TestClient_ListPullRequestTasks(t *testing.T) {
-	// Explicit t parameter for makeMockDeps
-	makeMockDeps := func(t *testing.T, baseURL string) ClientDeps {
-		rootLogger := diag.RootTestLogger().With("test", t.Name())
-		return ClientDeps{
-			ClientFactory: httpservices.NewClientFactory(httpservices.ClientFactoryDeps{
-				RootLogger: rootLogger,
-			}),
-			RootLogger: rootLogger,
-			BaseURL:    baseURL,
-		}
-	}
-
 	t.Run("success with all parameters", func(t *testing.T) {
 		// Arrange - Use randomized data
 		workspace := "workspace-" + faker.Word()
@@ -110,7 +96,7 @@ func TestClient_ListPullRequestTasks(t *testing.T) {
 		}))
 		defer server.Close()
 
-		deps := makeMockDeps(t, server.URL)
+		deps := makeMockDepsWithTestName(t, server.URL)
 		client := NewClient(deps)
 
 		params := ListPullRequestTasksParams{
@@ -187,7 +173,7 @@ func TestClient_ListPullRequestTasks(t *testing.T) {
 		}))
 		defer server.Close()
 
-		deps := makeMockDeps(t, server.URL)
+		deps := makeMockDepsWithTestName(t, server.URL)
 		client := NewClient(deps)
 
 		params := ListPullRequestTasksParams{
@@ -234,7 +220,7 @@ func TestClient_ListPullRequestTasks(t *testing.T) {
 		}))
 		defer server.Close()
 
-		deps := makeMockDeps(t, server.URL)
+		deps := makeMockDepsWithTestName(t, server.URL)
 		client := NewClient(deps)
 
 		params := ListPullRequestTasksParams{
@@ -262,7 +248,7 @@ func TestClient_ListPullRequestTasks(t *testing.T) {
 			Err: errors.New(faker.Sentence()),
 		}
 
-		deps := makeMockDeps(t, "https://api.example.com")
+		deps := makeMockDepsWithTestName(t, "https://api.example.com")
 		client := NewClient(deps)
 
 		params := ListPullRequestTasksParams{
