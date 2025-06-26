@@ -102,13 +102,21 @@ This section lists example structure for relevant files section
 
 ## Tasks
 
+**Important**
+If adding new method, a stub implementation for it should always be a first step, and then the test. Not the other way around.
+
 - [ ] 1.0 Parent Task Title
-  - [ ] 1.1 [Sub-task description 1.1]
-  - [ ] 1.2 [Sub-task description 1.2]
-- [ ] 2.0 Parent Task Title
+  - [ ] 1.1 [Sub-task description 1.1 (usually stub logic if needed or failing test)]
+  - [ ] 1.2 [Sub-task description 1.2 (usually failing test depending on 1.1)]
+  - [ ] 1.3 [Sub-task description 1.3 (usually logic implementation and testing)]
+  - ..... repeat 1.1...1.3 as needed
+  - [ ] 1.x [Last sub-task] Review and refactor new/updated tests to follow [testing-best-practices.md](mdc:doc/testing-best-practices.md)
+- [ ] 2.0 Parent Task Title (follows same approach as 1.1)
   - [ ] 2.1 [Sub-task description 2.1]
 - [ ] 3.0 Parent Task Title (may not require sub-tasks if purely structural or configuration)
 ```
+
+Last sub-task should always be to review all added/updated tests and refactor them to follow [testing-best-practices.md](mdc:doc/testing-best-practices.md)
 
 ## Go-Specific Considerations
 

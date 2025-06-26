@@ -33,20 +33,20 @@ Please read referenced files to understand the problem:
 ## Tasks
 
 - [ ] 1.0 Update App Layer Interfaces
-  - [ ] 3.1 Update bitbucket client interface in ports and regenerate mocks
   - [ ] 1.1 Extend bitbucketClient interface with ListPullRequestTasks and UpdateTask methods
-  - [ ] 1.3 Create BitbucketUpdateTaskParams struct in bitbucket.go
-  
+  - [ ] 1.2 Regenerate mocks if needed
+
 - [ ] 2.0 Implement App Layer Services
   - [ ] 2.1 Create BitbucketListTasksParams struct in bitbucket.go
   - [ ] 2.2 Create minimal stub implementation for ListTasks that compiles but fails the test
   - [ ] 2.3 Write test for BitbucketService.ListTasks method
   - [ ] 2.4 Implement BitbucketService.ListTasks method to pass the test
-  - [ ] 2.5 Create minimal stub implementation for UpdateTask that compiles but fails the test
-  - [ ] 2.6 Write test for BitbucketService.UpdateTask method
-  - [ ] 2.7 Implement BitbucketService.UpdateTask method to pass the test
-  - [ ] 2.8 Review tests if they follow [testing-best-practices](../testing-best-practices.md)
-  - [ ] 2.9 Run `lint-and-test`
+  - [ ] 2.5 Create BitbucketUpdateTaskParams struct in bitbucket.go
+  - [ ] 2.6 Create minimal stub implementation for UpdateTask that compiles but fails the test
+  - [ ] 2.7 Write test for BitbucketService.UpdateTask method
+  - [ ] 2.8 Implement BitbucketService.UpdateTask method to pass the test
+  - [ ] 2.9 Review tests if they follow [testing-best-practices](../testing-best-practices.md)
+  - [ ] 2.10 Run `lint-and-test`
 
 - [ ] 3.0 Implement Controller Layer for Task Tools
   - [ ] 3.1 Update bitbucketService interface in the controller to include new methods
