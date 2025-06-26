@@ -48,11 +48,12 @@ Please read referenced files to understand the problem:
   - [x] 2.8 Implement BitbucketService.UpdateTask method to pass the test
   - [x] 2.9 Review tests if they follow [testing-best-practices](../testing-best-practices.md)
   - [x] 2.10 Run `lint-and-test`
-  - [ ] 2.11 Create BitbucketCreateTaskParams struct in bitbucket.go
-  - [ ] 2.12 Create minimal stub implementation for CreateTask that compiles but fails the test
-  - [ ] 2.13 Write test for BitbucketService.CreateTask method
-  - [ ] 2.14 Implement BitbucketService.CreateTask method to pass the test
-  - [ ] 2.15 Run `lint-and-test`
+  - [x] 2.11 Create BitbucketCreateTaskParams struct in bitbucket.go
+  - [x] 2.12 Create minimal stub implementation for CreateTask that compiles but fails the test
+  - [x] 2.13 Write test for BitbucketService.CreateTask method
+  - [x] 2.14 Implement BitbucketService.CreateTask method to pass the test
+  - [x] 2.15 Review tests if they follow [testing-best-practices](../testing-best-practices.md)  
+  - [x] 2.16 Run `lint-and-test`
 
 - [x] 3.0 Implement Controller Layer for Task Tools
   - [x] 3.1 Update bitbucketService interface in the controller to include new methods

@@ -77,6 +77,13 @@ type bitbucketClient interface {
 		tokenProvider bitbucket.TokenProvider,
 		params bitbucket.UpdateTaskParams,
 	) (*bitbucket.PullRequestCommentTask, error)
+
+	// CreatePullRequestTask creates a new task on a pull request.
+	CreatePullRequestTask(
+		ctx context.Context,
+		tokenProvider bitbucket.TokenProvider,
+		params bitbucket.CreatePullRequestTaskParams,
+	) (*bitbucket.PullRequestCommentTask, error)
 }
 
 // Error types for account-related operations.

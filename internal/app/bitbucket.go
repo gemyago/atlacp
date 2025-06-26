@@ -10,6 +10,15 @@ import (
 	"go.uber.org/dig"
 )
 
+// Task states.
+const (
+	// TaskStateResolved is the state value for a resolved task.
+	TaskStateResolved = "RESOLVED"
+
+	// TaskStateUnresolved is the state value for an unresolved task.
+	TaskStateUnresolved = "UNRESOLVED"
+)
+
 // BitbucketService provides business logic for Bitbucket operations.
 type BitbucketService struct {
 	client      bitbucketClient
@@ -188,6 +197,31 @@ type BitbucketUpdateTaskParams struct {
 	Content string `json:"content,omitempty"`
 
 	// Updated task state: "RESOLVED" or "UNRESOLVED" (optional)
+	State string `json:"state,omitempty"`
+}
+
+// BitbucketCreateTaskParams contains parameters for creating a task on a pull request.
+type BitbucketCreateTaskParams struct {
+	// Account name to use for authentication (optional, uses default if empty)
+	AccountName string `json:"account_name,omitempty"`
+
+	// Repository owner (username/workspace)
+	RepoOwner string `json:"repo_owner"`
+
+	// Repository name (slug)
+	RepoName string `json:"repo_name"`
+
+	// Pull request ID
+	PullRequestID int `json:"pull_request_id"`
+
+	// Task content
+	Content string `json:"content"`
+
+	// Comment ID to associate with the task (optional)
+	CommentID int64 `json:"comment_id,omitempty"`
+
+	// Task state: "RESOLVED" or "UNRESOLVED" (optional)
+	// If not provided, defaults to "UNRESOLVED"
 	State string `json:"state,omitempty"`
 }
 
@@ -511,6 +545,57 @@ func (s *BitbucketService) UpdateTask(
 	})
 	if err != nil {
 		return nil, fmt.Errorf("failed to update task: %w", err)
+	}
+
+	return task, nil
+}
+
+// CreateTask creates a new task on a pull request.
+func (s *BitbucketService) CreateTask(
+	ctx context.Context,
+	params BitbucketCreateTaskParams,
+) (*bitbucket.PullRequestCommentTask, error) {
+	s.logger.InfoContext(ctx, "Creating task on pull request",
+		slog.String("repo", params.RepoName),
+		slog.Int("pr_id", params.PullRequestID))
+
+	// Validate required parameters
+	if params.RepoOwner == "" {
+		return nil, errors.New("repository owner is required")
+	}
+	if params.RepoName == "" {
+		return nil, errors.New("repository name is required")
+	}
+	if params.PullRequestID <= 0 {
+		return nil, errors.New("pull request ID must be positive")
+	}
+	if params.Content == "" {
+		return nil, errors.New("content is required")
+	}
+
+	// Get token provider from auth factory
+	tokenProvider := s.authFactory.getTokenProvider(ctx, params.AccountName)
+
+	// Prepare the client parameters
+	clientParams := bitbucket.CreatePullRequestTaskParams{
+		Workspace: params.RepoOwner,
+		RepoSlug:  params.RepoName,
+		PullReqID: params.PullRequestID,
+		Content:   params.Content,
+		CommentID: params.CommentID,
+	}
+
+	// Handle optional state parameter
+	if params.State != "" {
+		// Convert state to pending flag (RESOLVED -> false, UNRESOLVED -> true)
+		pending := params.State != TaskStateResolved
+		clientParams.Pending = &pending
+	}
+
+	// Call the client to create the task
+	task, err := s.client.CreatePullRequestTask(ctx, tokenProvider, clientParams)
+	if err != nil {
+		return nil, fmt.Errorf("failed to create task: %w", err)
 	}
 
 	return task, nil

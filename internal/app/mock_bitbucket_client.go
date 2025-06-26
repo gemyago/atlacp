@@ -145,6 +145,66 @@ func (_c *MockbitbucketClient_CreatePR_Call) RunAndReturn(run func(context.Conte
 	return _c
 }
 
+// CreatePullRequestTask provides a mock function with given fields: ctx, tokenProvider, params
+func (_m *MockbitbucketClient) CreatePullRequestTask(ctx context.Context, tokenProvider bitbucket.TokenProvider, params bitbucket.CreatePullRequestTaskParams) (*bitbucket.PullRequestCommentTask, error) {
+	ret := _m.Called(ctx, tokenProvider, params)
+
+	if len(ret) == 0 {
+		panic("no return value specified for CreatePullRequestTask")
+	}
+
+	var r0 *bitbucket.PullRequestCommentTask
+	var r1 error
+	if rf, ok := ret.Get(0).(func(context.Context, bitbucket.TokenProvider, bitbucket.CreatePullRequestTaskParams) (*bitbucket.PullRequestCommentTask, error)); ok {
+		return rf(ctx, tokenProvider, params)
+	}
+	if rf, ok := ret.Get(0).(func(context.Context, bitbucket.TokenProvider, bitbucket.CreatePullRequestTaskParams) *bitbucket.PullRequestCommentTask); ok {
+		r0 = rf(ctx, tokenProvider, params)
+	} else {
+		if ret.Get(0) != nil {
+			r0 = ret.Get(0).(*bitbucket.PullRequestCommentTask)
+		}
+	}
+
+	if rf, ok := ret.Get(1).(func(context.Context, bitbucket.TokenProvider, bitbucket.CreatePullRequestTaskParams) error); ok {
+		r1 = rf(ctx, tokenProvider, params)
+	} else {
+		r1 = ret.Error(1)
+	}
+
+	return r0, r1
+}
+
+// MockbitbucketClient_CreatePullRequestTask_Call is a *mock.Call that shadows Run/Return methods with type explicit version for method 'CreatePullRequestTask'
+type MockbitbucketClient_CreatePullRequestTask_Call struct {
+	*mock.Call
+}
+
+// CreatePullRequestTask is a helper method to define mock.On call
+//   - ctx context.Context
+//   - tokenProvider bitbucket.TokenProvider
+//   - params bitbucket.CreatePullRequestTaskParams
+func (_e *MockbitbucketClient_Expecter) CreatePullRequestTask(ctx interface{}, tokenProvider interface{}, params interface{}) *MockbitbucketClient_CreatePullRequestTask_Call {
+	return &MockbitbucketClient_CreatePullRequestTask_Call{Call: _e.mock.On("CreatePullRequestTask", ctx, tokenProvider, params)}
+}
+
+func (_c *MockbitbucketClient_CreatePullRequestTask_Call) Run(run func(ctx context.Context, tokenProvider bitbucket.TokenProvider, params bitbucket.CreatePullRequestTaskParams)) *MockbitbucketClient_CreatePullRequestTask_Call {
+	_c.Call.Run(func(args mock.Arguments) {
+		run(args[0].(context.Context), args[1].(bitbucket.TokenProvider), args[2].(bitbucket.CreatePullRequestTaskParams))
+	})
+	return _c
+}
+
+func (_c *MockbitbucketClient_CreatePullRequestTask_Call) Return(_a0 *bitbucket.PullRequestCommentTask, _a1 error) *MockbitbucketClient_CreatePullRequestTask_Call {
+	_c.Call.Return(_a0, _a1)
+	return _c
+}
+
+func (_c *MockbitbucketClient_CreatePullRequestTask_Call) RunAndReturn(run func(context.Context, bitbucket.TokenProvider, bitbucket.CreatePullRequestTaskParams) (*bitbucket.PullRequestCommentTask, error)) *MockbitbucketClient_CreatePullRequestTask_Call {
+	_c.Call.Return(run)
+	return _c
+}
+
 // GetPR provides a mock function with given fields: ctx, tokenProvider, params
 func (_m *MockbitbucketClient) GetPR(ctx context.Context, tokenProvider bitbucket.TokenProvider, params bitbucket.GetPRParams) (*bitbucket.PullRequest, error) {
 	ret := _m.Called(ctx, tokenProvider, params)

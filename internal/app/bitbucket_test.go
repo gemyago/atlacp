@@ -1584,9 +1584,9 @@ func TestBitbucketService(t *testing.T) {
 			repoOwner := "owner-" + faker.Username()
 			repoName := "repo-" + faker.Username()
 			prID := int(100 + faker.RandomUnixTime()%900)
-			taskID := int(100 + faker.RandomUnixTime()%900)
 			content := "Updated content"
 			state := "RESOLVED"
+			taskID := int(100 + faker.RandomUnixTime()%900)
 
 			expectedTask := &bitbucket.PullRequestCommentTask{
 				PullRequestTask: bitbucket.PullRequestTask{
@@ -1729,6 +1729,276 @@ func TestBitbucketService(t *testing.T) {
 			for _, tc := range testCases {
 				t.Run(tc.name, func(t *testing.T) {
 					result, err := service.UpdateTask(t.Context(), tc.params)
+					require.Error(t, err)
+					assert.Nil(t, result)
+					assert.Contains(t, err.Error(), tc.errMsg)
+				})
+			}
+		})
+	})
+
+	t.Run("CreateTask", func(t *testing.T) {
+		t.Run("successfully creates task with default account", func(t *testing.T) {
+			// Arrange
+			deps := makeMockDeps(t)
+			mockClient := mocks.GetMock[*MockbitbucketClient](t, deps.Client)
+			mockAuth := mocks.GetMock[*MockbitbucketAuthFactory](t, deps.AuthFactory)
+			service := NewBitbucketService(deps)
+
+			// Create test data
+			repoOwner := "owner-" + faker.Username()
+			repoName := "repo-" + faker.Username()
+			prID := int(100 + faker.RandomUnixTime()%900)
+			content := "Task content - " + faker.Sentence()
+
+			expectedTask := &bitbucket.PullRequestCommentTask{
+				PullRequestTask: bitbucket.PullRequestTask{
+					Task: bitbucket.Task{
+						ID:      faker.RandomUnixTime() % 1000,
+						State:   "UNRESOLVED",
+						Content: &bitbucket.TaskContent{Raw: content},
+					},
+				},
+			}
+
+			token := "token-" + faker.UUIDHyphenated()
+			tokenProvider := newStaticTokenProvider(token)
+
+			// Mock the auth factory to return our token provider
+			mockAuth.EXPECT().
+				getTokenProvider(mock.Anything, "").
+				Return(tokenProvider)
+
+			// Mock the client to return expected task
+			mockClient.EXPECT().
+				CreatePullRequestTask(
+					mock.Anything,
+					mock.Anything,
+					mock.MatchedBy(func(params bitbucket.CreatePullRequestTaskParams) bool {
+						// Verify the parameters
+						assert.Equal(t, repoOwner, params.Workspace)
+						assert.Equal(t, repoName, params.RepoSlug)
+						assert.Equal(t, prID, params.PullReqID)
+						assert.Equal(t, content, params.Content)
+						assert.Zero(t, params.CommentID)
+						assert.Nil(t, params.Pending)
+						return true
+					})).
+				Return(expectedTask, nil)
+
+			// Act
+			result, err := service.CreateTask(t.Context(), BitbucketCreateTaskParams{
+				RepoOwner:     repoOwner,
+				RepoName:      repoName,
+				PullRequestID: prID,
+				Content:       content,
+			})
+
+			// Assert
+			require.NoError(t, err)
+			assert.Equal(t, expectedTask, result)
+		})
+
+		t.Run("successfully creates task with comment ID", func(t *testing.T) {
+			// Arrange
+			deps := makeMockDeps(t)
+			mockClient := mocks.GetMock[*MockbitbucketClient](t, deps.Client)
+			mockAuth := mocks.GetMock[*MockbitbucketAuthFactory](t, deps.AuthFactory)
+			service := NewBitbucketService(deps)
+
+			// Create test data
+			repoOwner := "owner-" + faker.Username()
+			repoName := "repo-" + faker.Username()
+			prID := int(100 + faker.RandomUnixTime()%900)
+			content := "Task content - " + faker.Sentence()
+			commentID := faker.RandomUnixTime() % 1000
+
+			expectedTask := &bitbucket.PullRequestCommentTask{
+				PullRequestTask: bitbucket.PullRequestTask{
+					Task: bitbucket.Task{
+						ID:      faker.RandomUnixTime() % 1000,
+						State:   "UNRESOLVED",
+						Content: &bitbucket.TaskContent{Raw: content},
+					},
+				},
+			}
+
+			token := "token-" + faker.UUIDHyphenated()
+			tokenProvider := newStaticTokenProvider(token)
+
+			// Mock the auth factory
+			mockAuth.EXPECT().
+				getTokenProvider(mock.Anything, "").
+				Return(tokenProvider)
+
+			// Mock the client
+			mockClient.EXPECT().
+				CreatePullRequestTask(
+					mock.Anything,
+					mock.Anything,
+					mock.MatchedBy(func(params bitbucket.CreatePullRequestTaskParams) bool {
+						// Verify the parameters
+						assert.Equal(t, repoOwner, params.Workspace)
+						assert.Equal(t, repoName, params.RepoSlug)
+						assert.Equal(t, prID, params.PullReqID)
+						assert.Equal(t, content, params.Content)
+						assert.Equal(t, commentID, params.CommentID)
+						return true
+					})).
+				Return(expectedTask, nil)
+
+			// Act
+			result, err := service.CreateTask(t.Context(), BitbucketCreateTaskParams{
+				RepoOwner:     repoOwner,
+				RepoName:      repoName,
+				PullRequestID: prID,
+				Content:       content,
+				CommentID:     commentID,
+			})
+
+			// Assert
+			require.NoError(t, err)
+			assert.Equal(t, expectedTask, result)
+		})
+
+		t.Run("successfully creates task with custom account", func(t *testing.T) {
+			// Arrange
+			deps := makeMockDeps(t)
+			mockClient := mocks.GetMock[*MockbitbucketClient](t, deps.Client)
+			mockAuth := mocks.GetMock[*MockbitbucketAuthFactory](t, deps.AuthFactory)
+			service := NewBitbucketService(deps)
+
+			// Create test data
+			accountName := "custom-account-" + faker.Username()
+			repoOwner := "owner-" + faker.Username()
+			repoName := "repo-" + faker.Username()
+			prID := int(100 + faker.RandomUnixTime()%900)
+			content := "Task content - " + faker.Sentence()
+
+			expectedTask := &bitbucket.PullRequestCommentTask{
+				PullRequestTask: bitbucket.PullRequestTask{
+					Task: bitbucket.Task{
+						ID:      faker.RandomUnixTime() % 1000,
+						State:   "UNRESOLVED",
+						Content: &bitbucket.TaskContent{Raw: content},
+					},
+				},
+			}
+
+			token := "token-" + faker.UUIDHyphenated()
+			tokenProvider := newStaticTokenProvider(token)
+
+			// Mock the auth factory
+			mockAuth.EXPECT().
+				getTokenProvider(mock.Anything, accountName).
+				Return(tokenProvider)
+
+			// Mock the client
+			mockClient.EXPECT().
+				CreatePullRequestTask(mock.Anything, mock.Anything, mock.Anything).
+				Return(expectedTask, nil)
+
+			// Act
+			result, err := service.CreateTask(t.Context(), BitbucketCreateTaskParams{
+				AccountName:   accountName,
+				RepoOwner:     repoOwner,
+				RepoName:      repoName,
+				PullRequestID: prID,
+				Content:       content,
+			})
+
+			// Assert
+			require.NoError(t, err)
+			assert.Equal(t, expectedTask, result)
+		})
+
+		t.Run("fails when client returns error", func(t *testing.T) {
+			// Arrange
+			deps := makeMockDeps(t)
+			mockClient := mocks.GetMock[*MockbitbucketClient](t, deps.Client)
+			mockAuth := mocks.GetMock[*MockbitbucketAuthFactory](t, deps.AuthFactory)
+			service := NewBitbucketService(deps)
+
+			expectedErr := errors.New("client error")
+			token := "token-" + faker.UUIDHyphenated()
+			tokenProvider := newStaticTokenProvider(token)
+
+			// Mock the auth factory
+			mockAuth.EXPECT().
+				getTokenProvider(mock.Anything, "").
+				Return(tokenProvider)
+
+			// Mock the client to return error
+			mockClient.EXPECT().
+				CreatePullRequestTask(mock.Anything, mock.Anything, mock.Anything).
+				Return(nil, expectedErr)
+
+			// Act
+			result, err := service.CreateTask(t.Context(), BitbucketCreateTaskParams{
+				RepoOwner:     "owner",
+				RepoName:      "repo",
+				PullRequestID: 123,
+				Content:       "Content",
+			})
+
+			// Assert
+			require.Error(t, err)
+			assert.Nil(t, result)
+			assert.ErrorIs(t, err, expectedErr)
+		})
+
+		t.Run("fails when required parameters are missing", func(t *testing.T) {
+			// Arrange
+			deps := makeMockDeps(t)
+			service := NewBitbucketService(deps)
+
+			testCases := []struct {
+				name   string
+				params BitbucketCreateTaskParams
+				errMsg string
+			}{
+				{
+					name: "missing repository owner",
+					params: BitbucketCreateTaskParams{
+						RepoName:      "repo",
+						PullRequestID: 123,
+						Content:       "Content",
+					},
+					errMsg: "repository owner is required",
+				},
+				{
+					name: "missing repository name",
+					params: BitbucketCreateTaskParams{
+						RepoOwner:     "owner",
+						PullRequestID: 123,
+						Content:       "Content",
+					},
+					errMsg: "repository name is required",
+				},
+				{
+					name: "invalid pull request ID",
+					params: BitbucketCreateTaskParams{
+						RepoOwner:     "owner",
+						RepoName:      "repo",
+						PullRequestID: 0,
+						Content:       "Content",
+					},
+					errMsg: "pull request ID must be positive",
+				},
+				{
+					name: "missing content",
+					params: BitbucketCreateTaskParams{
+						RepoOwner:     "owner",
+						RepoName:      "repo",
+						PullRequestID: 123,
+					},
+					errMsg: "content is required",
+				},
+			}
+
+			for _, tc := range testCases {
+				t.Run(tc.name, func(t *testing.T) {
+					result, err := service.CreateTask(t.Context(), tc.params)
 					require.Error(t, err)
 					assert.Nil(t, result)
 					assert.Contains(t, err.Error(), tc.errMsg)
