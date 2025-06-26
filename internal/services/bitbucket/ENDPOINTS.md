@@ -13,4 +13,7 @@ POST /repositories/{username}/{repo_slug}/pullrequests/{pull_request_id}/approve
 Client method: ApprovePR(ctx, tokenProvider, ApprovePRParams)
 
 POST /repositories/{username}/{repo_slug}/pullrequests/{pull_request_id}/merge
-Client method: MergePR(ctx, tokenProvider, MergePRParams) 
+Client method: MergePR(ctx, tokenProvider, MergePRParams)
+
+GET /repositories/{username}/{repo_slug}/pullrequests/{pull_request_id}/tasks
+Client method: ListPullRequestTasks(ctx, tokenProvider, ListPullRequestTasksParams) 
