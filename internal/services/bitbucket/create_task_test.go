@@ -7,6 +7,7 @@ import (
 	"net/http"
 	"net/http/httptest"
 	"testing"
+	"time"
 
 	"github.com/go-faker/faker/v4"
 	"github.com/stretchr/testify/assert"
@@ -23,11 +24,19 @@ func TestClient_CreatePullRequestTask(t *testing.T) {
 		commentID := faker.RandomUnixTime() // Already int64, no need for conversion
 		pending := true
 
+		// Random token values
+		tokenType := "Bearer" // Keep Bearer as it's a standard
+		tokenValue := faker.UUIDHyphenated()
+
+		// Random task state
+		taskStates := []string{"OPEN", "IN_PROGRESS", "RESOLVED"}
+		randomState := taskStates[time.Now().Nanosecond()%len(taskStates)]
+
 		expectedTask := PullRequestCommentTask{
 			PullRequestTask: PullRequestTask{
 				Task: Task{
 					ID:      faker.RandomUnixTime(), // Already int64, no need for conversion
-					State:   "OPEN",
+					State:   randomState,
 					Content: &TaskContent{Raw: content},
 				},
 			},
@@ -42,7 +51,7 @@ func TestClient_CreatePullRequestTask(t *testing.T) {
 			assert.Equal(t, expectedPath, r.URL.Path)
 
 			// Verify auth header
-			assert.Equal(t, "Bearer token123", r.Header.Get("Authorization"))
+			assert.Equal(t, tokenType+" "+tokenValue, r.Header.Get("Authorization"))
 
 			// Parse request body
 			var requestBody CreateTaskPayload
@@ -70,8 +79,8 @@ func TestClient_CreatePullRequestTask(t *testing.T) {
 
 		// Create token provider
 		tokenProvider := &MockTokenProvider{
-			TokenType:  "Bearer",
-			TokenValue: "token123",
+			TokenType:  tokenType,
+			TokenValue: tokenValue,
 		}
 
 		// Act
@@ -98,11 +107,19 @@ func TestClient_CreatePullRequestTask(t *testing.T) {
 		pullReqID := int(faker.RandomUnixTime()) % 10000 // Convert to a reasonable number
 		content := faker.Sentence()
 
+		// Random token values
+		tokenType := "Bearer" // Keep Bearer as it's a standard
+		tokenValue := faker.UUIDHyphenated()
+
+		// Random task state
+		taskStates := []string{"OPEN", "IN_PROGRESS", "RESOLVED"}
+		randomState := taskStates[time.Now().Nanosecond()%len(taskStates)]
+
 		expectedTask := PullRequestCommentTask{
 			PullRequestTask: PullRequestTask{
 				Task: Task{
 					ID:      faker.RandomUnixTime(), // Already int64, no need for conversion
-					State:   "OPEN",
+					State:   randomState,
 					Content: &TaskContent{Raw: content},
 				},
 			},
@@ -117,7 +134,7 @@ func TestClient_CreatePullRequestTask(t *testing.T) {
 			assert.Equal(t, expectedPath, r.URL.Path)
 
 			// Verify auth header
-			assert.Equal(t, "Bearer token123", r.Header.Get("Authorization"))
+			assert.Equal(t, tokenType+" "+tokenValue, r.Header.Get("Authorization"))
 
 			// Parse request body
 			var requestBody CreateTaskPayload
@@ -143,8 +160,8 @@ func TestClient_CreatePullRequestTask(t *testing.T) {
 
 		// Create token provider
 		tokenProvider := &MockTokenProvider{
-			TokenType:  "Bearer",
-			TokenValue: "token123",
+			TokenType:  tokenType,
+			TokenValue: tokenValue,
 		}
 
 		// Act
@@ -169,14 +186,22 @@ func TestClient_CreatePullRequestTask(t *testing.T) {
 		pullReqID := int(faker.RandomUnixTime()) % 10000 // Convert to a reasonable number
 		content := faker.Sentence()
 
+		// Random token values
+		tokenType := "Bearer" // Keep Bearer as it's a standard
+		tokenValue := faker.UUIDHyphenated()
+
+		// Random error message
+		errorMessage := faker.Sentence()
+
 		server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 			// Verify auth header
-			assert.Equal(t, "Bearer token123", r.Header.Get("Authorization"))
+			assert.Equal(t, tokenType+" "+tokenValue, r.Header.Get("Authorization"))
 
 			// Create a malformed JSON response that will cause a parsing error
 			w.Header().Set("Content-Type", "application/json")
 			w.WriteHeader(http.StatusBadRequest)
-			_, err := w.Write([]byte(`{ "error": "Invalid request", malformed}`)) // This is intentionally malformed
+			malformedJSON := fmt.Sprintf(`{ "error": "%s", malformed}`, errorMessage) // Intentionally malformed
+			_, err := w.Write([]byte(malformedJSON))
 			assert.NoError(t, err)
 		}))
 		defer server.Close()
@@ -187,8 +212,8 @@ func TestClient_CreatePullRequestTask(t *testing.T) {
 
 		// Create token provider
 		tokenProvider := &MockTokenProvider{
-			TokenType:  "Bearer",
-			TokenValue: "token123",
+			TokenType:  tokenType,
+			TokenValue: tokenValue,
 		}
 
 		// Act
@@ -211,7 +236,7 @@ func TestClient_CreatePullRequestTask(t *testing.T) {
 		repoSlug := faker.Username()
 		pullReqID := int(faker.RandomUnixTime()) % 10000 // Convert to a reasonable number
 		content := faker.Sentence()
-		tokenErr := errors.New("failed to get token")
+		tokenErr := errors.New(faker.Sentence()) // Random error message
 
 		// Create a dummy server just for the client
 		server := httptest.NewServer(http.HandlerFunc(func(_ http.ResponseWriter, _ *http.Request) {
@@ -241,6 +266,6 @@ func TestClient_CreatePullRequestTask(t *testing.T) {
 		// Assert
 		require.Error(t, err)
 		assert.Nil(t, result)
-		assert.Contains(t, err.Error(), "failed to get token")
+		assert.Contains(t, err.Error(), "failed to get token") // This check is specific to implementation
 	})
 }
