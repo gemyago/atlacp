@@ -19,4 +19,10 @@ GET /repositories/{username}/{repo_slug}/pullrequests/{pull_request_id}/tasks
 Client method: ListPullRequestTasks(ctx, tokenProvider, ListPullRequestTasksParams)
 
 GET /repositories/{workspace}/{repo_slug}/pullrequests/{pull_request_id}/tasks/{task_id}
-Client method: GetTask(ctx, tokenProvider, GetTaskParams) 
+Client method: GetTask(ctx, tokenProvider, GetTaskParams)
+
+POST /repositories/{workspace}/{repo_slug}/pullrequests/{pull_request_id}/tasks
+Client method: CreatePullRequestTask(ctx, tokenProvider, CreatePullRequestTaskParams)
+
+PUT /repositories/{workspace}/{repo_slug}/pullrequests/{pull_request_id}/tasks/{task_id}
+Client method: UpdateTask(ctx, tokenProvider, UpdateTaskParams) 
