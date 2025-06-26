@@ -6,7 +6,6 @@ import (
 	"net/http"
 	"net/http/httptest"
 	"testing"
-	"time"
 
 	"github.com/go-faker/faker/v4"
 	"github.com/stretchr/testify/assert"
@@ -15,7 +14,7 @@ import (
 
 func TestClient_CreatePullRequestTask(t *testing.T) {
 	t.Run("success with all fields", func(t *testing.T) {
-		// Setup
+		// Arrange
 		workspace := faker.Username()
 		repoSlug := faker.Username()
 		pullReqID := 123
@@ -37,6 +36,8 @@ func TestClient_CreatePullRequestTask(t *testing.T) {
 			// Verify request
 			assert.Equal(t, http.MethodPost, r.Method)
 			assert.Equal(t, "/repositories/"+workspace+"/"+repoSlug+"/pullrequests/123/tasks", r.URL.Path)
+			// Verify auth header
+			assert.Equal(t, "Bearer token123", r.Header.Get("Authorization"))
 
 			// Parse request body
 			var requestBody CreateTaskPayload
@@ -58,11 +59,9 @@ func TestClient_CreatePullRequestTask(t *testing.T) {
 		}))
 		defer server.Close()
 
-		// Create client
-		client := &Client{
-			httpClient: server.Client(),
-			baseURL:    server.URL,
-		}
+		// Create client with test-specific logger
+		deps := makeMockDepsWithTestName(t, server.URL)
+		client := NewClient(deps)
 
 		// Create token provider
 		tokenProvider := &MockTokenProvider{
@@ -70,7 +69,7 @@ func TestClient_CreatePullRequestTask(t *testing.T) {
 			TokenValue: "token123",
 		}
 
-		// Execute
+		// Act
 		params := CreatePullRequestTaskParams{
 			Workspace: workspace,
 			RepoSlug:  repoSlug,
@@ -81,7 +80,7 @@ func TestClient_CreatePullRequestTask(t *testing.T) {
 		}
 		result, err := client.CreatePullRequestTask(t.Context(), tokenProvider, params)
 
-		// Verify
+		// Assert
 		require.NoError(t, err)
 		require.NotNil(t, result)
 		assert.Equal(t, expectedTask.ID, result.ID)
@@ -90,7 +89,7 @@ func TestClient_CreatePullRequestTask(t *testing.T) {
 	})
 
 	t.Run("success with required fields only", func(t *testing.T) {
-		// Setup
+		// Arrange
 		workspace := faker.Username()
 		repoSlug := faker.Username()
 		pullReqID := 123
@@ -110,6 +109,8 @@ func TestClient_CreatePullRequestTask(t *testing.T) {
 			// Verify request
 			assert.Equal(t, http.MethodPost, r.Method)
 			assert.Equal(t, "/repositories/"+workspace+"/"+repoSlug+"/pullrequests/123/tasks", r.URL.Path)
+			// Verify auth header
+			assert.Equal(t, "Bearer token123", r.Header.Get("Authorization"))
 
 			// Parse request body
 			var requestBody CreateTaskPayload
@@ -129,11 +130,9 @@ func TestClient_CreatePullRequestTask(t *testing.T) {
 		}))
 		defer server.Close()
 
-		// Create client
-		client := &Client{
-			httpClient: server.Client(),
-			baseURL:    server.URL,
-		}
+		// Create client with test-specific logger
+		deps := makeMockDepsWithTestName(t, server.URL)
+		client := NewClient(deps)
 
 		// Create token provider
 		tokenProvider := &MockTokenProvider{
@@ -141,7 +140,7 @@ func TestClient_CreatePullRequestTask(t *testing.T) {
 			TokenValue: "token123",
 		}
 
-		// Execute
+		// Act
 		params := CreatePullRequestTaskParams{
 			Workspace: workspace,
 			RepoSlug:  repoSlug,
@@ -150,7 +149,7 @@ func TestClient_CreatePullRequestTask(t *testing.T) {
 		}
 		result, err := client.CreatePullRequestTask(t.Context(), tokenProvider, params)
 
-		// Verify
+		// Assert
 		require.NoError(t, err)
 		require.NotNil(t, result)
 		assert.Equal(t, expectedTask.ID, result.ID)
@@ -159,13 +158,16 @@ func TestClient_CreatePullRequestTask(t *testing.T) {
 	})
 
 	t.Run("api error", func(t *testing.T) {
-		// Setup
+		// Arrange
 		workspace := faker.Username()
 		repoSlug := faker.Username()
 		pullReqID := 123
 		content := "Task description"
 
-		server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) {
+		server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+			// Verify auth header
+			assert.Equal(t, "Bearer token123", r.Header.Get("Authorization"))
+
 			// Create a malformed JSON response that will cause a parsing error
 			w.Header().Set("Content-Type", "application/json")
 			w.WriteHeader(http.StatusBadRequest)
@@ -174,13 +176,9 @@ func TestClient_CreatePullRequestTask(t *testing.T) {
 		}))
 		defer server.Close()
 
-		// Create a client with timeout to ensure the test fails quickly
-		client := &Client{
-			httpClient: &http.Client{
-				Timeout: 1 * time.Second,
-			},
-			baseURL: server.URL,
-		}
+		// Create client with test-specific logger
+		deps := makeMockDepsWithTestName(t, server.URL)
+		client := NewClient(deps)
 
 		// Create token provider
 		tokenProvider := &MockTokenProvider{
@@ -188,7 +186,7 @@ func TestClient_CreatePullRequestTask(t *testing.T) {
 			TokenValue: "token123",
 		}
 
-		// Execute
+		// Act
 		params := CreatePullRequestTaskParams{
 			Workspace: workspace,
 			RepoSlug:  repoSlug,
@@ -197,31 +195,36 @@ func TestClient_CreatePullRequestTask(t *testing.T) {
 		}
 		result, err := client.CreatePullRequestTask(t.Context(), tokenProvider, params)
 
-		// Verify
+		// Assert
 		require.Error(t, err)
 		assert.Nil(t, result)
 	})
 
 	t.Run("token error", func(t *testing.T) {
-		// Setup
+		// Arrange
 		workspace := faker.Username()
 		repoSlug := faker.Username()
 		pullReqID := 123
 		content := "Task description"
 		tokenErr := errors.New("failed to get token")
 
-		// Create client
-		client := &Client{
-			httpClient: &http.Client{},
-			baseURL:    "https://api.bitbucket.org/2.0",
-		}
+		// Create a dummy server just for the client
+		server := httptest.NewServer(http.HandlerFunc(func(_ http.ResponseWriter, _ *http.Request) {
+			// This should not be called
+			assert.Fail(t, "Server should not be called when token provider fails")
+		}))
+		defer server.Close()
+
+		// Create client with test-specific logger
+		deps := makeMockDepsWithTestName(t, server.URL)
+		client := NewClient(deps)
 
 		// Create token provider that returns error
 		tokenProvider := &MockTokenProvider{
 			Err: tokenErr,
 		}
 
-		// Execute
+		// Act
 		params := CreatePullRequestTaskParams{
 			Workspace: workspace,
 			RepoSlug:  repoSlug,
@@ -230,7 +233,7 @@ func TestClient_CreatePullRequestTask(t *testing.T) {
 		}
 		result, err := client.CreatePullRequestTask(t.Context(), tokenProvider, params)
 
-		// Verify
+		// Assert
 		require.Error(t, err)
 		assert.Nil(t, result)
 		assert.Contains(t, err.Error(), "failed to get token")
