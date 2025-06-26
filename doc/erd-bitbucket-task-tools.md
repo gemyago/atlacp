@@ -4,8 +4,9 @@
 This document outlines the engineering requirements for implementing two new Bitbucket MCP tools to manage pull request tasks:
 1. List pull request tasks
 2. Update pull request task
+3. Create pull request task
 
-These tools will extend the existing Bitbucket MCP controller to provide task management capabilities, allowing users to view and update tasks associated with pull requests.
+These tools will extend the existing Bitbucket MCP controller to provide task management capabilities, allowing users to view, update and create tasks associated with pull requests.
 
 ## Business Logic
 The implementation will follow the existing pattern in the codebase where:
@@ -51,6 +52,13 @@ UpdateTask(
     ctx context.Context,
     tokenProvider bitbucket.TokenProvider,
     params bitbucket.UpdateTaskParams,
+) (*bitbucket.PullRequestCommentTask, error)
+
+// CreateTask creates a new task on a pull request.
+CreateTask(
+    ctx context.Context,
+    tokenProvider bitbucket.TokenProvider,
+    params bitbucket.CreateTaskParams,
 ) (*bitbucket.PullRequestCommentTask, error)
 ```
 
@@ -102,6 +110,27 @@ type BitbucketUpdateTaskParams struct {
 
     // Task state (optional, "RESOLVED" or "UNRESOLVED")
     State string `json:"state,omitempty"`
+}
+
+// BitbucketCreateTaskParams contains parameters for creating a new task on a pull request.
+type BitbucketCreateTaskParams struct {
+    // Account name to use for authentication (optional, uses default if empty)
+    AccountName string `json:"account_name,omitempty"`
+
+    // Repository owner (username/workspace)
+    RepoOwner string `json:"repo_owner"`
+
+    // Repository name (slug)
+    RepoName string `json:"repo_name"`
+
+    // Pull request ID
+    PullRequestID int `json:"pull_request_id"`
+
+    // Task content
+    Content string `json:"content"`
+    
+    // Comment ID to add task to (optional, if not provided task will be created as a standalone task)
+    CommentID int `json:"comment_id,omitempty"`
 }
 ```
 
@@ -194,6 +223,47 @@ func (s *BitbucketService) UpdateTask(
 
     return task, nil
 }
+
+// CreateTask creates a new task on a pull request.
+func (s *BitbucketService) CreateTask(
+    ctx context.Context,
+    params BitbucketCreateTaskParams,
+) (*bitbucket.PullRequestCommentTask, error) {
+    s.logger.InfoContext(ctx, "Creating task on pull request",
+        slog.String("repo", params.RepoOwner+"/"+params.RepoName),
+        slog.Int("pr_id", params.PullRequestID))
+
+    // Validate required parameters
+    if params.RepoOwner == "" {
+        return nil, errors.New("repository owner is required")
+    }
+    if params.RepoName == "" {
+        return nil, errors.New("repository name is required")
+    }
+    if params.PullRequestID <= 0 {
+        return nil, errors.New("pull request ID must be positive")
+    }
+    if params.Content == "" {
+        return nil, errors.New("task content is required")
+    }
+
+    // Get token provider from auth factory
+    tokenProvider := s.authFactory.getTokenProvider(ctx, params.AccountName)
+
+    // Call the client to create the task
+    task, err := s.client.CreateTask(ctx, tokenProvider, bitbucket.CreateTaskParams{
+        Workspace: params.RepoOwner,
+        RepoSlug:  params.RepoName,
+        PullReqID: params.PullRequestID,
+        Content:   params.Content,
+        CommentID: params.CommentID,
+    })
+    if err != nil {
+        return nil, fmt.Errorf("failed to create task: %w", err)
+    }
+
+    return task, nil
+}
 ```
 
 ### Controller Layer Changes
@@ -203,6 +273,7 @@ Add the new methods to the interface:
 ```go
 ListTasks(ctx context.Context, params app.BitbucketListTasksParams) (*bitbucket.PaginatedTasks, error)
 UpdateTask(ctx context.Context, params app.BitbucketUpdateTaskParams) (*bitbucket.PullRequestCommentTask, error)
+CreateTask(ctx context.Context, params app.BitbucketCreateTaskParams) (*bitbucket.PullRequestCommentTask, error)
 ```
 
 #### 2. List PR Tasks Tool
@@ -236,14 +307,31 @@ UpdateTask(ctx context.Context, params app.BitbucketUpdateTaskParams) (*bitbucke
 3. **Response**:
    - Confirmation text with task update details
 
+#### 4. Create PR Task Tool
+1. **Tool Name**: `bitbucket_create_pr_task`
+2. **Parameters**:
+   - Required:
+     - `repo_owner` (string): Repository owner/workspace
+     - `repo_name` (string): Repository name (slug)
+     - `pr_id` (number): Pull request ID
+     - `content` (string): Task content
+   - Optional:
+     - `account` (string): Atlassian account name to use
+     - `comment_id` (number): Comment ID to add task to
+3. **Response**:
+   - Confirmation text with task creation details
+   - Task ID and state in the response
+
 ### Implementation Details
 1. Add new methods to the app layer:
    - `ListTasks` in `BitbucketService`
    - `UpdateTask` in `BitbucketService`
+   - `CreateTask` in `BitbucketService`
 2. Update the `bitbucketClient` interface to include task-related methods
 3. Add new controller methods:
    - `newListPRTasksServerTool()`
    - `newUpdatePRTaskServerTool()`
+   - `newCreatePRTaskServerTool()`
 4. Add these tools to the `NewTools()` method
 5. Follow the same pattern as existing tools for parameter validation and error handling
 
@@ -266,3 +354,4 @@ UpdateTask(ctx context.Context, params app.BitbucketUpdateTaskParams) (*bitbucke
 1. Should we add more validation for optional parameters like `state`? - no
 2. Should we support pagination for task listing beyond the initial page? - no
 3. Should we add methods for creating and deleting tasks in the future? - maybe
+4. Should we support adding tasks to specific comment threads besides creating standalone tasks? - yes

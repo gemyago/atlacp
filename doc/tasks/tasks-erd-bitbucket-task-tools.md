@@ -11,6 +11,7 @@ Please read referenced files to understand the problem:
 - `internal/app/bitbucket.go` - Implement service methods for task operations
 - `internal/services/bitbucket/list_tasks.go` - Client implementation (already exists)
 - `internal/services/bitbucket/update_task.go` - Client implementation (already exists)
+- `internal/services/bitbucket/create_task.go` - Client implementation (already exists)
 - `internal/api/mcp/controllers/bitbucket.go` - Add new MCP tools for task operations
 
 ### Test Files
@@ -47,6 +48,11 @@ Please read referenced files to understand the problem:
   - [x] 2.8 Implement BitbucketService.UpdateTask method to pass the test
   - [x] 2.9 Review tests if they follow [testing-best-practices](../testing-best-practices.md)
   - [x] 2.10 Run `lint-and-test`
+  - [ ] 2.11 Create BitbucketCreateTaskParams struct in bitbucket.go
+  - [ ] 2.12 Create minimal stub implementation for CreateTask that compiles but fails the test
+  - [ ] 2.13 Write test for BitbucketService.CreateTask method
+  - [ ] 2.14 Implement BitbucketService.CreateTask method to pass the test
+  - [ ] 2.15 Run `lint-and-test`
 
 - [x] 3.0 Implement Controller Layer for Task Tools
   - [x] 3.1 Update bitbucketService interface in the controller to include new methods
@@ -57,4 +63,13 @@ Please read referenced files to understand the problem:
   - [x] 3.6 Create minimal stub implementation for update_pr_task tool that compiles but fails the test
   - [x] 3.7 Write test for bitbucket_update_pr_task tool
   - [x] 3.8 Implement bitbucket_update_pr_task tool to pass the test
-  - [x] 3.9 Register new tools in NewTools method 
+  - [x] 3.9 Register new tools in NewTools method
+
+- [ ] 4.0 Implement Controller Layer for Create Task Tool
+  - [ ] 4.1 Update bitbucketService interface in the controller to include CreateTask method
+  - [ ] 4.2 Regenerate mocks if needed follow @mockery
+  - [ ] 4.3 Create minimal stub implementation for create_pr_task tool that compiles but fails the test
+  - [ ] 4.4 Write test for bitbucket_create_pr_task tool
+  - [ ] 4.5 Implement bitbucket_create_pr_task tool to pass the test
+  - [ ] 4.6 Register new tool in NewTools method
+  - [ ] 4.7 Manual test for create_pr_task tool with an actual pull request 
