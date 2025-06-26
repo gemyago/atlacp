@@ -493,6 +493,88 @@ func (bc *BitbucketController) newMergePRServerTool() server.ServerTool {
 	}
 }
 
+// newListPRTasksServerTool returns a server tool for listing tasks on a pull request.
+func (bc *BitbucketController) newListPRTasksServerTool() server.ServerTool {
+	tool := mcp.NewTool(
+		"bitbucket_list_pr_tasks",
+		mcp.WithDescription("List tasks on a pull request in Bitbucket"),
+		mcp.WithNumber("pr_id",
+			mcp.Description("Pull request ID"),
+			mcp.Required(),
+		),
+		mcp.WithString("repo_owner",
+			mcp.Description("Repository owner (username/workspace)"),
+			mcp.Required(),
+		),
+		mcp.WithString("repo_name",
+			mcp.Description("Repository name (slug)"),
+			mcp.Required(),
+		),
+		mcp.WithString("account",
+			mcp.Description("Atlassian account name to use (optional, uses default if not specified)"),
+		),
+	)
+
+	handler := func(ctx context.Context, request mcp.CallToolRequest) (*mcp.CallToolResult, error) {
+		bc.logger.Debug("Received bitbucket_list_pr_tasks request", "params", request.Params)
+
+		// Extract required parameters using RequireXXX methods
+		prID, err := request.RequireInt("pr_id")
+		if err != nil {
+			return mcp.NewToolResultErrorFromErr("Missing or invalid pr_id parameter", err), nil
+		}
+
+		repoOwner, err := request.RequireString("repo_owner")
+		if err != nil {
+			return mcp.NewToolResultErrorFromErr("Missing or invalid repo_owner parameter", err), nil
+		}
+
+		repoName, err := request.RequireString("repo_name")
+		if err != nil {
+			return mcp.NewToolResultErrorFromErr("Missing or invalid repo_name parameter", err), nil
+		}
+
+		// Optional parameters
+		account := request.GetString("account", "")
+
+		// Create parameters for the service layer
+		params := app.BitbucketListTasksParams{
+			PullRequestID: prID,
+			RepoOwner:     repoOwner,
+			RepoName:      repoName,
+			AccountName:   account,
+		}
+
+		// Call the service to list tasks
+		tasks, err := bc.bitbucketService.ListTasks(ctx, params)
+		if err != nil {
+			return nil, fmt.Errorf("failed to list tasks: %w", err)
+		}
+
+		// Create a response with the tasks details
+		var responseText string
+		if tasks.Size == 0 {
+			responseText = "No tasks found for this pull request"
+		} else {
+			responseText = fmt.Sprintf("Found %d tasks", tasks.Size)
+			for i, task := range tasks.Values {
+				responseText += fmt.Sprintf("\n%d. [%s] %s (by %s)",
+					i+1,
+					task.State,
+					task.Content.Raw,
+					task.Creator.DisplayName)
+			}
+		}
+
+		return mcp.NewToolResultText(responseText), nil
+	}
+
+	return server.ServerTool{
+		Tool:    tool,
+		Handler: handler,
+	}
+}
+
 // NewTools returns the tools for this controller.
 func (bc *BitbucketController) NewTools() []server.ServerTool {
 	return []server.ServerTool{
@@ -501,5 +583,6 @@ func (bc *BitbucketController) NewTools() []server.ServerTool {
 		bc.newUpdatePRServerTool(),
 		bc.newApprovePRServerTool(),
 		bc.newMergePRServerTool(),
+		bc.newListPRTasksServerTool(),
 	}
 }

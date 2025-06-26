@@ -103,6 +103,18 @@ func TestBitbucketController(t *testing.T) {
 			assert.NotNil(t, serverTool.Tool.InputSchema)
 			assert.NotNil(t, serverTool.Handler)
 		})
+
+		t.Run("should define ListPRTasks tool correctly", func(t *testing.T) {
+			deps := makeBitbucketControllerDeps(t)
+			controller := NewBitbucketController(deps)
+
+			serverTool := controller.newListPRTasksServerTool()
+
+			assert.Equal(t, "bitbucket_list_pr_tasks", serverTool.Tool.Name)
+			assert.Equal(t, "List tasks on a pull request in Bitbucket", serverTool.Tool.Description)
+			assert.NotNil(t, serverTool.Tool.InputSchema)
+			assert.NotNil(t, serverTool.Handler)
+		})
 	})
 
 	t.Run("should register all tools", func(t *testing.T) {
@@ -111,7 +123,7 @@ func TestBitbucketController(t *testing.T) {
 
 		tools := controller.NewTools()
 
-		require.Len(t, tools, 5) // Expect 5 tools: create, read, update, approve, merge
+		require.Len(t, tools, 6) // Expect 6 tools: create, read, update, approve, merge, list_tasks
 		toolNames := make([]string, len(tools))
 		for i, tool := range tools {
 			toolNames[i] = tool.Tool.Name
@@ -121,6 +133,7 @@ func TestBitbucketController(t *testing.T) {
 		assert.Contains(t, toolNames, "bitbucket_update_pr")
 		assert.Contains(t, toolNames, "bitbucket_approve_pr")
 		assert.Contains(t, toolNames, "bitbucket_merge_pr")
+		assert.Contains(t, toolNames, "bitbucket_list_pr_tasks")
 	})
 
 	t.Run("handler implementations", func(t *testing.T) {
@@ -1760,6 +1773,286 @@ func TestBitbucketController(t *testing.T) {
 			assert.Contains(t, content.Text, fmt.Sprintf("Pull request #%d successfully merged", prID))
 			assert.Contains(t, content.Text, "using squash strategy")
 			assert.NotContains(t, content.Text, "source branch was closed") // Should not contain this text
+		})
+
+		t.Run("should handle ListPRTasks call successfully", func(t *testing.T) {
+			// Arrange
+			deps := makeBitbucketControllerDeps(t)
+			mockService := mocks.GetMock[*MockbitbucketService](t, deps.BitbucketService)
+			controller := NewBitbucketController(deps)
+			ctx := t.Context()
+
+			// Create test data with randomized values using faker
+			prID := int(faker.RandomUnixTime()) % 1000000
+			repoOwner := "workspace-" + faker.Username()
+			repoName := "repo-" + faker.Word()
+			accountName := "account-" + faker.Username()
+
+			// Create expected parameters
+			expectedParams := app.BitbucketListTasksParams{
+				PullRequestID: prID,
+				RepoOwner:     repoOwner,
+				RepoName:      repoName,
+				AccountName:   accountName,
+			}
+
+			// Create expected tasks response
+			createdOn := time.Now()
+			updatedOn := time.Now()
+			taskID := faker.RandomUnixTime() % 1000000
+
+			expectedTasks := &bitbucket.PaginatedTasks{
+				Size:    2,
+				Page:    1,
+				PageLen: 10,
+				Values: []bitbucket.PullRequestCommentTask{
+					{
+						PullRequestTask: bitbucket.PullRequestTask{
+							Task: bitbucket.Task{
+								ID:        taskID,
+								CreatedOn: createdOn,
+								UpdatedOn: updatedOn,
+								State:     "RESOLVED",
+								Content: &bitbucket.TaskContent{
+									Raw:    "Task 1: " + faker.Sentence(),
+									Markup: "markdown",
+									HTML:   "<p>Task 1: " + faker.Sentence() + "</p>",
+								},
+								Creator: &bitbucket.Account{
+									DisplayName: "User-" + faker.Name(),
+									UUID:        faker.UUIDHyphenated(),
+								},
+								ResolvedOn: time.Now(),
+								ResolvedBy: &bitbucket.Account{
+									DisplayName: "Resolver-" + faker.Name(),
+									UUID:        faker.UUIDHyphenated(),
+								},
+							},
+						},
+					},
+					{
+						PullRequestTask: bitbucket.PullRequestTask{
+							Task: bitbucket.Task{
+								ID:        taskID + 1,
+								CreatedOn: createdOn,
+								UpdatedOn: updatedOn,
+								State:     "UNRESOLVED",
+								Content: &bitbucket.TaskContent{
+									Raw:    "Task 2: " + faker.Sentence(),
+									Markup: "markdown",
+									HTML:   "<p>Task 2: " + faker.Sentence() + "</p>",
+								},
+								Creator: &bitbucket.Account{
+									DisplayName: "User-" + faker.Name(),
+									UUID:        faker.UUIDHyphenated(),
+								},
+							},
+						},
+					},
+				},
+			}
+
+			// Setup mock expectations
+			mockService.EXPECT().
+				ListTasks(mock.Anything, mock.MatchedBy(func(params app.BitbucketListTasksParams) bool {
+					return params.PullRequestID == expectedParams.PullRequestID &&
+						params.AccountName == expectedParams.AccountName &&
+						params.RepoOwner == expectedParams.RepoOwner &&
+						params.RepoName == expectedParams.RepoName
+				})).
+				Return(expectedTasks, nil)
+
+			// Create the request
+			request := mcp.CallToolRequest{
+				Params: mcp.CallToolParams{
+					Name: "bitbucket_list_pr_tasks",
+					Arguments: map[string]interface{}{
+						"pr_id":      prID,
+						"repo_owner": repoOwner,
+						"repo_name":  repoName,
+						"account":    accountName,
+					},
+				},
+			}
+
+			// Get the handler
+			serverTool := controller.newListPRTasksServerTool()
+			handler := serverTool.Handler
+
+			// Act
+			result, err := handler(ctx, request)
+
+			// Assert
+			require.NoError(t, err)
+			require.NotNil(t, result)
+			assert.False(t, result.IsError)
+
+			// Verify the content of the result
+			content, ok := result.Content[0].(mcp.TextContent)
+			require.True(t, ok, "Result content should be text content")
+			assert.Contains(t, content.Text, fmt.Sprintf("Found %d tasks", expectedTasks.Size))
+			assert.Contains(t, content.Text, "RESOLVED")
+			assert.Contains(t, content.Text, "UNRESOLVED")
+		})
+
+		t.Run("should handle missing pr_id parameter in ListPRTasks", func(t *testing.T) {
+			// Arrange
+			deps := makeBitbucketControllerDeps(t)
+			controller := NewBitbucketController(deps)
+			ctx := t.Context()
+
+			request := mcp.CallToolRequest{
+				Params: mcp.CallToolParams{
+					Name: "bitbucket_list_pr_tasks",
+					Arguments: map[string]interface{}{
+						// Missing pr_id
+						"repo_owner": "workspace-" + faker.Username(),
+						"repo_name":  "repo-" + faker.Word(),
+						"account":    "account-" + faker.Username(),
+					},
+				},
+			}
+
+			// Get the handler
+			serverTool := controller.newListPRTasksServerTool()
+			handler := serverTool.Handler
+
+			// Act
+			result, err := handler(ctx, request)
+
+			// Assert
+			require.NoError(t, err)
+			require.NotNil(t, result)
+			assert.True(t, result.IsError)
+
+			// Verify error message
+			content, ok := result.Content[0].(mcp.TextContent)
+			require.True(t, ok, "Error content should be text content")
+			assert.Contains(t, content.Text, "Missing or invalid pr_id parameter")
+		})
+
+		t.Run("should handle missing repo_owner parameter in ListPRTasks", func(t *testing.T) {
+			// Arrange
+			deps := makeBitbucketControllerDeps(t)
+			controller := NewBitbucketController(deps)
+			ctx := t.Context()
+
+			request := mcp.CallToolRequest{
+				Params: mcp.CallToolParams{
+					Name: "bitbucket_list_pr_tasks",
+					Arguments: map[string]interface{}{
+						"pr_id":     int(faker.RandomUnixTime()) % 1000000,
+						"repo_name": "repo-" + faker.Word(),
+						"account":   "account-" + faker.Username(),
+						// Missing repo_owner
+					},
+				},
+			}
+
+			// Get the handler
+			serverTool := controller.newListPRTasksServerTool()
+			handler := serverTool.Handler
+
+			// Act
+			result, err := handler(ctx, request)
+
+			// Assert
+			require.NoError(t, err)
+			require.NotNil(t, result)
+			assert.True(t, result.IsError)
+
+			// Verify error message
+			content, ok := result.Content[0].(mcp.TextContent)
+			require.True(t, ok, "Error content should be text content")
+			assert.Contains(t, content.Text, "Missing or invalid repo_owner parameter")
+		})
+
+		t.Run("should handle missing repo_name parameter in ListPRTasks", func(t *testing.T) {
+			// Arrange
+			deps := makeBitbucketControllerDeps(t)
+			controller := NewBitbucketController(deps)
+			ctx := t.Context()
+
+			request := mcp.CallToolRequest{
+				Params: mcp.CallToolParams{
+					Name: "bitbucket_list_pr_tasks",
+					Arguments: map[string]interface{}{
+						"pr_id":      int(faker.RandomUnixTime()) % 1000000,
+						"repo_owner": "workspace-" + faker.Username(),
+						"account":    "account-" + faker.Username(),
+						// Missing repo_name
+					},
+				},
+			}
+
+			// Get the handler
+			serverTool := controller.newListPRTasksServerTool()
+			handler := serverTool.Handler
+
+			// Act
+			result, err := handler(ctx, request)
+
+			// Assert
+			require.NoError(t, err)
+			require.NotNil(t, result)
+			assert.True(t, result.IsError)
+
+			// Verify error message
+			content, ok := result.Content[0].(mcp.TextContent)
+			require.True(t, ok, "Error content should be text content")
+			assert.Contains(t, content.Text, "Missing or invalid repo_name parameter")
+		})
+
+		t.Run("should handle service error in ListPRTasks", func(t *testing.T) {
+			// Arrange
+			deps := makeBitbucketControllerDeps(t)
+			mockService := mocks.GetMock[*MockbitbucketService](t, deps.BitbucketService)
+			controller := NewBitbucketController(deps)
+			ctx := t.Context()
+
+			// Create test data with randomized values
+			prID := int(faker.RandomUnixTime()) % 1000000
+			accountName := "account-" + faker.Username()
+			repoOwner := "workspace-" + faker.Username()
+			repoName := "repo-" + faker.Word()
+
+			// Create expected error
+			expectedError := errors.New("failed to list tasks: " + faker.Sentence())
+
+			// Setup mock to return an error
+			mockService.EXPECT().
+				ListTasks(mock.Anything, mock.MatchedBy(func(params app.BitbucketListTasksParams) bool {
+					return params.PullRequestID == prID &&
+						params.AccountName == accountName &&
+						params.RepoOwner == repoOwner &&
+						params.RepoName == repoName
+				})).
+				Return(nil, expectedError)
+
+			// Create the request
+			request := mcp.CallToolRequest{
+				Params: mcp.CallToolParams{
+					Name: "bitbucket_list_pr_tasks",
+					Arguments: map[string]interface{}{
+						"pr_id":      prID,
+						"account":    accountName,
+						"repo_owner": repoOwner,
+						"repo_name":  repoName,
+					},
+				},
+			}
+
+			// Get the handler
+			serverTool := controller.newListPRTasksServerTool()
+			handler := serverTool.Handler
+
+			// Act
+			result, err := handler(ctx, request)
+
+			// Assert
+			require.Error(t, err)
+			assert.Contains(t, err.Error(), expectedError.Error())
+			assert.Nil(t, result)
 		})
 	})
 
