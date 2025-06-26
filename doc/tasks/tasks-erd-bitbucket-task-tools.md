@@ -45,8 +45,8 @@ Please read referenced files to understand the problem:
   - [x] 2.6 Create minimal stub implementation for UpdateTask that compiles but fails the test
   - [x] 2.7 Write test for BitbucketService.UpdateTask method
   - [x] 2.8 Implement BitbucketService.UpdateTask method to pass the test
-  - [ ] 2.9 Review tests if they follow [testing-best-practices](../testing-best-practices.md)
-  - [ ] 2.10 Run `lint-and-test`
+  - [x] 2.9 Review tests if they follow [testing-best-practices](../testing-best-practices.md)
+  - [x] 2.10 Run `lint-and-test`
 
 - [ ] 3.0 Implement Controller Layer for Task Tools
   - [ ] 3.1 Update bitbucketService interface in the controller to include new methods
