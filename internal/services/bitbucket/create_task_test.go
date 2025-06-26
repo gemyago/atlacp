@@ -3,6 +3,7 @@ package bitbucket
 import (
 	"encoding/json"
 	"errors"
+	"fmt"
 	"net/http"
 	"net/http/httptest"
 	"testing"
@@ -17,15 +18,15 @@ func TestClient_CreatePullRequestTask(t *testing.T) {
 		// Arrange
 		workspace := faker.Username()
 		repoSlug := faker.Username()
-		pullReqID := 123
-		content := "Task description"
-		commentID := int64(456)
+		pullReqID := int(faker.RandomUnixTime()) % 10000 // Convert to a reasonable number
+		content := faker.Sentence()
+		commentID := faker.RandomUnixTime() // Already int64, no need for conversion
 		pending := true
 
 		expectedTask := PullRequestCommentTask{
 			PullRequestTask: PullRequestTask{
 				Task: Task{
-					ID:      789,
+					ID:      faker.RandomUnixTime(), // Already int64, no need for conversion
 					State:   "OPEN",
 					Content: &TaskContent{Raw: content},
 				},
@@ -35,7 +36,11 @@ func TestClient_CreatePullRequestTask(t *testing.T) {
 		server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 			// Verify request
 			assert.Equal(t, http.MethodPost, r.Method)
-			assert.Equal(t, "/repositories/"+workspace+"/"+repoSlug+"/pullrequests/123/tasks", r.URL.Path)
+			// Split long line into multiple parts
+			expectedPath := fmt.Sprintf("/repositories/%s/%s/pullrequests/%d/tasks",
+				workspace, repoSlug, pullReqID)
+			assert.Equal(t, expectedPath, r.URL.Path)
+
 			// Verify auth header
 			assert.Equal(t, "Bearer token123", r.Header.Get("Authorization"))
 
@@ -83,22 +88,20 @@ func TestClient_CreatePullRequestTask(t *testing.T) {
 		// Assert
 		require.NoError(t, err)
 		require.NotNil(t, result)
-		assert.Equal(t, expectedTask.ID, result.ID)
-		assert.Equal(t, expectedTask.State, result.State)
-		assert.Equal(t, expectedTask.Content.Raw, result.Content.Raw)
+		assert.Equal(t, expectedTask, *result) // Compare entire struct
 	})
 
 	t.Run("success with required fields only", func(t *testing.T) {
 		// Arrange
 		workspace := faker.Username()
 		repoSlug := faker.Username()
-		pullReqID := 123
-		content := "Task description"
+		pullReqID := int(faker.RandomUnixTime()) % 10000 // Convert to a reasonable number
+		content := faker.Sentence()
 
 		expectedTask := PullRequestCommentTask{
 			PullRequestTask: PullRequestTask{
 				Task: Task{
-					ID:      789,
+					ID:      faker.RandomUnixTime(), // Already int64, no need for conversion
 					State:   "OPEN",
 					Content: &TaskContent{Raw: content},
 				},
@@ -108,7 +111,11 @@ func TestClient_CreatePullRequestTask(t *testing.T) {
 		server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 			// Verify request
 			assert.Equal(t, http.MethodPost, r.Method)
-			assert.Equal(t, "/repositories/"+workspace+"/"+repoSlug+"/pullrequests/123/tasks", r.URL.Path)
+			// Split long line into multiple parts
+			expectedPath := fmt.Sprintf("/repositories/%s/%s/pullrequests/%d/tasks",
+				workspace, repoSlug, pullReqID)
+			assert.Equal(t, expectedPath, r.URL.Path)
+
 			// Verify auth header
 			assert.Equal(t, "Bearer token123", r.Header.Get("Authorization"))
 
@@ -152,17 +159,15 @@ func TestClient_CreatePullRequestTask(t *testing.T) {
 		// Assert
 		require.NoError(t, err)
 		require.NotNil(t, result)
-		assert.Equal(t, expectedTask.ID, result.ID)
-		assert.Equal(t, expectedTask.State, result.State)
-		assert.Equal(t, expectedTask.Content.Raw, result.Content.Raw)
+		assert.Equal(t, expectedTask, *result) // Compare entire struct
 	})
 
 	t.Run("api error", func(t *testing.T) {
 		// Arrange
 		workspace := faker.Username()
 		repoSlug := faker.Username()
-		pullReqID := 123
-		content := "Task description"
+		pullReqID := int(faker.RandomUnixTime()) % 10000 // Convert to a reasonable number
+		content := faker.Sentence()
 
 		server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 			// Verify auth header
@@ -204,8 +209,8 @@ func TestClient_CreatePullRequestTask(t *testing.T) {
 		// Arrange
 		workspace := faker.Username()
 		repoSlug := faker.Username()
-		pullReqID := 123
-		content := "Task description"
+		pullReqID := int(faker.RandomUnixTime()) % 10000 // Convert to a reasonable number
+		content := faker.Sentence()
 		tokenErr := errors.New("failed to get token")
 
 		// Create a dummy server just for the client
