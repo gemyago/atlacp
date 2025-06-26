@@ -144,6 +144,65 @@ func (_c *MockbitbucketService_CreatePR_Call) RunAndReturn(run func(context.Cont
 	return _c
 }
 
+// CreateTask provides a mock function with given fields: ctx, params
+func (_m *MockbitbucketService) CreateTask(ctx context.Context, params app.BitbucketCreateTaskParams) (*bitbucket.PullRequestCommentTask, error) {
+	ret := _m.Called(ctx, params)
+
+	if len(ret) == 0 {
+		panic("no return value specified for CreateTask")
+	}
+
+	var r0 *bitbucket.PullRequestCommentTask
+	var r1 error
+	if rf, ok := ret.Get(0).(func(context.Context, app.BitbucketCreateTaskParams) (*bitbucket.PullRequestCommentTask, error)); ok {
+		return rf(ctx, params)
+	}
+	if rf, ok := ret.Get(0).(func(context.Context, app.BitbucketCreateTaskParams) *bitbucket.PullRequestCommentTask); ok {
+		r0 = rf(ctx, params)
+	} else {
+		if ret.Get(0) != nil {
+			r0 = ret.Get(0).(*bitbucket.PullRequestCommentTask)
+		}
+	}
+
+	if rf, ok := ret.Get(1).(func(context.Context, app.BitbucketCreateTaskParams) error); ok {
+		r1 = rf(ctx, params)
+	} else {
+		r1 = ret.Error(1)
+	}
+
+	return r0, r1
+}
+
+// MockbitbucketService_CreateTask_Call is a *mock.Call that shadows Run/Return methods with type explicit version for method 'CreateTask'
+type MockbitbucketService_CreateTask_Call struct {
+	*mock.Call
+}
+
+// CreateTask is a helper method to define mock.On call
+//   - ctx context.Context
+//   - params app.BitbucketCreateTaskParams
+func (_e *MockbitbucketService_Expecter) CreateTask(ctx interface{}, params interface{}) *MockbitbucketService_CreateTask_Call {
+	return &MockbitbucketService_CreateTask_Call{Call: _e.mock.On("CreateTask", ctx, params)}
+}
+
+func (_c *MockbitbucketService_CreateTask_Call) Run(run func(ctx context.Context, params app.BitbucketCreateTaskParams)) *MockbitbucketService_CreateTask_Call {
+	_c.Call.Run(func(args mock.Arguments) {
+		run(args[0].(context.Context), args[1].(app.BitbucketCreateTaskParams))
+	})
+	return _c
+}
+
+func (_c *MockbitbucketService_CreateTask_Call) Return(_a0 *bitbucket.PullRequestCommentTask, _a1 error) *MockbitbucketService_CreateTask_Call {
+	_c.Call.Return(_a0, _a1)
+	return _c
+}
+
+func (_c *MockbitbucketService_CreateTask_Call) RunAndReturn(run func(context.Context, app.BitbucketCreateTaskParams) (*bitbucket.PullRequestCommentTask, error)) *MockbitbucketService_CreateTask_Call {
+	_c.Call.Return(run)
+	return _c
+}
+
 // ListTasks provides a mock function with given fields: ctx, params
 func (_m *MockbitbucketService) ListTasks(ctx context.Context, params app.BitbucketListTasksParams) (*bitbucket.PaginatedTasks, error) {
 	ret := _m.Called(ctx, params)

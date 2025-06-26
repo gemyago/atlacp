@@ -127,6 +127,18 @@ func TestBitbucketController(t *testing.T) {
 			assert.NotNil(t, serverTool.Tool.InputSchema)
 			assert.NotNil(t, serverTool.Handler)
 		})
+
+		t.Run("should define CreatePRTask tool correctly", func(t *testing.T) {
+			deps := makeBitbucketControllerDeps(t)
+			controller := NewBitbucketController(deps)
+
+			serverTool := controller.newCreatePRTaskServerTool()
+
+			assert.Equal(t, "bitbucket_create_pr_task", serverTool.Tool.Name)
+			assert.Equal(t, "Create a task on a pull request in Bitbucket", serverTool.Tool.Description)
+			assert.NotNil(t, serverTool.Tool.InputSchema)
+			assert.NotNil(t, serverTool.Handler)
+		})
 	})
 
 	t.Run("should register all tools", func(t *testing.T) {
@@ -135,7 +147,7 @@ func TestBitbucketController(t *testing.T) {
 
 		tools := controller.NewTools()
 
-		require.Len(t, tools, 7) // Expect 7 tools: create, read, update, approve, merge, list_tasks, update_task
+		require.Len(t, tools, 8) // 8 tools: create, read, update, approve, merge, list, update, create task
 		toolNames := make([]string, len(tools))
 		for i, tool := range tools {
 			toolNames[i] = tool.Tool.Name
@@ -147,6 +159,7 @@ func TestBitbucketController(t *testing.T) {
 		assert.Contains(t, toolNames, "bitbucket_merge_pr")
 		assert.Contains(t, toolNames, "bitbucket_list_pr_tasks")
 		assert.Contains(t, toolNames, "bitbucket_update_pr_task")
+		assert.Contains(t, toolNames, "bitbucket_create_pr_task")
 	})
 
 	t.Run("handler implementations", func(t *testing.T) {
@@ -2447,4 +2460,99 @@ func TestBitbucketController(t *testing.T) {
 
 	// Future tests for each handler implementation will go here
 	// These will be added once we implement the actual handlers
+}
+
+// TestDefinitions is for testing tool definitions.
+func TestBitbucketDefinitions(t *testing.T) {
+	t.Run("should define CreatePRTask tool correctly", func(t *testing.T) {
+		deps := makeBitbucketControllerDeps(t)
+		controller := NewBitbucketController(deps)
+
+		serverTool := controller.newCreatePRTaskServerTool()
+
+		assert.Equal(t, "bitbucket_create_pr_task", serverTool.Tool.Name)
+		assert.Equal(t, "Create a task on a pull request in Bitbucket", serverTool.Tool.Description)
+		assert.NotNil(t, serverTool.Tool.InputSchema)
+		assert.NotNil(t, serverTool.Handler)
+	})
+
+	// ... existing code ...
+}
+
+func TestBitbucketCreatePRTaskTool(t *testing.T) {
+	// Arrange
+	deps := makeBitbucketControllerDeps(t)
+	mockService := mocks.GetMock[*MockbitbucketService](t, deps.BitbucketService)
+	controller := NewBitbucketController(deps)
+	ctx := t.Context()
+
+	// Create test data with randomized values
+	prID := 123
+	taskContent := "Task: Review code formatting"
+	repoOwner := "workspace-abc"
+	repoName := "repo-xyz"
+	account := "account-1"
+	state := "UNRESOLVED"
+
+	// Create expected task response with proper structure
+	expectedTask := &bitbucket.PullRequestCommentTask{
+		PullRequestTask: bitbucket.PullRequestTask{
+			Task: bitbucket.Task{
+				ID:    789,
+				State: state,
+				Content: &bitbucket.TaskContent{
+					Raw: taskContent,
+				},
+				Creator: &bitbucket.Account{
+					DisplayName: "Test User",
+				},
+			},
+		},
+	}
+
+	// Setup mock expectations with looser matching criteria
+	mockService.EXPECT().
+		CreateTask(mock.Anything, mock.MatchedBy(func(params app.BitbucketCreateTaskParams) bool {
+			return params.PullRequestID == prID &&
+				params.Content == taskContent &&
+				params.RepoOwner == repoOwner &&
+				params.RepoName == repoName &&
+				params.AccountName == account &&
+				params.State == state
+		})).
+		Return(expectedTask, nil)
+
+	// Create the request
+	request := mcp.CallToolRequest{
+		Params: mcp.CallToolParams{
+			Name: "bitbucket_create_pr_task",
+			Arguments: map[string]interface{}{
+				"pr_id":      float64(prID),
+				"content":    taskContent,
+				"repo_owner": repoOwner,
+				"repo_name":  repoName,
+				"account":    account,
+				"state":      state,
+			},
+		},
+	}
+
+	// Get the handler
+	serverTool := controller.newCreatePRTaskServerTool()
+	handler := serverTool.Handler
+
+	// Act
+	result, err := handler(ctx, request)
+
+	// Assert
+	require.NoError(t, err)
+	require.NotNil(t, result)
+	assert.False(t, result.IsError)
+
+	// Verify the content of the result
+	content, ok := result.Content[0].(mcp.TextContent)
+	require.True(t, ok, "Result content should be text content")
+	assert.Contains(t, content.Text, "Created task")
+	assert.Contains(t, content.Text, taskContent)
+	assert.Contains(t, content.Text, fmt.Sprintf("on PR #%d", prID))
 }
