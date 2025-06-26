@@ -162,6 +162,15 @@ Always include these 4 test cases for each operation:
 3. **Generic API error test** - Test API error handling
 4. **Generic token provider error test** - Test authentication error
 
+### Test Structure Best Practices
+
+1. **Use AAA Pattern**: Structure tests with clear Arrange, Act, Assert sections and add comments to indicate each section
+2. **Use Test-Specific Logger**: Include test name in the logger for better debugging
+3. **Use Randomized Test Data**: Use faker to generate random test inputs
+4. **Use Proper Error Assertions**: Use assert.ErrorContains or assert.ErrorIs for error checking
+
+Here's an improved test template that incorporates these practices:
+
 ```go
 package packagename
 
@@ -181,19 +190,26 @@ import (
 )
 
 func TestClient_CreateResource(t *testing.T) {
-    makeMockDeps := func(baseURL string) ClientDeps {
+    // Always include test name in the logger for better debugging
+    makeMockDeps := func(t *testing.T, baseURL string) ClientDeps {
+        rootLogger := diag.RootTestLogger().With("test", t.Name())
         return ClientDeps{
             ClientFactory: httpservices.NewClientFactory(httpservices.ClientFactoryDeps{
-                RootLogger: diag.RootTestLogger(),
+                RootLogger: rootLogger,
             }),
-            RootLogger: diag.RootTestLogger(),
+            RootLogger: rootLogger,
             BaseURL:    baseURL,
         }
     }
     
     mockTokenProvider := &MockTokenProvider{}
+    tokenError := errors.New("failed to get token")
     
     t.Run("success with all parameters and fields", func(t *testing.T) {
+        // Arrange - Use randomized data
+        resourceName := "resource-" + faker.Word()
+        resourceDesc := faker.Sentence()
+        
         server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
             // Verify request details
             assert.Equal(t, "POST", r.Method)
@@ -217,20 +233,23 @@ func TestClient_CreateResource(t *testing.T) {
         }))
         defer server.Close()
         
-        deps := makeMockDeps(server.URL)
+        deps := makeMockDeps(t, server.URL)
         client := NewClient(deps)
         
         req := &CreateResourceRequest{
-            Name:        faker.Name(),
-            Description: faker.Sentence(),
+            Name:        resourceName,
+            Description: resourceDesc,
             Tags:        []string{faker.Word(), faker.Word()},
         }
         
-        mockTokenProvider.token = "test-token"
+        mockTokenProvider.Token = "test-token"
+        
+        // Act
         resource, err := client.CreateResource(t.Context(), mockTokenProvider, CreateResourceParams{
             Request: req,
         })
         
+        // Assert
         require.NoError(t, err)
         assert.Equal(t, "resource-123", resource.ID)
         assert.Equal(t, "test-resource", resource.Name)
@@ -243,6 +262,9 @@ func TestClient_CreateResource(t *testing.T) {
     })
     
     t.Run("success with required parameters only", func(t *testing.T) {
+        // Arrange - Use randomized data
+        resourceName := "resource-" + faker.Word()
+        
         server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
             // Return minimal successful response
             w.Header().Set("Content-Type", "application/json")
@@ -254,73 +276,92 @@ func TestClient_CreateResource(t *testing.T) {
         }))
         defer server.Close()
         
-        deps := makeMockDeps(server.URL)
+        deps := makeMockDeps(t, server.URL)
         client := NewClient(deps)
         
         req := &CreateResourceRequest{
-            Name: faker.Name(), // Only required field
+            Name: resourceName, // Only required field
         }
         
-        mockTokenProvider.token = "test-token"
+        mockTokenProvider.Token = "test-token"
+        
+        // Act
         resource, err := client.CreateResource(t.Context(), mockTokenProvider, CreateResourceParams{
             Request: req,
         })
         
+        // Assert
         require.NoError(t, err)
         assert.Equal(t, "resource-456", resource.ID)
         assert.Equal(t, "minimal-resource", resource.Name)
     })
     
     t.Run("handles API error", func(t *testing.T) {
+        // Arrange
+        resourceName := "resource-" + faker.Word()
+        
         server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
             w.Header().Set("Content-Type", "application/json")
             w.WriteHeader(http.StatusBadRequest)
         }))
         defer server.Close()
         
-        deps := makeMockDeps(server.URL)
+        deps := makeMockDeps(t, server.URL)
         client := NewClient(deps)
         
         req := &CreateResourceRequest{
-            Description: "Missing name",
+            Name: resourceName,
         }
         
-        mockTokenProvider.token = "test-token"
-        _, err := client.CreateResource(t.Context(), mockTokenProvider, CreateResourceParams{
+        mockTokenProvider.Token = "test-token"
+        
+        // Act
+        result, err := client.CreateResource(t.Context(), mockTokenProvider, CreateResourceParams{
             Request: req,
         })
         
+        // Assert
         require.Error(t, err)
-        assert.Contains(t, err.Error(), "create resource failed")
+        assert.Nil(t, result)
+        assert.ErrorContains(t, err, "create resource failed")
     })
     
     t.Run("handles token provider error", func(t *testing.T) {
-        deps := makeMockDeps("http://example.com")
+        // Arrange
+        resourceName := "resource-" + faker.Word()
+        
+        deps := makeMockDeps(t, "http://example.com")
         client := NewClient(deps)
         
-        mockTokenProvider.err = errors.New("token error")
-        _, err := client.CreateResource(t.Context(), mockTokenProvider, CreateResourceParams{
-            Request: &CreateResourceRequest{
-                Name: faker.Name(),
-            },
+        mockTokenProvider.Err = tokenError
+        req := &CreateResourceRequest{
+            Name: resourceName,
+        }
+        
+        // Act
+        result, err := client.CreateResource(t.Context(), mockTokenProvider, CreateResourceParams{
+            Request: req,
         })
         
+        // Assert
         require.Error(t, err)
-        assert.Contains(t, err.Error(), "failed to get token")
+        assert.Nil(t, result)
+        expectedError := fmt.Errorf("failed to get token: %w", tokenError)
+        assert.Equal(t, expectedError.Error(), err.Error())
     })
 }
 
 // MockTokenProvider is a simple mock implementation for testing.
 type MockTokenProvider struct {
-    token string
-    err   error
+    Token string
+    Err   error
 }
 
-func (m *MockTokenProvider) GetToken(ctx context.Context) (middleware.Token, error) {
-    if m.err != nil {
-        return middleware.Token{}, m.err
+func (m *MockTokenProvider) GetToken(_ context.Context) (middleware.Token, error) {
+    if m.Err != nil {
+        return middleware.Token{}, m.Err
     }
-    return middleware.Token{Type: "Bearer", Value: m.token}, nil
+    return middleware.Token{Type: "Bearer", Value: m.Token}, nil
 }
 ```
 
@@ -330,6 +371,9 @@ func (m *MockTokenProvider) GetToken(ctx context.Context) (middleware.Token, err
 - Always include the 4 standard test cases per operation
 - Use faker for generating random test data
 - Follow testing-best-practices patterns
+- Use AAA (Arrange-Act-Assert) pattern with clear comments
+- Include test name in logger for better debugging
+- Use proper error assertions (assert.ErrorContains or assert.ErrorIs)
 
 ### 2. Documentation Requirements
 - Document all public types and methods
