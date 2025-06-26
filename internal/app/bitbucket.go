@@ -143,6 +143,30 @@ type BitbucketMergePRParams struct {
 	MergeStrategy string `json:"merge_strategy,omitempty"`
 }
 
+// BitbucketListTasksParams contains parameters for listing tasks on a pull request.
+type BitbucketListTasksParams struct {
+	// Account name to use for authentication (optional, uses default if empty)
+	AccountName string `json:"account_name,omitempty"`
+
+	// Repository owner (username/workspace)
+	RepoOwner string `json:"repo_owner"`
+
+	// Repository name (slug)
+	RepoName string `json:"repo_name"`
+
+	// Pull request ID
+	PullRequestID int `json:"pull_request_id"`
+
+	// Optional query to filter tasks (optional)
+	Query string `json:"query,omitempty"`
+
+	// Sort order for tasks (optional)
+	Sort string `json:"sort,omitempty"`
+
+	// Maximum number of tasks to return per page (optional)
+	PageLen int `json:"page_len,omitempty"`
+}
+
 // CreatePR creates a new pull request.
 func (s *BitbucketService) CreatePR(
 	ctx context.Context,
@@ -378,6 +402,46 @@ func isValidMergeStrategy(strategy string) bool {
 		"merge_commit": true,
 		"squash":       true,
 		"fast_forward": true,
+		"":             true, // Empty is valid, will use repo default
 	}
 	return validStrategies[strategy]
+}
+
+// ListTasks retrieves a list of tasks for a specific pull request.
+func (s *BitbucketService) ListTasks(
+	ctx context.Context,
+	params BitbucketListTasksParams,
+) (*bitbucket.PaginatedTasks, error) {
+	s.logger.InfoContext(ctx, "Listing pull request tasks",
+		slog.String("repo", params.RepoOwner+"/"+params.RepoName),
+		slog.Int("pr_id", params.PullRequestID))
+
+	// Validate required parameters
+	if params.RepoOwner == "" {
+		return nil, errors.New("repository owner is required")
+	}
+	if params.RepoName == "" {
+		return nil, errors.New("repository name is required")
+	}
+	if params.PullRequestID <= 0 {
+		return nil, errors.New("pull request ID must be positive")
+	}
+
+	// Get token provider from auth factory
+	tokenProvider := s.authFactory.getTokenProvider(ctx, params.AccountName)
+
+	// Call the client to list tasks
+	tasks, err := s.client.ListPullRequestTasks(ctx, tokenProvider, bitbucket.ListPullRequestTasksParams{
+		Workspace: params.RepoOwner,
+		RepoSlug:  params.RepoName,
+		PullReqID: params.PullRequestID,
+		Query:     params.Query,
+		Sort:      params.Sort,
+		PageLen:   params.PageLen,
+	})
+	if err != nil {
+		return nil, fmt.Errorf("failed to list pull request tasks: %w", err)
+	}
+
+	return tasks, nil
 }

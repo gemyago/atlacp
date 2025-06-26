@@ -37,10 +37,10 @@ Please read referenced files to understand the problem:
   - [x] 1.2 Regenerate mocks if needed
 
 - [ ] 2.0 Implement App Layer Services
-  - [ ] 2.1 Create BitbucketListTasksParams struct in bitbucket.go
-  - [ ] 2.2 Create minimal stub implementation for ListTasks that compiles but fails the test
-  - [ ] 2.3 Write test for BitbucketService.ListTasks method
-  - [ ] 2.4 Implement BitbucketService.ListTasks method to pass the test
+  - [x] 2.1 Create BitbucketListTasksParams struct in bitbucket.go
+  - [x] 2.2 Create minimal stub implementation for ListTasks that compiles but fails the test
+  - [x] 2.3 Write test for BitbucketService.ListTasks method
+  - [x] 2.4 Implement BitbucketService.ListTasks method to pass the test
   - [ ] 2.5 Create BitbucketUpdateTaskParams struct in bitbucket.go
   - [ ] 2.6 Create minimal stub implementation for UpdateTask that compiles but fails the test
   - [ ] 2.7 Write test for BitbucketService.UpdateTask method
