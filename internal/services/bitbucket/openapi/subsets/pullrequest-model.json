@@ -1,0 +1,62 @@
+{
+  "pullrequest": {
+    "allOf": [
+      {
+        "$ref": "#/definitions/object"
+      },
+      {
+        "type": "object",
+        "title": "Pull Request",
+        "description": "A pull request object.",
+        "properties": {
+          "id": {
+            "type": "integer",
+            "description": "The pull request's unique ID. Note that pull request IDs are only unique within their associated repository."
+          },
+          "title": {
+            "type": "string",
+            "description": "Title of the pull request."
+          },
+          "description": {
+            "type": "string",
+            "description": "Description of the pull request."
+          },
+          "state": {
+            "type": "string",
+            "description": "The pull request's current status. The possible values are: 'OPEN', 'DECLINED', 'MERGED', 'SUPERSEDED'.",
+            "enum": [
+              "OPEN",
+              "MERGED",
+              "DECLINED",
+              "SUPERSEDED"
+            ]
+          },
+          "author": {
+            "type": "object",
+            "description": "The author of the pull request."
+          },
+          "source": {
+            "type": "object",
+            "description": "The source branch and repository of the pull request."
+          },
+          "destination": {
+            "type": "object",
+            "description": "The destination branch and repository."
+          },
+          "draft": {
+            "type": "boolean",
+            "description": "Whether the pull request is a draft or not."
+          },
+          "merge_commit": {
+            "type": "object",
+            "description": "The merge commit hash if the pull request has been merged."
+          },
+          "close_source_branch": {
+            "type": "boolean",
+            "description": "Whether the source branch should be deleted upon merge."
+          }
+        }
+      }
+    ]
+  }
+} 
