@@ -186,6 +186,50 @@ func TestBitbucketService(t *testing.T) {
 			assert.NotNil(t, result)
 		})
 
+		t.Run("successfully creates draft pull request", func(t *testing.T) {
+			// Arrange
+			deps := makeMockDeps(t)
+			mockClient := mocks.GetMock[*MockBitbucketClient](t, deps.Client)
+			mockAuth := mocks.GetMock[*MockbitbucketAuthFactory](t, deps.AuthFactory)
+			service := NewBitbucketService(deps)
+
+			repoOwner := "owner-" + faker.Username()
+			repoName := "repo-" + faker.Username()
+			expectedPR := bitbucket.NewRandomPullRequest()
+			expectedPR.Draft = true // Set draft status on expected PR
+			token := "token-" + faker.UUIDHyphenated()
+			tokenProvider := newStaticTokenProvider(token)
+
+			// Mock the auth factory
+			mockAuth.EXPECT().
+				getTokenProvider(mock.Anything, "").
+				Return(tokenProvider)
+
+			// Mock the client
+			mockClient.EXPECT().
+				CreatePR(mock.Anything, mock.Anything, mock.MatchedBy(func(params bitbucket.CreatePRParams) bool {
+					// Verify draft flag is properly set
+					assert.True(t, params.Request.Draft)
+					return true
+				})).
+				Return(expectedPR, nil)
+
+			// Act
+			result, err := service.CreatePR(t.Context(), BitbucketCreatePRParams{
+				RepoOwner:    repoOwner,
+				RepoName:     repoName,
+				Title:        expectedPR.Title,
+				SourceBranch: expectedPR.Source.Branch.Name,
+				DestBranch:   expectedPR.Destination.Branch.Name,
+				Draft:        true, // Set as draft PR
+			})
+
+			// Assert
+			require.NoError(t, err)
+			assert.NotNil(t, result)
+			assert.True(t, result.Draft)
+		})
+
 		t.Run("fails when missing required parameters", func(t *testing.T) {
 			// Arrange
 			deps := makeMockDeps(t)

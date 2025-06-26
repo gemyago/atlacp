@@ -79,6 +79,9 @@ func (bc *BitbucketController) newCreatePRServerTool() server.ServerTool {
 		mcp.WithString("account",
 			mcp.Description("Atlassian account name to use (optional, uses default if not specified)"),
 		),
+		mcp.WithBoolean("draft",
+			mcp.Description("Create as draft pull request (optional, defaults to false)"),
+		),
 	)
 
 	handler := func(ctx context.Context, request mcp.CallToolRequest) (*mcp.CallToolResult, error) {
@@ -113,6 +116,13 @@ func (bc *BitbucketController) newCreatePRServerTool() server.ServerTool {
 		// Optional parameters
 		description := request.GetString("description", "")
 		account := request.GetString("account", "")
+		draftStr := request.GetString("draft", "")
+
+		// Parse draft flag
+		draft := false
+		if draftStr != "" {
+			draft = draftStr == "true"
+		}
 
 		// Create parameters for the service layer
 		params := app.BitbucketCreatePRParams{
@@ -123,6 +133,7 @@ func (bc *BitbucketController) newCreatePRServerTool() server.ServerTool {
 			AccountName:  account,
 			RepoOwner:    repoOwner,
 			RepoName:     repoName,
+			Draft:        draft,
 		}
 
 		// Call the service to create the pull request

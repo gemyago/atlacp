@@ -63,6 +63,9 @@ type BitbucketCreatePRParams struct {
 
 	// Reviewer usernames (optional)
 	Reviewers []string `json:"reviewers,omitempty"`
+
+	// Whether to create the pull request as a draft
+	Draft bool `json:"draft,omitempty"`
 }
 
 // BitbucketReadPRParams contains parameters for retrieving a pull request.
@@ -182,6 +185,7 @@ func (s *BitbucketService) CreatePR(
 				Name: params.DestBranch,
 			},
 		},
+		Draft: params.Draft,
 	}
 
 	// Add reviewers if specified

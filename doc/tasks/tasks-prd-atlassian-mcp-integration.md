@@ -139,7 +139,7 @@ Please read referenced files to understand the problem:
 - [ ] 6.0 Bitbucket Integration Testing and Usage Documentation
   - [x] 6.1 Create example docker compose
   - [x] 6.2 Support user token authentication (Basic token)
-  - [ ] 6.3 Allow draft PRs to be created
+  - [x] 6.3 Allow draft PRs to be created
   - [ ] 6.4 Create a tool to allow checking for statuses of a PR
   - [ ] 6.5 Test end-to-end bitbucket workflow (from AI code editor): Create PR → Read PR → Update PR → Approve PR → Merge PR. Automate this with instructions for AI code editor.
   - [ ] 6.6 Validate multi-account functionality: Create PR as user -> Approve PR as bot -> Merge PR as user. Automate this with instructions for AI code editor.

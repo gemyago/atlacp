@@ -222,6 +222,101 @@ func TestBitbucketController(t *testing.T) {
 			assert.Contains(t, content.Text, title)
 		})
 
+		t.Run("should handle draft pull request creation", func(t *testing.T) {
+			// Arrange
+			deps := makeBitbucketControllerDeps(t)
+			mockService := mocks.GetMock[*MockbitbucketService](t, deps.BitbucketService)
+			controller := NewBitbucketController(deps)
+			ctx := t.Context()
+
+			// Create test data with randomized values using faker
+			title := "DRAFT: " + faker.Sentence()
+			sourceBranch := "feature/" + faker.Username()
+			targetBranch := "main"
+			description := faker.Paragraph()
+			repoOwner := "workspace-" + faker.Username()
+			repoName := "repo-" + faker.Word()
+
+			// Create expected parameters and response
+			expectedParams := app.BitbucketCreatePRParams{
+				Title:        title,
+				SourceBranch: sourceBranch,
+				DestBranch:   targetBranch,
+				Description:  description,
+				RepoOwner:    repoOwner,
+				RepoName:     repoName,
+				Draft:        true, // Expect draft to be true
+			}
+
+			prID := int(faker.RandomUnixTime()) % 1000000 // Generate a random PR ID
+
+			// Create expected PR response with random values and Draft=true
+			expectedPR := &bitbucket.PullRequest{
+				ID:          prID,
+				Title:       title,
+				Description: description,
+				State:       "OPEN",
+				Source: bitbucket.PullRequestSource{
+					Branch: bitbucket.PullRequestBranch{
+						Name: sourceBranch,
+					},
+				},
+				Destination: &bitbucket.PullRequestDestination{
+					Branch: bitbucket.PullRequestBranch{
+						Name: targetBranch,
+					},
+				},
+				Draft: true, // PR is a draft
+			}
+
+			// Setup mock expectations with draft=true
+			mockService.EXPECT().
+				CreatePR(mock.Anything, mock.MatchedBy(func(params app.BitbucketCreatePRParams) bool {
+					return params.Title == expectedParams.Title &&
+						params.SourceBranch == expectedParams.SourceBranch &&
+						params.DestBranch == expectedParams.DestBranch &&
+						params.Description == expectedParams.Description &&
+						params.RepoOwner == expectedParams.RepoOwner &&
+						params.RepoName == expectedParams.RepoName &&
+						params.Draft == true // Verify draft flag is set to true
+				})).
+				Return(expectedPR, nil)
+
+			// Create the request with draft=true
+			request := mcp.CallToolRequest{
+				Params: mcp.CallToolParams{
+					Name: "bitbucket_create_pr",
+					Arguments: map[string]interface{}{
+						"title":         title,
+						"source_branch": sourceBranch,
+						"target_branch": targetBranch,
+						"description":   description,
+						"repo_owner":    repoOwner,
+						"repo_name":     repoName,
+						"draft":         "true", // Set as draft PR
+					},
+				},
+			}
+
+			// Get the handler
+			serverTool := controller.newCreatePRServerTool()
+			handler := serverTool.Handler
+
+			// Act
+			result, err := handler(ctx, request)
+
+			// Assert
+			require.NoError(t, err)
+			require.NotNil(t, result)
+			assert.False(t, result.IsError)
+
+			// Verify the content of the result
+			content, ok := result.Content[0].(mcp.TextContent)
+			require.True(t, ok, "Result content should be text content")
+			assert.Contains(t, content.Text, fmt.Sprintf("Created pull request #%d", prID))
+			assert.Contains(t, content.Text, title)
+		})
+
 		t.Run("should handle missing required parameters", func(t *testing.T) {
 			// Arrange
 			deps := makeBitbucketControllerDeps(t)
