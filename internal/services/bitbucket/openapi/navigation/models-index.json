@@ -1,0 +1,10 @@
+{
+  "pullrequest": {
+    "line_start": 30032,
+    "line_end": 30500,
+    "properties": ["id", "title", "state", "author", "source", "destination"],
+    "dependencies": ["account", "repository", "commit"],
+    "required_fields": ["id", "title", "state"],
+    "optional_fields": ["description", "reviewers", "draft"]
+  }
+} 

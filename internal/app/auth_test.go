@@ -1,7 +1,6 @@
 package app
 
 import (
-	"context"
 	"testing"
 
 	"github.com/go-faker/faker/v4"
@@ -11,44 +10,49 @@ import (
 
 // Tests for authentication providers.
 func TestTokenProviders(t *testing.T) {
-	t.Run("StaticTokenProvider", func(t *testing.T) {
-		t.Run("should return the provided token", func(t *testing.T) {
-			// Arrange
-			expectedToken := "token-" + faker.UUIDHyphenated()
-			provider := newStaticTokenProvider(expectedToken)
+	t.Run("StaticTokenProvider returns correct token and type", func(t *testing.T) {
+		// Arrange
+		randomTokenValue := faker.UUIDHyphenated()
+		// 'Bearer' is the required static type for tokens in our system
+		const expectedTokenType = "Bearer"
+		provider := newStaticTokenProvider(randomTokenValue)
 
-			// Act
-			token, err := provider.GetToken(t.Context())
+		// Act
+		token, err := provider.GetToken(t.Context())
 
-			// Assert
-			require.NoError(t, err)
-			assert.Equal(t, expectedToken, token)
-		})
+		// Assert
+		require.NoError(t, err)
+		assert.Equal(t, expectedTokenType, token.Type)
+		assert.Equal(t, randomTokenValue, token.Value)
+	})
 
-		t.Run("should accept empty token", func(t *testing.T) {
-			// Arrange
-			provider := newStaticTokenProvider("")
+	t.Run("StaticTokenProvider returns empty value when initialized with empty string", func(t *testing.T) {
+		// Arrange
+		provider := newStaticTokenProvider("")
 
-			// Act
-			token, err := provider.GetToken(t.Context())
+		// Act
+		token, err := provider.GetToken(t.Context())
 
-			// Assert
-			require.NoError(t, err)
-			assert.Empty(t, token)
-		})
+		// Assert
+		require.NoError(t, err)
+		// 'Bearer' is the required static type for tokens in our system
+		assert.Equal(t, "Bearer", token.Type)
+		assert.Empty(t, token.Value)
+	})
 
-		t.Run("should handle context cancellation gracefully", func(t *testing.T) {
-			// Arrange
-			provider := newStaticTokenProvider("test-token")
-			ctx, cancel := context.WithCancel(t.Context())
-			cancel() // Cancel the context
+	t.Run("TokenProviderFunc delegates to underlying provider", func(t *testing.T) {
+		// Arrange
+		randomTokenValue := faker.UUIDHyphenated()
+		provider := newStaticTokenProvider(randomTokenValue)
+		tokenFunc := tokenProviderFunc(provider.GetToken)
 
-			// Act
-			token, err := provider.GetToken(ctx)
+		// Act
+		token, err := tokenFunc.GetToken(t.Context())
 
-			// Assert - should still work because the implementation doesn't use the context
-			require.NoError(t, err)
-			assert.Equal(t, "test-token", token)
-		})
+		// Assert
+		require.NoError(t, err)
+		// 'Bearer' is the required static type for tokens in our system
+		assert.Equal(t, "Bearer", token.Type)
+		assert.Equal(t, randomTokenValue, token.Value)
 	})
 }

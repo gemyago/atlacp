@@ -2,6 +2,8 @@ package app
 
 import (
 	"context"
+
+	"github.com/gemyago/atlacp/internal/services/http/middleware"
 )
 
 // staticTokenProvider provides a static token for authentication.
@@ -15,12 +17,12 @@ func newStaticTokenProvider(token string) *staticTokenProvider {
 }
 
 // GetToken returns the static token.
-func (p *staticTokenProvider) GetToken(_ context.Context) (string, error) {
-	return p.token, nil
+func (p *staticTokenProvider) GetToken(_ context.Context) (middleware.Token, error) {
+	return middleware.Token{Type: "Bearer", Value: p.token}, nil
 }
 
-type tokenProviderFunc func(ctx context.Context) (string, error)
+type tokenProviderFunc func(ctx context.Context) (middleware.Token, error)
 
-func (f tokenProviderFunc) GetToken(ctx context.Context) (string, error) {
+func (f tokenProviderFunc) GetToken(ctx context.Context) (middleware.Token, error) {
 	return f(ctx)
 }

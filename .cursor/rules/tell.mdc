@@ -6,7 +6,7 @@ alwaysApply: false
 # Use below command if user asked to tell anything
 
 ```bash
-say "Cursor speaking. <your phrase goes here>"
+say "Agent speaking. <your phrase goes here>"
 ```
 
 Keep the phrase concise. Try to fit it to 3-5 words if possible.

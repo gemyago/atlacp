@@ -26,7 +26,7 @@ func (c *Client) GetPR(
 	if err != nil {
 		return nil, fmt.Errorf("failed to get token: %w", err)
 	}
-	ctxWithAuth := middleware.WithAuthToken(ctx, token)
+	ctxWithAuth := middleware.WithAuthTokenV2(ctx, token)
 
 	var pullRequest PullRequest
 	path := fmt.Sprintf("/repositories/%s/%s/pullrequests/%d", params.Username, params.RepoSlug, params.PullRequestID)

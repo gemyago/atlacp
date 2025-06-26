@@ -16,7 +16,7 @@ type UpdatePRParams struct {
 	Request       *PullRequest `json:"-"`
 }
 
-// UpdatePR updates an existing pull request.
+// UpdatePR updates a pull request.
 // PUT /repositories/{username}/{repo_slug}/pullrequests/{pull_request_id}.
 func (c *Client) UpdatePR(
 	ctx context.Context,
@@ -27,7 +27,7 @@ func (c *Client) UpdatePR(
 	if err != nil {
 		return nil, fmt.Errorf("failed to get token: %w", err)
 	}
-	ctxWithAuth := middleware.WithAuthToken(ctx, token)
+	ctxWithAuth := middleware.WithAuthTokenV2(ctx, token)
 
 	var pullRequest PullRequest
 	path := fmt.Sprintf("/repositories/%s/%s/pullrequests/%d", params.Username, params.RepoSlug, params.PullRequestID)

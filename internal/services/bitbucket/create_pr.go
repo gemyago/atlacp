@@ -15,7 +15,7 @@ type CreatePRParams struct {
 	Request  *PullRequest `json:"-"`
 }
 
-// CreatePR creates a new pull request in the specified repository.
+// CreatePR creates a new pull request.
 // POST /repositories/{username}/{repo_slug}/pullrequests.
 func (c *Client) CreatePR(
 	ctx context.Context,
@@ -26,7 +26,7 @@ func (c *Client) CreatePR(
 	if err != nil {
 		return nil, fmt.Errorf("failed to get token: %w", err)
 	}
-	ctxWithAuth := middleware.WithAuthToken(ctx, token)
+	ctxWithAuth := middleware.WithAuthTokenV2(ctx, token)
 
 	var pullRequest PullRequest
 	path := fmt.Sprintf("/repositories/%s/%s/pullrequests", params.Username, params.RepoSlug)

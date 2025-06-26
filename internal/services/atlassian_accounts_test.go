@@ -319,7 +319,7 @@ func TestAtlassianAccountsRepository(t *testing.T) {
 		t.Run("should fail with empty token", func(t *testing.T) {
 			// Arrange
 			account := app.NewRandomAtlassianAccount()
-			account.Bitbucket.Token = ""
+			account.Bitbucket.Value = ""
 
 			// Act
 			err := validateBitbucketConfig(account)
@@ -329,17 +329,17 @@ func TestAtlassianAccountsRepository(t *testing.T) {
 			assert.Contains(t, err.Error(), "missing Bitbucket token", "Error should mention missing token")
 		})
 
-		t.Run("should fail with empty workspace", func(t *testing.T) {
+		t.Run("should fail with empty type", func(t *testing.T) {
 			// Arrange
 			account := app.NewRandomAtlassianAccount()
-			account.Bitbucket.Workspace = ""
+			account.Bitbucket.Type = ""
 
 			// Act
 			err := validateBitbucketConfig(account)
 
 			// Assert
-			require.Error(t, err, "Should fail with empty workspace")
-			assert.Contains(t, err.Error(), "missing Bitbucket workspace", "Error should mention missing workspace")
+			require.Error(t, err, "Should fail with empty type")
+			assert.Contains(t, err.Error(), "missing Bitbucket token type", "Error should mention missing type")
 		})
 	})
 
@@ -347,7 +347,7 @@ func TestAtlassianAccountsRepository(t *testing.T) {
 		t.Run("should fail with empty token", func(t *testing.T) {
 			// Arrange
 			account := app.NewRandomAtlassianAccount()
-			account.Jira.Token = ""
+			account.Jira.Value = ""
 
 			// Act
 			err := validateJiraConfig(account)
@@ -357,17 +357,17 @@ func TestAtlassianAccountsRepository(t *testing.T) {
 			assert.Contains(t, err.Error(), "missing Jira token", "Error should mention missing token")
 		})
 
-		t.Run("should fail with empty domain", func(t *testing.T) {
+		t.Run("should fail with empty type", func(t *testing.T) {
 			// Arrange
 			account := app.NewRandomAtlassianAccount()
-			account.Jira.Domain = ""
+			account.Jira.Type = ""
 
 			// Act
 			err := validateJiraConfig(account)
 
 			// Assert
 			require.Error(t, err, "Should fail with empty domain")
-			assert.Contains(t, err.Error(), "missing Jira domain", "Error should mention missing domain")
+			assert.Contains(t, err.Error(), "missing Jira token type", "Error should mention missing type")
 		})
 	})
 }

@@ -50,7 +50,7 @@ Use context-based authentication via existing middleware. Use token provider int
 **Implementation Pattern**:
 ```go
 type TokenProvider interface {
-    GetToken(ctx context.Context) (string, error)
+    GetToken(ctx context.Context) (middleware.Token, error)
 }
 
 // In the client method - always use params struct even for single parameters.
@@ -63,7 +63,7 @@ func (c *Client) CreateResource(ctx context.Context, tokenProvider TokenProvider
     if err != nil {
         return nil, fmt.Errorf("failed to get token: %w", err)
     }
-    ctxWithAuth := middleware.WithAuthToken(ctx, token)
+    ctxWithAuth := middleware.WithAuthTokenV2(ctx, token)
     // ... rest of implementation
 }
 ```
@@ -84,7 +84,7 @@ func (c *Client) CreateResource(ctx context.Context, tokenProvider TokenProvider
     if err != nil {
         return nil, fmt.Errorf("failed to get token: %w", err)
     }
-    ctxWithAuth := middleware.WithAuthToken(ctx, token)
+    ctxWithAuth := middleware.WithAuthTokenV2(ctx, token)
     
     // Make API call
     var resource Resource
@@ -112,7 +112,7 @@ func (c *Client) GetResource(ctx context.Context, tokenProvider TokenProvider, p
     if err != nil {
         return nil, fmt.Errorf("failed to get token: %w", err)
     }
-    ctxWithAuth := middleware.WithAuthToken(ctx, token)
+    ctxWithAuth := middleware.WithAuthTokenV2(ctx, token)
     
     var resource Resource
     path := fmt.Sprintf("/resources/%s", params.ResourceID)
@@ -162,6 +162,15 @@ Always include these 4 test cases for each operation:
 3. **Generic API error test** - Test API error handling
 4. **Generic token provider error test** - Test authentication error
 
+### Test Structure Best Practices
+
+1. **Use AAA Pattern**: Structure tests with clear Arrange, Act, Assert sections and add comments to indicate each section
+2. **Use Test-Specific Logger**: Include test name in the logger for better debugging
+3. **Use Randomized Test Data**: Use faker to generate random test inputs
+4. **Use Proper Error Assertions**: Use assert.ErrorContains or assert.ErrorIs for error checking
+
+Here's an improved test template that incorporates these practices:
+
 ```go
 package packagename
 
@@ -169,6 +178,7 @@ import (
     "context"
     "errors"
     "fmt"
+    "math/rand/v2"
     "net/http"
     "net/http/httptest"
     "testing"
@@ -181,29 +191,43 @@ import (
 )
 
 func TestClient_CreateResource(t *testing.T) {
-    makeMockDeps := func(baseURL string) ClientDeps {
+    // Always include test name in the logger for better debugging
+    makeMockDeps := func(t *testing.T, baseURL string) ClientDeps {
+        rootLogger := diag.RootTestLogger().With("test", t.Name())
         return ClientDeps{
             ClientFactory: httpservices.NewClientFactory(httpservices.ClientFactoryDeps{
-                RootLogger: diag.RootTestLogger(),
+                RootLogger: rootLogger,
             }),
-            RootLogger: diag.RootTestLogger(),
+            RootLogger: rootLogger,
             BaseURL:    baseURL,
         }
     }
     
-    mockTokenProvider := &MockTokenProvider{}
     
     t.Run("success with all parameters and fields", func(t *testing.T) {
+        // Arrange - Use randomized data
+        resourceName := "resource-" + faker.Word()
+        resourceDesc := faker.Sentence()
+        resourceAmount := 100 + rand.IntN(10000)
+        mockTokenProvider := &MockTokenProvider{
+          TokenType:  faker.Word(),
+          TokenValue: faker.UUIDHyphenated(),
+        }
+        
         server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
             // Verify request details
             assert.Equal(t, "POST", r.Method)
             assert.Equal(t, "/resources", r.URL.Path)
             assert.Equal(t, "application/json", r.Header.Get("Content-Type"))
-            assert.Equal(t, "Bearer test-token", r.Header.Get("Authorization"))
+
+            // Important to check token
+            assert.Equal(t, mockTokenProvider.TokenType+" "+mockTokenProvider.TokenValue, r.Header.Get("Authorization"))
             
             // Return complete successful response
             w.Header().Set("Content-Type", "application/json")
             w.WriteHeader(http.StatusCreated)
+
+            // It's ok to have below data static. We're testing if serialization works. (keep this comment)
             fmt.Fprint(w, `{
                 "id": "resource-123",
                 "name": "test-resource",
@@ -217,20 +241,22 @@ func TestClient_CreateResource(t *testing.T) {
         }))
         defer server.Close()
         
-        deps := makeMockDeps(server.URL)
+        deps := makeMockDeps(t, server.URL)
         client := NewClient(deps)
         
         req := &CreateResourceRequest{
-            Name:        faker.Name(),
-            Description: faker.Sentence(),
+            Name:        resourceName,
+            Description: resourceDesc,
+            Amount:      resourceAmount,
             Tags:        []string{faker.Word(), faker.Word()},
         }
         
-        mockTokenProvider.token = "test-token"
+        // Act
         resource, err := client.CreateResource(t.Context(), mockTokenProvider, CreateResourceParams{
             Request: req,
         })
         
+        // Assert
         require.NoError(t, err)
         assert.Equal(t, "resource-123", resource.ID)
         assert.Equal(t, "test-resource", resource.Name)
@@ -243,6 +269,13 @@ func TestClient_CreateResource(t *testing.T) {
     })
     
     t.Run("success with required parameters only", func(t *testing.T) {
+        // Arrange - Use randomized data
+        resourceName := "resource-" + faker.Word()
+        mockTokenProvider := &MockTokenProvider{
+          TokenType:  faker.Word(),
+          TokenValue: faker.UUIDHyphenated(),
+        }
+        
         server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
             // Return minimal successful response
             w.Header().Set("Content-Type", "application/json")
@@ -254,73 +287,96 @@ func TestClient_CreateResource(t *testing.T) {
         }))
         defer server.Close()
         
-        deps := makeMockDeps(server.URL)
+        deps := makeMockDeps(t, server.URL)
         client := NewClient(deps)
         
         req := &CreateResourceRequest{
-            Name: faker.Name(), // Only required field
+            Name: resourceName, // Only required field
         }
         
-        mockTokenProvider.token = "test-token"
+        // Act
         resource, err := client.CreateResource(t.Context(), mockTokenProvider, CreateResourceParams{
             Request: req,
         })
         
+        // Assert
         require.NoError(t, err)
         assert.Equal(t, "resource-456", resource.ID)
         assert.Equal(t, "minimal-resource", resource.Name)
     })
     
     t.Run("handles API error", func(t *testing.T) {
+        // Arrange
+        resourceName := "resource-" + faker.Word()
+        mockTokenProvider := &MockTokenProvider{
+          TokenType:  faker.Word(),
+          TokenValue: faker.UUIDHyphenated(),
+        }
+        
         server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
             w.Header().Set("Content-Type", "application/json")
             w.WriteHeader(http.StatusBadRequest)
         }))
         defer server.Close()
         
-        deps := makeMockDeps(server.URL)
+        deps := makeMockDeps(t, server.URL)
         client := NewClient(deps)
         
         req := &CreateResourceRequest{
-            Description: "Missing name",
+            Name: resourceName,
         }
         
-        mockTokenProvider.token = "test-token"
-        _, err := client.CreateResource(t.Context(), mockTokenProvider, CreateResourceParams{
+        // Act
+        result, err := client.CreateResource(t.Context(), mockTokenProvider, CreateResourceParams{
             Request: req,
         })
         
+        // Assert
         require.Error(t, err)
-        assert.Contains(t, err.Error(), "create resource failed")
+        assert.Nil(t, result)
+        assert.ErrorContains(t, err, "create resource failed")
     })
     
     t.Run("handles token provider error", func(t *testing.T) {
-        deps := makeMockDeps("http://example.com")
+        // Arrange
+        resourceName := "resource-" + faker.Word()
+        mockTokenProvider := &MockTokenProvider{
+          Err: errors.New(faker.Sentence()),
+        }
+        
+        deps := makeMockDeps(t, "http://example.com")
         client := NewClient(deps)
         
-        mockTokenProvider.err = errors.New("token error")
-        _, err := client.CreateResource(t.Context(), mockTokenProvider, CreateResourceParams{
-            Request: &CreateResourceRequest{
-                Name: faker.Name(),
-            },
+        req := &CreateResourceRequest{
+            Name: resourceName,
+        }
+        
+        // Act
+        result, err := client.CreateResource(t.Context(), mockTokenProvider, CreateResourceParams{
+            Request: req,
         })
         
+        // Assert
         require.Error(t, err)
-        assert.Contains(t, err.Error(), "failed to get token")
+        assert.Nil(t, result)
+        expectedError := fmt.Errorf("failed to get token: %w", mockTokenProvider.Err)
+        assert.Equal(t, expectedError.Error(), err.Error())
     })
 }
 
 // MockTokenProvider is a simple mock implementation for testing.
+// Usually implemented once in client_test.go file.
 type MockTokenProvider struct {
-    token string
-    err   error
+	TokenType  string
+	TokenValue string
+	Err        error
 }
 
-func (m *MockTokenProvider) GetToken(ctx context.Context) (string, error) {
-    if m.err != nil {
-        return "", m.err
-    }
-    return m.token, nil
+func (m *MockTokenProvider) GetToken(_ context.Context) (middleware.Token, error) {
+	if m.Err != nil {
+		return middleware.Token{}, m.Err
+	}
+	return middleware.Token{Type: m.TokenType, Value: m.TokenValue}, nil
 }
 ```
 
@@ -330,6 +386,9 @@ func (m *MockTokenProvider) GetToken(ctx context.Context) (string, error) {
 - Always include the 4 standard test cases per operation
 - Use faker for generating random test data
 - Follow testing-best-practices patterns
+- Use AAA (Arrange-Act-Assert) pattern with clear comments
+- Include test name in logger for better debugging
+- Use proper error assertions (assert.ErrorContains or assert.ErrorIs)
 
 ### 2. Documentation Requirements
 - Document all public types and methods
@@ -339,7 +398,41 @@ func (m *MockTokenProvider) GetToken(ctx context.Context) (string, error) {
 - Never log authentication tokens or sensitive data
 - Use context for passing authentication tokens
 
-### 4. Code Quality and Linting
+### 4. Endpoints Documentation
+
+**IMPORTANT**: After implementing all endpoints, create an `ENDPOINTS.md` file in the client package directory to document all implemented API endpoints.
+
+#### ENDPOINTS.md Format
+
+Create a concise file listing all implemented endpoints in this format:
+
+```markdown
+# [Service Name] API Client Endpoints
+
+POST /path/to/resource
+Client method: CreateResource(ctx, tokenProvider, CreateResourceParams)
+
+GET /path/to/resource/{id}
+Client method: GetResource(ctx, tokenProvider, GetResourceParams)
+
+.....e.t.c.....
+```
+
+#### Purpose of ENDPOINTS.md
+
+- **Quick Reference**: Easily see what endpoints are implemented
+- **Maintenance**: Track which API operations are available
+- **Updates**: Identify what needs to be added or modified
+- **Onboarding**: Help new developers understand the client scope
+
+#### When to Update
+
+- After adding new endpoints
+- After removing deprecated endpoints
+- When refactoring endpoint signatures
+- Before major releases
+
+### 5. Code Quality and Linting
 
 **IMPORTANT**: After completing implementation, always run linting to ensure code quality:
 

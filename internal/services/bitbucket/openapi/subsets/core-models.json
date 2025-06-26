@@ -1,0 +1,834 @@
+{
+  "pullrequest": {
+    "allOf": [
+      {
+        "$ref": "#/definitions/object"
+      },
+      {
+        "type": "object",
+        "title": "Pull Request",
+        "description": "A pull request object.",
+        "properties": {
+          "links": {
+            "type": "object",
+            "properties": {
+              "self": {
+                "type": "object",
+                "title": "Link",
+                "description": "A link to a resource related to this object.",
+                "properties": {
+                  "href": {
+                    "type": "string",
+                    "format": "uri"
+                  },
+                  "name": {
+                    "type": "string"
+                  }
+                },
+                "additionalProperties": false
+              },
+              "html": {
+                "type": "object",
+                "title": "Link",
+                "description": "A link to a resource related to this object.",
+                "properties": {
+                  "href": {
+                    "type": "string",
+                    "format": "uri"
+                  },
+                  "name": {
+                    "type": "string"
+                  }
+                },
+                "additionalProperties": false
+              },
+              "commits": {
+                "type": "object",
+                "title": "Link",
+                "description": "A link to a resource related to this object.",
+                "properties": {
+                  "href": {
+                    "type": "string",
+                    "format": "uri"
+                  },
+                  "name": {
+                    "type": "string"
+                  }
+                },
+                "additionalProperties": false
+              },
+              "approve": {
+                "type": "object",
+                "title": "Link",
+                "description": "A link to a resource related to this object.",
+                "properties": {
+                  "href": {
+                    "type": "string",
+                    "format": "uri"
+                  },
+                  "name": {
+                    "type": "string"
+                  }
+                },
+                "additionalProperties": false
+              },
+              "diff": {
+                "type": "object",
+                "title": "Link",
+                "description": "A link to a resource related to this object.",
+                "properties": {
+                  "href": {
+                    "type": "string",
+                    "format": "uri"
+                  },
+                  "name": {
+                    "type": "string"
+                  }
+                },
+                "additionalProperties": false
+              },
+              "diffstat": {
+                "type": "object",
+                "title": "Link",
+                "description": "A link to a resource related to this object.",
+                "properties": {
+                  "href": {
+                    "type": "string",
+                    "format": "uri"
+                  },
+                  "name": {
+                    "type": "string"
+                  }
+                },
+                "additionalProperties": false
+              },
+              "comments": {
+                "type": "object",
+                "title": "Link",
+                "description": "A link to a resource related to this object.",
+                "properties": {
+                  "href": {
+                    "type": "string",
+                    "format": "uri"
+                  },
+                  "name": {
+                    "type": "string"
+                  }
+                },
+                "additionalProperties": false
+              },
+              "activity": {
+                "type": "object",
+                "title": "Link",
+                "description": "A link to a resource related to this object.",
+                "properties": {
+                  "href": {
+                    "type": "string",
+                    "format": "uri"
+                  },
+                  "name": {
+                    "type": "string"
+                  }
+                },
+                "additionalProperties": false
+              },
+              "merge": {
+                "type": "object",
+                "title": "Link",
+                "description": "A link to a resource related to this object.",
+                "properties": {
+                  "href": {
+                    "type": "string",
+                    "format": "uri"
+                  },
+                  "name": {
+                    "type": "string"
+                  }
+                },
+                "additionalProperties": false
+              },
+              "decline": {
+                "type": "object",
+                "title": "Link",
+                "description": "A link to a resource related to this object.",
+                "properties": {
+                  "href": {
+                    "type": "string",
+                    "format": "uri"
+                  },
+                  "name": {
+                    "type": "string"
+                  }
+                },
+                "additionalProperties": false
+              }
+            },
+            "additionalProperties": false
+          },
+          "id": {
+            "type": "integer",
+            "description": "The pull request's unique ID. Note that pull request IDs are only unique within their associated repository."
+          },
+          "title": {
+            "type": "string",
+            "description": "Title of the pull request."
+          },
+          "rendered": {
+            "type": "object",
+            "title": "Rendered Pull Request Markup",
+            "description": "User provided pull request text, interpreted in a markup language and rendered in HTML",
+            "properties": {
+              "title": {
+                "type": "object",
+                "properties": {
+                  "raw": {
+                    "type": "string",
+                    "description": "The text as it was typed by a user."
+                  },
+                  "markup": {
+                    "type": "string",
+                    "description": "The type of markup language the raw content is to be interpreted in.",
+                    "enum": [
+                      "markdown",
+                      "creole",
+                      "plaintext"
+                    ]
+                  },
+                  "html": {
+                    "type": "string",
+                    "description": "The user's content rendered as HTML."
+                  }
+                },
+                "additionalProperties": false
+              },
+              "description": {
+                "type": "object",
+                "properties": {
+                  "raw": {
+                    "type": "string",
+                    "description": "The text as it was typed by a user."
+                  },
+                  "markup": {
+                    "type": "string",
+                    "description": "The type of markup language the raw content is to be interpreted in.",
+                    "enum": [
+                      "markdown",
+                      "creole",
+                      "plaintext"
+                    ]
+                  },
+                  "html": {
+                    "type": "string",
+                    "description": "The user's content rendered as HTML."
+                  }
+                },
+                "additionalProperties": false
+              },
+              "reason": {
+                "type": "object",
+                "properties": {
+                  "raw": {
+                    "type": "string",
+                    "description": "The text as it was typed by a user."
+                  },
+                  "markup": {
+                    "type": "string",
+                    "description": "The type of markup language the raw content is to be interpreted in.",
+                    "enum": [
+                      "markdown",
+                      "creole",
+                      "plaintext"
+                    ]
+                  },
+                  "html": {
+                    "type": "string",
+                    "description": "The user's content rendered as HTML."
+                  }
+                },
+                "additionalProperties": false
+              }
+            },
+            "additionalProperties": false
+          },
+          "summary": {
+            "type": "object",
+            "properties": {
+              "raw": {
+                "type": "string",
+                "description": "The text as it was typed by a user."
+              },
+              "markup": {
+                "type": "string",
+                "description": "The type of markup language the raw content is to be interpreted in.",
+                "enum": [
+                  "markdown",
+                  "creole",
+                  "plaintext"
+                ]
+              },
+              "html": {
+                "type": "string",
+                "description": "The user's content rendered as HTML."
+              }
+            },
+            "additionalProperties": false
+          },
+          "state": {
+            "type": "string",
+            "description": "The pull request's current status.",
+            "enum": [
+              "OPEN",
+              "MERGED",
+              "DECLINED",
+              "SUPERSEDED"
+            ]
+          },
+          "author": {
+            "$ref": "#/definitions/account"
+          },
+          "source": {
+            "$ref": "#/definitions/pullrequest_endpoint"
+          },
+          "destination": {
+            "$ref": "#/definitions/pullrequest_endpoint"
+          },
+          "merge_commit": {
+            "type": "object",
+            "title": "Pull Request Commit",
+            "properties": {
+              "hash": {
+                "type": "string",
+                "pattern": "[0-9a-f]{7,}?"
+              }
+            },
+            "additionalProperties": false
+          },
+          "comment_count": {
+            "type": "integer",
+            "description": "The number of comments for a specific pull request.",
+            "minimum": 0
+          },
+          "task_count": {
+            "type": "integer",
+            "description": "The number of open tasks for a specific pull request.",
+            "minimum": 0
+          },
+          "close_source_branch": {
+            "type": "boolean",
+            "description": "A boolean flag indicating if merging the pull request closes the source branch."
+          },
+          "closed_by": {
+            "$ref": "#/definitions/account"
+          },
+          "reason": {
+            "type": "string",
+            "description": "Explains why a pull request was declined. This field is only applicable to pull requests in rejected state."
+          },
+          "created_on": {
+            "type": "string",
+            "description": "The ISO8601 timestamp the request was created.",
+            "format": "date-time"
+          },
+          "updated_on": {
+            "type": "string",
+            "description": "The ISO8601 timestamp the request was last updated.",
+            "format": "date-time"
+          },
+          "reviewers": {
+            "type": "array",
+            "description": "The list of users that were added as reviewers on this pull request when it was created. For performance reasons, the API only includes this list on a pull request's `self` URL.",
+            "items": {
+              "$ref": "#/definitions/account"
+            }
+          },
+          "participants": {
+            "type": "array",
+            "description": "        The list of users that are collaborating on this pull request.\n        Collaborators are user that:\n\n        * are added to the pull request as a reviewer (part of the reviewers\n          list)\n        * are not explicit reviewers, but have commented on the pull request\n        * are not explicit reviewers, but have approved the pull request\n\n        Each user is wrapped in an object that indicates the user's role and\n        whether they have approved the pull request. For performance reasons,\n        the API only returns this list when an API requests a pull request by\n        id.\n        ",
+            "items": {
+              "$ref": "#/definitions/participant"
+            }
+          },
+          "draft": {
+            "type": "boolean",
+            "description": "A boolean flag indicating whether the pull request is a draft."
+          },
+          "queued": {
+            "type": "boolean",
+            "description": "A boolean flag indicating whether the pull request is queued"
+          }
+        },
+        "additionalProperties": true
+      }
+    ]
+  },
+  "account": {
+    "allOf": [
+      {
+        "$ref": "#/definitions/object"
+      },
+      {
+        "type": "object",
+        "title": "Account",
+        "description": "An account object.",
+        "properties": {
+          "links": {
+            "$ref": "#/definitions/account_links"
+          },
+          "created_on": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "display_name": {
+            "type": "string"
+          },
+          "uuid": {
+            "type": "string"
+          }
+        },
+        "additionalProperties": true
+      }
+    ]
+  },
+  "repository": {
+    "allOf": [
+      {
+        "$ref": "#/definitions/object"
+      },
+      {
+        "type": "object",
+        "title": "Repository",
+        "description": "A Bitbucket repository.",
+        "properties": {
+          "links": {
+            "type": "object",
+            "properties": {
+              "self": {
+                "type": "object",
+                "title": "Link",
+                "description": "A link to a resource related to this object.",
+                "properties": {
+                  "href": {
+                    "type": "string",
+                    "format": "uri"
+                  },
+                  "name": {
+                    "type": "string"
+                  }
+                },
+                "additionalProperties": false
+              },
+              "html": {
+                "type": "object",
+                "title": "Link",
+                "description": "A link to a resource related to this object.",
+                "properties": {
+                  "href": {
+                    "type": "string",
+                    "format": "uri"
+                  },
+                  "name": {
+                    "type": "string"
+                  }
+                },
+                "additionalProperties": false
+              },
+              "avatar": {
+                "type": "object",
+                "title": "Link",
+                "description": "A link to a resource related to this object.",
+                "properties": {
+                  "href": {
+                    "type": "string",
+                    "format": "uri"
+                  },
+                  "name": {
+                    "type": "string"
+                  }
+                },
+                "additionalProperties": false
+              },
+              "pullrequests": {
+                "type": "object",
+                "title": "Link",
+                "description": "A link to a resource related to this object.",
+                "properties": {
+                  "href": {
+                    "type": "string",
+                    "format": "uri"
+                  },
+                  "name": {
+                    "type": "string"
+                  }
+                },
+                "additionalProperties": false
+              },
+              "commits": {
+                "type": "object",
+                "title": "Link",
+                "description": "A link to a resource related to this object.",
+                "properties": {
+                  "href": {
+                    "type": "string",
+                    "format": "uri"
+                  },
+                  "name": {
+                    "type": "string"
+                  }
+                },
+                "additionalProperties": false
+              },
+              "forks": {
+                "type": "object",
+                "title": "Link",
+                "description": "A link to a resource related to this object.",
+                "properties": {
+                  "href": {
+                    "type": "string",
+                    "format": "uri"
+                  },
+                  "name": {
+                    "type": "string"
+                  }
+                },
+                "additionalProperties": false
+              },
+              "watchers": {
+                "type": "object",
+                "title": "Link",
+                "description": "A link to a resource related to this object.",
+                "properties": {
+                  "href": {
+                    "type": "string",
+                    "format": "uri"
+                  },
+                  "name": {
+                    "type": "string"
+                  }
+                },
+                "additionalProperties": false
+              },
+              "downloads": {
+                "type": "object",
+                "title": "Link",
+                "description": "A link to a resource related to this object.",
+                "properties": {
+                  "href": {
+                    "type": "string",
+                    "format": "uri"
+                  },
+                  "name": {
+                    "type": "string"
+                  }
+                },
+                "additionalProperties": false
+              },
+              "clone": {
+                "type": "array",
+                "items": {
+                  "type": "object",
+                  "title": "Link",
+                  "description": "A link to a resource related to this object.",
+                  "properties": {
+                    "href": {
+                      "type": "string",
+                      "format": "uri"
+                    },
+                    "name": {
+                      "type": "string"
+                    }
+                  },
+                  "additionalProperties": false
+                }
+              },
+              "hooks": {
+                "type": "object",
+                "title": "Link",
+                "description": "A link to a resource related to this object.",
+                "properties": {
+                  "href": {
+                    "type": "string",
+                    "format": "uri"
+                  },
+                  "name": {
+                    "type": "string"
+                  }
+                },
+                "additionalProperties": false
+              }
+            },
+            "additionalProperties": false
+          },
+          "uuid": {
+            "type": "string",
+            "description": "The repository's immutable id. This can be used as a substitute for the slug segment in URLs. Doing this guarantees your URLs will survive renaming of the repository by its owner, or even transfer of the repository to a different user."
+          },
+          "full_name": {
+            "type": "string",
+            "description": "The concatenation of the repository owner's username and the slugified name, e.g. \"evzijst/interruptingcow\". This is the same string used in Bitbucket URLs."
+          },
+          "is_private": {
+            "type": "boolean"
+          },
+          "parent": {
+            "$ref": "#/definitions/repository"
+          },
+          "scm": {
+            "type": "string",
+            "enum": [
+              "git"
+            ]
+          },
+          "owner": {
+            "$ref": "#/definitions/account"
+          },
+          "name": {
+            "type": "string"
+          },
+          "description": {
+            "type": "string"
+          },
+          "created_on": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "updated_on": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "size": {
+            "type": "integer"
+          },
+          "language": {
+            "type": "string"
+          },
+          "has_issues": {
+            "type": "boolean",
+            "description": "\nThe issue tracker for this repository is enabled. Issue Tracker\nfeatures are not supported for repositories in workspaces\nadministered through admin.atlassian.com.\n"
+          },
+          "has_wiki": {
+            "type": "boolean",
+            "description": "\nThe wiki for this repository is enabled. Wiki\nfeatures are not supported for repositories in workspaces\nadministered through admin.atlassian.com.\n"
+          },
+          "fork_policy": {
+            "type": "string",
+            "description": "\nControls the rules for forking this repository.\n\n* **allow_forks**: unrestricted forking\n* **no_public_forks**: restrict forking to private forks (forks cannot\n  be made public later)\n* **no_forks**: deny all forking\n",
+            "enum": [
+              "allow_forks",
+              "no_public_forks",
+              "no_forks"
+            ]
+          },
+          "project": {
+            "$ref": "#/definitions/project"
+          },
+          "mainbranch": {
+            "$ref": "#/definitions/branch"
+          }
+        },
+        "additionalProperties": true
+      }
+    ]
+  },
+  "workspace": {
+    "allOf": [
+      {
+        "$ref": "#/definitions/object"
+      },
+      {
+        "type": "object",
+        "title": "Workspace",
+        "description": "A Bitbucket workspace.\n            Workspaces are used to organize repositories.",
+        "properties": {
+          "links": {
+            "type": "object",
+            "properties": {
+              "avatar": {
+                "type": "object",
+                "title": "Link",
+                "description": "A link to a resource related to this object.",
+                "properties": {
+                  "href": {
+                    "type": "string",
+                    "format": "uri"
+                  },
+                  "name": {
+                    "type": "string"
+                  }
+                },
+                "additionalProperties": false
+              },
+              "html": {
+                "type": "object",
+                "title": "Link",
+                "description": "A link to a resource related to this object.",
+                "properties": {
+                  "href": {
+                    "type": "string",
+                    "format": "uri"
+                  },
+                  "name": {
+                    "type": "string"
+                  }
+                },
+                "additionalProperties": false
+              },
+              "members": {
+                "type": "object",
+                "title": "Link",
+                "description": "A link to a resource related to this object.",
+                "properties": {
+                  "href": {
+                    "type": "string",
+                    "format": "uri"
+                  },
+                  "name": {
+                    "type": "string"
+                  }
+                },
+                "additionalProperties": false
+              },
+              "owners": {
+                "type": "object",
+                "title": "Link",
+                "description": "A link to a resource related to this object.",
+                "properties": {
+                  "href": {
+                    "type": "string",
+                    "format": "uri"
+                  },
+                  "name": {
+                    "type": "string"
+                  }
+                },
+                "additionalProperties": false
+              },
+              "projects": {
+                "type": "object",
+                "title": "Link",
+                "description": "A link to a resource related to this object.",
+                "properties": {
+                  "href": {
+                    "type": "string",
+                    "format": "uri"
+                  },
+                  "name": {
+                    "type": "string"
+                  }
+                },
+                "additionalProperties": false
+              },
+              "repositories": {
+                "type": "object",
+                "title": "Link",
+                "description": "A link to a resource related to this object.",
+                "properties": {
+                  "href": {
+                    "type": "string",
+                    "format": "uri"
+                  },
+                  "name": {
+                    "type": "string"
+                  }
+                },
+                "additionalProperties": false
+              },
+              "snippets": {
+                "type": "object",
+                "title": "Link",
+                "description": "A link to a resource related to this object.",
+                "properties": {
+                  "href": {
+                    "type": "string",
+                    "format": "uri"
+                  },
+                  "name": {
+                    "type": "string"
+                  }
+                },
+                "additionalProperties": false
+              },
+              "self": {
+                "type": "object",
+                "title": "Link",
+                "description": "A link to a resource related to this object.",
+                "properties": {
+                  "href": {
+                    "type": "string",
+                    "format": "uri"
+                  },
+                  "name": {
+                    "type": "string"
+                  }
+                },
+                "additionalProperties": false
+              }
+            },
+            "additionalProperties": false
+          },
+          "uuid": {
+            "type": "string",
+            "description": "The workspace's immutable id."
+          },
+          "name": {
+            "type": "string",
+            "description": "The name of the workspace."
+          },
+          "slug": {
+            "type": "string",
+            "description": "The short label that identifies this workspace."
+          },
+          "is_private": {
+            "type": "boolean",
+            "description": "Indicates whether the workspace is publicly accessible, or whether it is\nprivate to the members and consequently only visible to members."
+          },
+          "is_privacy_enforced": {
+            "type": "boolean",
+            "description": "Indicates whether the workspace enforces private content, or whether it allows public content."
+          },
+          "forking_mode": {
+            "type": "string",
+            "description": "Controls the rules for forking repositories within this workspace.\n\n* **allow_forks**: unrestricted forking\n* **internal_only**: prevents forking of private repositories outside the workspace or to public repositories\n",
+            "enum": [
+              "allow_forks",
+              "internal_only"
+            ]
+          },
+          "created_on": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "updated_on": {
+            "type": "string",
+            "format": "date-time"
+          }
+        },
+        "additionalProperties": true
+      }
+    ]
+  },
+  "commit": {
+    "allOf": [
+      {
+        "$ref": "#/definitions/base_commit"
+      },
+      {
+        "type": "object",
+        "title": "Commit",
+        "description": "A repository commit object.",
+        "properties": {
+          "repository": {
+            "$ref": "#/definitions/repository"
+          },
+          "participants": {
+            "type": "array",
+            "items": {
+              "$ref": "#/definitions/participant"
+            },
+            "minItems": 0
+          }
+        },
+        "additionalProperties": true
+      }
+    ]
+  }
+}

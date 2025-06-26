@@ -168,22 +168,22 @@ func validateServiceConfigs(account app.AtlassianAccount) error {
 
 // validateBitbucketConfig validates Bitbucket-specific configuration.
 func validateBitbucketConfig(account app.AtlassianAccount) error {
-	if account.Bitbucket.Token == "" {
-		return fmt.Errorf("account %s is missing Bitbucket token", account.Name)
+	if account.Bitbucket.Value == "" {
+		return fmt.Errorf("account %s is missing Bitbucket token value", account.Name)
 	}
-	if account.Bitbucket.Workspace == "" {
-		return fmt.Errorf("account %s is missing Bitbucket workspace", account.Name)
+	if account.Bitbucket.Type == "" {
+		return fmt.Errorf("account %s is missing Bitbucket token type", account.Name)
 	}
 	return nil
 }
 
 // validateJiraConfig validates Jira-specific configuration.
 func validateJiraConfig(account app.AtlassianAccount) error {
-	if account.Jira.Token == "" {
-		return fmt.Errorf("account %s is missing Jira token", account.Name)
+	if account.Jira.Value == "" {
+		return fmt.Errorf("account %s is missing Jira token value", account.Name)
 	}
-	if account.Jira.Domain == "" {
-		return fmt.Errorf("account %s is missing Jira domain", account.Name)
+	if account.Jira.Type == "" {
+		return fmt.Errorf("account %s is missing Jira token type", account.Name)
 	}
 	return nil
 }

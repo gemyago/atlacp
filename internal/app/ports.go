@@ -5,6 +5,7 @@ import (
 	"errors"
 
 	"github.com/gemyago/atlacp/internal/services/bitbucket"
+	"github.com/gemyago/atlacp/internal/services/http/middleware"
 )
 
 // AtlassianAccountsRepository defines the port for accessing Atlassian account information.
@@ -22,7 +23,7 @@ type AtlassianAccountsRepository interface {
 // TokenProvider provides authentication tokens for API requests.
 type TokenProvider interface {
 	// GetToken returns an authentication token for API requests.
-	GetToken(ctx context.Context) (string, error)
+	GetToken(ctx context.Context) (middleware.Token, error)
 }
 
 // bitbucketClient defines the interface for Bitbucket API operations.
@@ -62,6 +63,27 @@ type bitbucketClient interface {
 		tokenProvider bitbucket.TokenProvider,
 		params bitbucket.MergePRParams,
 	) (*bitbucket.PullRequest, error)
+
+	// ListPullRequestTasks returns a paginated list of tasks on a pull request.
+	ListPullRequestTasks(
+		ctx context.Context,
+		tokenProvider bitbucket.TokenProvider,
+		params bitbucket.ListPullRequestTasksParams,
+	) (*bitbucket.PaginatedTasks, error)
+
+	// UpdateTask updates an existing task on a pull request.
+	UpdateTask(
+		ctx context.Context,
+		tokenProvider bitbucket.TokenProvider,
+		params bitbucket.UpdateTaskParams,
+	) (*bitbucket.PullRequestCommentTask, error)
+
+	// CreatePullRequestTask creates a new task on a pull request.
+	CreatePullRequestTask(
+		ctx context.Context,
+		tokenProvider bitbucket.TokenProvider,
+		params bitbucket.CreatePullRequestTaskParams,
+	) (*bitbucket.PullRequestCommentTask, error)
 }
 
 // Error types for account-related operations.

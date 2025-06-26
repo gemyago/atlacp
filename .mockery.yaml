@@ -16,7 +16,7 @@ packages:
   github.com/gemyago/atlacp/internal/app:
     interfaces:
       bitbucketAuthFactory:
-      BitbucketClient:
+      bitbucketClient:
       AtlassianAccountsRepository:
   github.com/gemyago/atlacp/internal/api/mcp/controllers:
     interfaces:
