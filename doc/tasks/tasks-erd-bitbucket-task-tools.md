@@ -49,8 +49,8 @@ Please read referenced files to understand the problem:
   - [x] 2.10 Run `lint-and-test`
 
 - [ ] 3.0 Implement Controller Layer for Task Tools
-  - [ ] 3.1 Update bitbucketService interface in the controller to include new methods
-  - [ ] 3.2 Regenerate mocks if needed
+  - [x] 3.1 Update bitbucketService interface in the controller to include new methods
+  - [x] 3.2 Regenerate mocks if needed follow @mockery
   - [ ] 3.3 Create minimal stub implementation for list_pr_tasks tool that compiles but fails the test
   - [ ] 3.4 Write test for bitbucket_list_pr_tasks tool
   - [ ] 3.5 Implement bitbucket_list_pr_tasks tool to pass the test
