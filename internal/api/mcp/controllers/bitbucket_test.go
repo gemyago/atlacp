@@ -115,6 +115,18 @@ func TestBitbucketController(t *testing.T) {
 			assert.NotNil(t, serverTool.Tool.InputSchema)
 			assert.NotNil(t, serverTool.Handler)
 		})
+
+		t.Run("should define UpdatePRTask tool correctly", func(t *testing.T) {
+			deps := makeBitbucketControllerDeps(t)
+			controller := NewBitbucketController(deps)
+
+			serverTool := controller.newUpdatePRTaskServerTool()
+
+			assert.Equal(t, "bitbucket_update_pr_task", serverTool.Tool.Name)
+			assert.Equal(t, "Update a task on a pull request in Bitbucket", serverTool.Tool.Description)
+			assert.NotNil(t, serverTool.Tool.InputSchema)
+			assert.NotNil(t, serverTool.Handler)
+		})
 	})
 
 	t.Run("should register all tools", func(t *testing.T) {
@@ -123,7 +135,7 @@ func TestBitbucketController(t *testing.T) {
 
 		tools := controller.NewTools()
 
-		require.Len(t, tools, 6) // Expect 6 tools: create, read, update, approve, merge, list_tasks
+		require.Len(t, tools, 7) // Expect 7 tools: create, read, update, approve, merge, list_tasks, update_task
 		toolNames := make([]string, len(tools))
 		for i, tool := range tools {
 			toolNames[i] = tool.Tool.Name
@@ -134,6 +146,7 @@ func TestBitbucketController(t *testing.T) {
 		assert.Contains(t, toolNames, "bitbucket_approve_pr")
 		assert.Contains(t, toolNames, "bitbucket_merge_pr")
 		assert.Contains(t, toolNames, "bitbucket_list_pr_tasks")
+		assert.Contains(t, toolNames, "bitbucket_update_pr_task")
 	})
 
 	t.Run("handler implementations", func(t *testing.T) {
@@ -2053,6 +2066,369 @@ func TestBitbucketController(t *testing.T) {
 			require.Error(t, err)
 			assert.Contains(t, err.Error(), expectedError.Error())
 			assert.Nil(t, result)
+		})
+
+		t.Run("should handle UpdatePRTask call successfully", func(t *testing.T) {
+			// Arrange
+			deps := makeBitbucketControllerDeps(t)
+			mockService := mocks.GetMock[*MockbitbucketService](t, deps.BitbucketService)
+			controller := NewBitbucketController(deps)
+			ctx := t.Context()
+
+			// Create test data with randomized values using faker
+			prID := int(faker.RandomUnixTime()) % 1000000
+			taskID := int(faker.RandomUnixTime()) % 1000000
+			repoOwner := "workspace-" + faker.Username()
+			repoName := "repo-" + faker.Word()
+			accountName := "account-" + faker.Username()
+			newContent := "Updated task: " + faker.Sentence()
+			newState := "RESOLVED"
+
+			// Create expected parameters
+			expectedParams := app.BitbucketUpdateTaskParams{
+				PullRequestID: prID,
+				TaskID:        taskID,
+				RepoOwner:     repoOwner,
+				RepoName:      repoName,
+				AccountName:   accountName,
+				Content:       newContent,
+				State:         newState,
+			}
+
+			// Create expected task response
+			createdOn := time.Now()
+			updatedOn := time.Now()
+
+			expectedTask := &bitbucket.PullRequestCommentTask{
+				PullRequestTask: bitbucket.PullRequestTask{
+					Task: bitbucket.Task{
+						ID:        int64(taskID),
+						CreatedOn: createdOn,
+						UpdatedOn: updatedOn,
+						State:     newState,
+						Content: &bitbucket.TaskContent{
+							Raw:    newContent,
+							Markup: "markdown",
+							HTML:   "<p>" + newContent + "</p>",
+						},
+						Creator: &bitbucket.Account{
+							DisplayName: "User-" + faker.Name(),
+							UUID:        faker.UUIDHyphenated(),
+						},
+						ResolvedOn: time.Now(),
+						ResolvedBy: &bitbucket.Account{
+							DisplayName: "Resolver-" + faker.Name(),
+							UUID:        faker.UUIDHyphenated(),
+						},
+					},
+				},
+			}
+
+			// Setup mock expectations
+			mockService.EXPECT().
+				UpdateTask(mock.Anything, mock.MatchedBy(func(params app.BitbucketUpdateTaskParams) bool {
+					return params.PullRequestID == expectedParams.PullRequestID &&
+						params.TaskID == expectedParams.TaskID &&
+						params.AccountName == expectedParams.AccountName &&
+						params.RepoOwner == expectedParams.RepoOwner &&
+						params.RepoName == expectedParams.RepoName &&
+						params.Content == expectedParams.Content &&
+						params.State == expectedParams.State
+				})).
+				Return(expectedTask, nil)
+
+			// Create the request
+			request := mcp.CallToolRequest{
+				Params: mcp.CallToolParams{
+					Name: "bitbucket_update_pr_task",
+					Arguments: map[string]interface{}{
+						"pr_id":      prID,
+						"task_id":    taskID,
+						"repo_owner": repoOwner,
+						"repo_name":  repoName,
+						"account":    accountName,
+						"content":    newContent,
+						"state":      newState,
+					},
+				},
+			}
+
+			// Get the handler
+			serverTool := controller.newUpdatePRTaskServerTool()
+			handler := serverTool.Handler
+
+			// Act
+			result, err := handler(ctx, request)
+
+			// Assert
+			require.NoError(t, err)
+			require.NotNil(t, result)
+			assert.False(t, result.IsError)
+
+			// Verify the content of the result
+			content, ok := result.Content[0].(mcp.TextContent)
+			require.True(t, ok, "Result content should be text content")
+			assert.Contains(t, content.Text, fmt.Sprintf("Updated task #%d", taskID))
+			assert.Contains(t, content.Text, "RESOLVED")
+		})
+
+		t.Run("should handle update with only state change", func(t *testing.T) {
+			// Arrange
+			deps := makeBitbucketControllerDeps(t)
+			mockService := mocks.GetMock[*MockbitbucketService](t, deps.BitbucketService)
+			controller := NewBitbucketController(deps)
+			ctx := t.Context()
+
+			// Create test data
+			prID := int(faker.RandomUnixTime()) % 1000000
+			taskID := int(faker.RandomUnixTime()) % 1000000
+			repoOwner := "workspace-" + faker.Username()
+			repoName := "repo-" + faker.Word()
+			accountName := "account-" + faker.Username()
+			newState := "RESOLVED"
+
+			// Create expected parameters (no content, only state)
+			expectedParams := app.BitbucketUpdateTaskParams{
+				PullRequestID: prID,
+				TaskID:        taskID,
+				RepoOwner:     repoOwner,
+				RepoName:      repoName,
+				AccountName:   accountName,
+				State:         newState,
+			}
+
+			// Create expected task response
+			createdOn := time.Now()
+			updatedOn := time.Now()
+			existingContent := "Task content: " + faker.Sentence()
+
+			expectedTask := &bitbucket.PullRequestCommentTask{
+				PullRequestTask: bitbucket.PullRequestTask{
+					Task: bitbucket.Task{
+						ID:        int64(taskID),
+						CreatedOn: createdOn,
+						UpdatedOn: updatedOn,
+						State:     newState,
+						Content: &bitbucket.TaskContent{
+							Raw:    existingContent,
+							Markup: "markdown",
+							HTML:   "<p>" + existingContent + "</p>",
+						},
+						Creator: &bitbucket.Account{
+							DisplayName: "User-" + faker.Name(),
+							UUID:        faker.UUIDHyphenated(),
+						},
+						ResolvedOn: time.Now(),
+						ResolvedBy: &bitbucket.Account{
+							DisplayName: "Resolver-" + faker.Name(),
+							UUID:        faker.UUIDHyphenated(),
+						},
+					},
+				},
+			}
+
+			// Setup mock expectations
+			mockService.EXPECT().
+				UpdateTask(mock.Anything, mock.MatchedBy(func(params app.BitbucketUpdateTaskParams) bool {
+					return params.PullRequestID == expectedParams.PullRequestID &&
+						params.TaskID == expectedParams.TaskID &&
+						params.AccountName == expectedParams.AccountName &&
+						params.RepoOwner == expectedParams.RepoOwner &&
+						params.RepoName == expectedParams.RepoName &&
+						params.Content == "" &&
+						params.State == expectedParams.State
+				})).
+				Return(expectedTask, nil)
+
+			// Create the request
+			request := mcp.CallToolRequest{
+				Params: mcp.CallToolParams{
+					Name: "bitbucket_update_pr_task",
+					Arguments: map[string]interface{}{
+						"pr_id":      prID,
+						"task_id":    taskID,
+						"repo_owner": repoOwner,
+						"repo_name":  repoName,
+						"account":    accountName,
+						"state":      newState,
+					},
+				},
+			}
+
+			// Get the handler
+			serverTool := controller.newUpdatePRTaskServerTool()
+			handler := serverTool.Handler
+
+			// Act
+			result, err := handler(ctx, request)
+
+			// Assert
+			require.NoError(t, err)
+			require.NotNil(t, result)
+			assert.False(t, result.IsError)
+
+			// Verify the content of the result
+			content, ok := result.Content[0].(mcp.TextContent)
+			require.True(t, ok, "Result content should be text content")
+			assert.Contains(t, content.Text, fmt.Sprintf("Updated task #%d", taskID))
+			assert.Contains(t, content.Text, "RESOLVED")
+		})
+
+		t.Run("should handle service error in UpdatePRTask", func(t *testing.T) {
+			// Arrange
+			deps := makeBitbucketControllerDeps(t)
+			mockService := mocks.GetMock[*MockbitbucketService](t, deps.BitbucketService)
+			controller := NewBitbucketController(deps)
+			ctx := t.Context()
+
+			// Create test data
+			prID := int(faker.RandomUnixTime()) % 1000000
+			taskID := int(faker.RandomUnixTime()) % 1000000
+			repoOwner := "workspace-" + faker.Username()
+			repoName := "repo-" + faker.Word()
+			newContent := "Updated content"
+
+			// Setup mock to return an error
+			expectedError := errors.New("task update failed")
+			mockService.EXPECT().
+				UpdateTask(mock.Anything, mock.Anything).
+				Return(nil, expectedError)
+
+			// Create the request
+			request := mcp.CallToolRequest{
+				Params: mcp.CallToolParams{
+					Name: "bitbucket_update_pr_task",
+					Arguments: map[string]interface{}{
+						"pr_id":      prID,
+						"task_id":    taskID,
+						"repo_owner": repoOwner,
+						"repo_name":  repoName,
+						"content":    newContent,
+					},
+				},
+			}
+
+			// Get the handler
+			serverTool := controller.newUpdatePRTaskServerTool()
+			handler := serverTool.Handler
+
+			// Act
+			_, err := handler(ctx, request)
+
+			// Assert
+			require.Error(t, err)
+			assert.Contains(t, err.Error(), "task update failed")
+		})
+
+		t.Run("should handle missing pr_id parameter in UpdatePRTask", func(t *testing.T) {
+			// Arrange
+			deps := makeBitbucketControllerDeps(t)
+			controller := NewBitbucketController(deps)
+			ctx := t.Context()
+
+			request := mcp.CallToolRequest{
+				Params: mcp.CallToolParams{
+					Name: "bitbucket_update_pr_task",
+					Arguments: map[string]interface{}{
+						// Missing pr_id
+						"task_id":    int(faker.RandomUnixTime()) % 1000000,
+						"repo_owner": "workspace-" + faker.Username(),
+						"repo_name":  "repo-" + faker.Word(),
+						"content":    "New content",
+					},
+				},
+			}
+
+			// Get the handler
+			serverTool := controller.newUpdatePRTaskServerTool()
+			handler := serverTool.Handler
+
+			// Act
+			result, err := handler(ctx, request)
+
+			// Assert
+			require.NoError(t, err)
+			require.NotNil(t, result)
+			assert.True(t, result.IsError)
+
+			// Verify error message
+			content, ok := result.Content[0].(mcp.TextContent)
+			require.True(t, ok, "Error content should be text content")
+			assert.Contains(t, content.Text, "Missing or invalid pr_id parameter")
+		})
+
+		t.Run("should handle missing task_id parameter in UpdatePRTask", func(t *testing.T) {
+			// Arrange
+			deps := makeBitbucketControllerDeps(t)
+			controller := NewBitbucketController(deps)
+			ctx := t.Context()
+
+			request := mcp.CallToolRequest{
+				Params: mcp.CallToolParams{
+					Name: "bitbucket_update_pr_task",
+					Arguments: map[string]interface{}{
+						"pr_id": int(faker.RandomUnixTime()) % 1000000,
+						// Missing task_id
+						"repo_owner": "workspace-" + faker.Username(),
+						"repo_name":  "repo-" + faker.Word(),
+						"content":    "New content",
+					},
+				},
+			}
+
+			// Get the handler
+			serverTool := controller.newUpdatePRTaskServerTool()
+			handler := serverTool.Handler
+
+			// Act
+			result, err := handler(ctx, request)
+
+			// Assert
+			require.NoError(t, err)
+			require.NotNil(t, result)
+			assert.True(t, result.IsError)
+
+			// Verify error message
+			content, ok := result.Content[0].(mcp.TextContent)
+			require.True(t, ok, "Error content should be text content")
+			assert.Contains(t, content.Text, "Missing or invalid task_id parameter")
+		})
+
+		t.Run("should handle missing both content and state parameters in UpdatePRTask", func(t *testing.T) {
+			// Arrange
+			deps := makeBitbucketControllerDeps(t)
+			controller := NewBitbucketController(deps)
+			ctx := t.Context()
+
+			request := mcp.CallToolRequest{
+				Params: mcp.CallToolParams{
+					Name: "bitbucket_update_pr_task",
+					Arguments: map[string]interface{}{
+						"pr_id":      int(faker.RandomUnixTime()) % 1000000,
+						"task_id":    int(faker.RandomUnixTime()) % 1000000,
+						"repo_owner": "workspace-" + faker.Username(),
+						"repo_name":  "repo-" + faker.Word(),
+						// Missing both content and state
+					},
+				},
+			}
+
+			// Get the handler
+			serverTool := controller.newUpdatePRTaskServerTool()
+			handler := serverTool.Handler
+
+			// Act
+			result, err := handler(ctx, request)
+
+			// Assert
+			require.NoError(t, err)
+			require.NotNil(t, result)
+			assert.True(t, result.IsError)
+
+			// Verify error message
+			content, ok := result.Content[0].(mcp.TextContent)
+			require.True(t, ok, "Error content should be text content")
+			assert.Contains(t, content.Text, "Either content or state must be provided")
 		})
 	})
 
