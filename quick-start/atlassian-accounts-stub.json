@@ -1,0 +1,13 @@
+{
+  "accounts": [
+    {
+      "name": "user",
+      "default": true,
+      "bitbucket": { "type": "Basic", "value": "ATBBxxxxxxxxxxxxxxxx" }
+    },
+    {
+      "name": "bot",
+      "bitbucket": { "type": "Bearer", "value": "ATBBxxxxxxxxxxxxxxxx" }
+    }
+  ]
+} 
