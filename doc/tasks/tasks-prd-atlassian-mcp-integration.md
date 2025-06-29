@@ -79,6 +79,7 @@ Please read referenced files to understand the problem:
 - `examples/test-client/test-bitbucket-workflow.js` - Complete Bitbucket workflow test script (✓ created)
 - `examples/test-client/test-multi-account.js` - Multi-account functionality test script (✓ created)
 - `examples/README.md` - Comprehensive documentation for examples and testing (✓ created)
+- `README.md` - Top-level project README with a concise Quick Start for MCP setup and usage (✓ updated)
 
 ## Tasks
 
@@ -144,7 +145,7 @@ Please read referenced files to understand the problem:
   - [x] 6.5 Validate multi-account functionality: Create PR as user -> Approve PR as bot -> Merge PR as user. Automate this with instructions for AI code editor.
   - [x] 6.6 Test default account resolution and named account selection: Create PR as default account -> Approve PR as bot. Automate this with instructions for AI code editor.
   - [x] 6.7 Created comprehensive testing document at `doc/testing/bitbucket-mcp-integration-tests.md`.
-  - [ ] 6.8 Update README with quick start and usage instruction
+  - [x] 6.8 Update README with quick start and usage instruction
 - [ ] 7.0 Jira MCP Integration
   - [ ] 7.1 Create `internal/app/jira.go` with business logic service interface and implementation
   - [ ] 7.2 Implement `jira_read_ticket` tool: Retrieve complete ticket information including metadata and comments
