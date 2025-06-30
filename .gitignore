@@ -11,4 +11,4 @@ test.log
 .cursor/mcp.json
 
 # Ignore some examples
-examples/atlassian-accounts.json
+quick-start/atlassian-accounts.json

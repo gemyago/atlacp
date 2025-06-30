@@ -1,6 +1,6 @@
 {
   "defaultLogLevel": "DEBUG",
   "atlassian": {
-    "accountsFilePath": "examples/atlassian-accounts-stub.json"
+    "accountsFilePath": "quick-start/atlassian-accounts-stub.json"
   }
 }

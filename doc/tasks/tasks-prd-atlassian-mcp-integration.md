@@ -31,7 +31,7 @@ Please read referenced files to understand the problem:
 - `internal/app/ports.go` - Application layer ports (interfaces) for repositories (✓ created)
 - `internal/app/auth.go` - Token provider implementation for API authentication (✓ created)
 - `doc/atlassian-accounts-schema.md` - JSON schema documentation for Atlassian accounts (✓ created)
-- `examples/atlassian-accounts-stub.json` - Example Atlassian accounts configuration (✓ created)
+- `quick-start/atlassian-accounts-stub.json` - Example Atlassian accounts configuration (✓ created)
 - `internal/services/atlassian_client.go` - Atlassian-specific HTTP client implementation
 - `internal/services/atlassian_accounts.go` - Accounts repository for managing multiple named Atlassian accounts (✓ created)
 - `internal/app/bitbucket.go` - Business logic for Bitbucket operations (✓ created with CreatePR implemented)
