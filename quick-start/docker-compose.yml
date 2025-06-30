@@ -1,7 +1,7 @@
 services:
   # MCP Server for testing HTTP transport
   atlacp-http:
-    image: ghcr.io/gemyago/atlacp-mcp:main #TODO: change to latest prior to commit
+    image: ghcr.io/gemyago/atlacp-mcp:latest
     command:
       - http
       - --atlassian-accounts-file=/app/config/atlassian-accounts.json

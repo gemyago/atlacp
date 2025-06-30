@@ -51,7 +51,7 @@ docker run -d --name atlacp-mcp \
   --restart=always \
   -p 8080:8080 \
   -v $(pwd)/accounts-config.json:/app/accounts-config.json \
-  ghcr.io/gemyago/atlacp-mcp:main
+  ghcr.io/gemyago/atlacp-mcp:latest
 ```
 
 ### Integrate with AI editors

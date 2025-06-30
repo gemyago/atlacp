@@ -2,63 +2,94 @@
 
 This directory contains examples and test scripts for the Atlassian MCP Integration.
 
-## Quick Start
+## Prepare accounts file
 
-### Prerequisites
+Create `atlassian-accounts.json` using `atlassian-accounts-stub.json` as a template. Follow next steps to set your Atlassian tokens.
 
-1. **Docker** - Make sure Docker is installed and running
-2. **Node.js** - Version 18 or higher for test scripts
-3. **Atlassian Accounts** - Configure your accounts in `atlassian-accounts-stub.json`
+More on Atlassian tokens:
+- [Personal API Tokens](https://support.atlassian.com/atlassian-account/docs/manage-api-tokens-for-your-atlassian-account/#Create-an-API-token) 
+ (keep in mind to create a basic token for API use). When using personal access tokens, all requests will be made on behalf of the user.
+- [Bitbucket Access Tokens](https://support.atlassian.com/bitbucket-cloud/docs/access-tokens/) - good for bots and other automation tools.
 
-### Configuration
+## Adding Atlassian Tokens
 
-1. **Prepare Atlassian Accounts**: Use `atlassian-accounts-stub.json` as a template and create `atlassian-accounts.json` with your actual credentials:
+### User API Token
 
-```json
-{
-  "accounts": [
-    {
-      "name": "user",
-      "default": true,
-      "bitbucket": {
-        "type": "Basic",
-        "value": "ATBBxxxxxxxxxxxxxxxx"
-      },
-      "jira": {
-        "type": "Basic",
-        "value": "ATATxxxxxxxxxxxxxxxx"
-      }
-    },
-    {
-      "name": "bot",
-      "default": false,
-      "bitbucket": {
-        "type": "Bearer",
-        "value": "ATBBxxxxxxxxxxxxxxxx"
-      },
-      "jira": {
-        "type": "Bearer",
-        "value": "ATATxxxxxxxxxxxxxxxx"
-      }
-    }
-  ]
-}
+* Go to https://id.atlassian.com/manage-profile/security/api-tokens
+* Create a new token, with at least below scopes:
+  ```text
+  read:account
+  read:issue:bitbucket
+  read:me
+  read:pipeline:bitbucket
+  read:project:bitbucket
+  read:pullrequest:bitbucket
+  read:repository:bitbucket
+  read:runner:bitbucket
+  read:snippet:bitbucket
+  read:user:bitbucket
+  write:issue:bitbucket
+  write:pullrequest:bitbucket
+  ```
+* Create a Basic token from it using shell command below:
+  ```bash
+  echo "<your-email>:<your-api-token>" | base64
+  ```
+* Copy the token value and use it in the `atlassian-accounts.json` file as a user account.
+
+### Bot API Token
+Skip this step if you don't plan to perform any actions on behalf of the bot.
+
+* Go your repository or workspace settings, click on "Access tokens"
+* Create a new token with below permissions:
+  ```text
+  pullrequest
+  pipeline
+  repository:write
+  repository
+  pullrequest:write
+  ```
+* Copy the token value and use it in the `atlassian-accounts.json` file as a bot account.
+
+## Run MCP Server
+
+Simplest way to run the MCP server is to use docker. Pre-built docker images are publicly available on ghcr.io (ghcr.io/gemyago/atlacp-mcp).
+
+**Note**
+Due to ghcr constraints, if you are logged in to ghcr, you may have to run `docker logout ghcr.io` to avoid authentication errors when pulling public images.
+
+### Run using Docker directly
+
+```bash
+docker run -d --name atlacp-mcp \
+  --restart=always \
+  -p 8080:8080 \
+  -v $(pwd)/accounts-config.json:/app/accounts-config.json \
+  ghcr.io/gemyago/atlacp-mcp:latest
 ```
 
-Do basic check by sending a `list` request to the server:
-```bash
-curl -X POST http://localhost:8080/mcp/list -H "Content-Type: application/json" -d '{"jsonrpc": "2.0", "method": "mcp.list", "id": 1}'
+### Run using Docker Compose
+
+Use example `docker-compose.yml` file to run the MCP server:
+```yaml
+services:
+  # MCP Server for testing HTTP transport
+  atlacp-http:
+    image: ghcr.io/gemyago/atlacp-mcp:latest
+    command:
+      - http
+      - --atlassian-accounts-file=/app/config/atlassian-accounts.json
+      - --log-level=info
+    volumes:
+      - ./atlassian-accounts.json:/app/config/atlassian-accounts.json:ro
+    ports:
+      - "8080:8080"
 ```
 
-## Use Docker Compose to run MCP Server
-
-### HTTP Server
-
-Run the HTTP server for testing HTTP transport:
+Run the MCP server with HTTP transport:
 
 ```bash
-# Start HTTP server
-docker-compose up atlacp-http
+docker-compose up atlacp-mcp
 ```
 
 **Note**
@@ -77,22 +108,3 @@ Example configuration for Cursor (.cursor/mcp.json):
   }
 }
 ```
-
-### Cursor Integration
-
-1. **Install MCP Server**: Add the MCP server to Cursor's configuration
-2. **Configure Accounts**: Set up your Atlassian accounts
-3. **Use Tools**: Access Bitbucket tools directly from Cursor
-
-### Claude Desktop Integration
-
-1. **Add Server**: Configure the MCP server in Claude Desktop
-2. **Test Connection**: Verify tools are available
-3. **Start Using**: Begin using Bitbucket tools in conversations
-
-## Next Steps
-
-- [ ] Test with real Bitbucket repositories
-- [ ] Integrate with CI/CD pipelines
-- [ ] Add Jira integration testing
-- [ ] Create more comprehensive test scenarios 
