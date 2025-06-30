@@ -130,6 +130,45 @@ This test verifies that different accounts can be used for different PR operatio
    - Make sure the main branch is checked out again
    - Pull the latest changes
 
+## Test 3: Draft Pull Request Creation and Verification
+
+This test verifies that a Pull Request can be created in draft mode and that its draft status is correctly reflected in Bitbucket.
+
+### Steps
+
+1. **Setup test environment**
+   - Create a new branch from main: `feature/draft-pr-test-{timestamp}`
+   - Update the test file `integration-tests/bitbucket/test-files/integration-test-file.txt` with new content (e.g., current time)
+   - Commit and push the changes
+
+2. **Create a Draft Pull Request**
+   - Use the `mcp.bitbucket_create_pr` tool with the following parameters:
+     - title: "Draft PR Test {timestamp}"
+     - source_branch: "feature/draft-pr-test-{timestamp}"
+     - target_branch: "main"
+     - repo_owner: your workspace name
+     - repo_name: your repository name
+     - description: "This is an automated draft PR integration test"
+     - draft: true
+   - Extract and save the PR ID for subsequent steps
+
+3. **Read the Pull Request details**
+   - Use the `mcp.bitbucket_read_pr` tool with the PR ID from the previous step
+   - Verify that:
+     - The PR ID matches the one from the creation step
+     - The PR title matches what was set in the creation step
+     - The PR status is "OPEN"
+     - The PR is marked as a draft (check the draft status field)
+
+4. **Update the Pull Request to Ready for Review**
+   - Use the `mcp.bitbucket_update_pr` tool to set the PR as ready for review (i.e., remove draft status if supported)
+   - Read the PR again to verify the draft status is now false or the PR is no longer a draft
+
+5. **Clean up**
+   - Merge or close the PR as appropriate
+   - Make sure the main branch is checked out again
+   - Pull the latest changes
+
 ## Test Results Documentation
 
 After completing all tests, create a single results file to document the outcomes:
@@ -162,7 +201,12 @@ Test executed at: {timestamp}
 - Step 4: Merge the Pull Request as default user - PASS
 - Step 5: Clean up - PASS
 
-.....
+## Test 3: Draft Pull Request Creation and Verification
+- Step 1: Setup test environment - PASS
+- Step 2: Create a Draft Pull Request - PASS
+- Step 3: Read the Pull Request - PASS
+- Step 4: Update the Pull Request - PASS
+- Step 5: Clean up - PASS
 
 ## Summary
 - All tests: PASS
