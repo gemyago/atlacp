@@ -2553,6 +2553,108 @@ func TestBitbucketController(t *testing.T) {
 			assert.NotContains(t, content.Text, "1. [")
 			assert.NotContains(t, content.Text, "2. [")
 		})
+
+		t.Run("should handle nil Creator in ListPRTasks", func(t *testing.T) {
+			// Arrange
+			deps := makeBitbucketControllerDeps(t)
+			mockService := mocks.GetMock[*MockbitbucketService](t, deps.BitbucketService)
+			controller := NewBitbucketController(deps)
+			ctx := t.Context()
+
+			// Create test data with randomized values
+			prID := int(faker.RandomUnixTime()) % 1000000
+			repoOwner := "workspace-" + faker.Username()
+			repoName := "repo-" + faker.Word()
+			accountName := "account-" + faker.Username()
+
+			// Create tasks with specific IDs for testing
+			taskID1 := 100 + rand.Int64N(10000)
+			taskID2 := 100 + rand.Int64N(10000)
+			task1Content := "Task: " + faker.Sentence()
+			task2Content := "Task: " + faker.Sentence()
+
+			expectedTasks := &bitbucket.PaginatedTasks{
+				Size:    2,
+				Page:    1,
+				PageLen: 10,
+				Values: []bitbucket.PullRequestCommentTask{
+					{
+						PullRequestTask: bitbucket.PullRequestTask{
+							Task: bitbucket.Task{
+								ID:    taskID1,
+								State: "RESOLVED",
+								Content: &bitbucket.TaskContent{
+									Raw: task1Content,
+								},
+								Creator: nil, // Explicitly set Creator to nil for testing
+							},
+						},
+					},
+					{
+						PullRequestTask: bitbucket.PullRequestTask{
+							Task: bitbucket.Task{
+								ID:    taskID2,
+								State: "UNRESOLVED",
+								Content: &bitbucket.TaskContent{
+									Raw: task2Content,
+								},
+								// Creator is nil by default
+							},
+						},
+					},
+				},
+			}
+
+			// Setup mock expectations
+			mockService.EXPECT().
+				ListTasks(ctx, mock.MatchedBy(func(params app.BitbucketListTasksParams) bool {
+					return params.PullRequestID == prID &&
+						params.AccountName == accountName &&
+						params.RepoOwner == repoOwner &&
+						params.RepoName == repoName
+				})).
+				Return(expectedTasks, nil)
+
+			// Create the request
+			request := mcp.CallToolRequest{
+				Params: mcp.CallToolParams{
+					Name: "bitbucket_list_pr_tasks",
+					Arguments: map[string]interface{}{
+						"pr_id":      prID,
+						"repo_owner": repoOwner,
+						"repo_name":  repoName,
+						"account":    accountName,
+					},
+				},
+			}
+
+			// Act
+			serverTool := controller.newListPRTasksServerTool()
+			result, err := serverTool.Handler(ctx, request)
+
+			// Assert
+			require.NoError(t, err)
+			require.NotNil(t, result)
+			assert.False(t, result.IsError)
+
+			// Verify the content of the result
+			content, ok := result.Content[0].(mcp.TextContent)
+			require.True(t, ok, "Result content should be text content")
+
+			// Verify task count is shown correctly
+			assert.Contains(t, content.Text, fmt.Sprintf("Found %d tasks", expectedTasks.Size))
+
+			// Verify that the task IDs are displayed
+			assert.Contains(t, content.Text, fmt.Sprintf("Task #%d", taskID1))
+			assert.Contains(t, content.Text, fmt.Sprintf("Task #%d", taskID2))
+
+			// Verify task content is shown correctly
+			assert.Contains(t, content.Text, task1Content)
+			assert.Contains(t, content.Text, task2Content)
+
+			// Verify that the response doesn't crash due to nil Creator
+			assert.Contains(t, content.Text, "unknown user")
+		})
 	})
 
 	// Example of how to use mocks.GetMock for retrieving the mock instance:

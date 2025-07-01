@@ -568,11 +568,19 @@ func (bc *BitbucketController) newListPRTasksServerTool() server.ServerTool {
 		} else {
 			responseText = fmt.Sprintf("Found %d tasks", tasks.Size)
 			for _, task := range tasks.Values {
+				// Get creator display name, handling nil Creator
+				var creatorName string
+				if task.Creator != nil && task.Creator.DisplayName != "" {
+					creatorName = task.Creator.DisplayName
+				} else {
+					creatorName = "unknown user"
+				}
+
 				responseText += fmt.Sprintf("\nTask #%d: [%s] %s (by %s)",
 					task.ID,
 					task.State,
 					task.Content.Raw,
-					task.Creator.DisplayName)
+					creatorName)
 			}
 		}
 
