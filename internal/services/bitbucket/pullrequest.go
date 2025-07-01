@@ -53,12 +53,21 @@ type PullRequestSummary struct {
 
 // PullRequest represents a Bitbucket pull request.
 type PullRequest struct {
-	ID                int                     `json:"id"`
-	Title             string                  `json:"title"`
-	Description       string                  `json:"description,omitempty"`
-	State             string                  `json:"state"`
-	Author            *PullRequestAuthor      `json:"author,omitempty"`
-	Source            PullRequestSource       `json:"source"`
+	ID int `json:"id"`
+
+	// Title is the title of the pull request. Omitempty is required for partial updates.
+	Title string `json:"title,omitempty"`
+
+	Description string `json:"description,omitempty"`
+
+	// State is the current state of the pull request. Omitempty prevents sending empty state during updates.
+	State string `json:"state,omitempty"`
+
+	Author *PullRequestAuthor `json:"author,omitempty"`
+
+	// Source contains branch information. The omitzero prevents "branch not found" errors during partial updates.
+	Source PullRequestSource `json:"source,omitzero"`
+
 	Destination       *PullRequestDestination `json:"destination,omitempty"`
 	Reviewers         []PullRequestAuthor     `json:"reviewers,omitempty"`
 	CloseSourceBranch bool                    `json:"close_source_branch,omitempty"`
