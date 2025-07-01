@@ -776,6 +776,62 @@ func TestBitbucketService(t *testing.T) {
 			require.Error(t, err)
 			assert.Equal(t, expectedErr, errors.Unwrap(err))
 		})
+
+		t.Run("successfully updates pull request draft status", func(t *testing.T) {
+			// Arrange
+			deps := makeMockDeps(t)
+			mockClient := mocks.GetMock[*MockbitbucketClient](t, deps.Client)
+			mockAuth := mocks.GetMock[*MockbitbucketAuthFactory](t, deps.AuthFactory)
+			service := NewBitbucketService(deps)
+
+			// Create test data
+			repoOwner := "owner-" + faker.Username()
+			repoName := "repo-" + faker.Username()
+			pullRequestID := int(faker.RandomUnixTime()) % 10000
+
+			newTitle := "Updated: " + faker.Sentence()
+
+			expectedPR := bitbucket.NewRandomPullRequest()
+			expectedPR.Title = newTitle
+			expectedPR.Draft = true // Set draft status on expected PR
+
+			token := "token-" + faker.UUIDHyphenated()
+			tokenProvider := newStaticTokenProvider(token)
+
+			// Mock the auth factory to return our token provider
+			mockAuth.EXPECT().
+				getTokenProvider(mock.Anything, "").
+				Return(tokenProvider)
+
+			// Mock the client to return expected PR
+			mockClient.EXPECT().
+				UpdatePR(mock.Anything, mock.Anything, mock.MatchedBy(func(params bitbucket.UpdatePRParams) bool {
+					// Verify the parameters
+					assert.Equal(t, repoOwner, params.Username)
+					assert.Equal(t, repoName, params.RepoSlug)
+					assert.Equal(t, pullRequestID, params.PullRequestID)
+
+					// Verify the update request
+					assert.Equal(t, newTitle, params.Request.Title)
+					assert.True(t, params.Request.Draft)
+					return true
+				})).
+				Return(expectedPR, nil)
+
+			// Act
+			result, err := service.UpdatePR(t.Context(), BitbucketUpdatePRParams{
+				RepoOwner:     repoOwner,
+				RepoName:      repoName,
+				PullRequestID: pullRequestID,
+				Title:         newTitle,
+				Draft:         true,
+			})
+
+			// Assert
+			require.NoError(t, err)
+			assert.Equal(t, expectedPR, result)
+			assert.True(t, result.Draft)
+		})
 	})
 
 	t.Run("ApprovePR", func(t *testing.T) {

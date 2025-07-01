@@ -268,6 +268,9 @@ func (bc *BitbucketController) newUpdatePRServerTool() server.ServerTool {
 		mcp.WithString("description",
 			mcp.Description("New pull request description"),
 		),
+		mcp.WithBoolean("draft",
+			mcp.Description("Update as draft pull request (optional)"),
+		),
 		mcp.WithString("account",
 			mcp.Description("Atlassian account name to use (optional, uses default if not specified)"),
 		),
@@ -292,9 +295,10 @@ func (bc *BitbucketController) newUpdatePRServerTool() server.ServerTool {
 			return mcp.NewToolResultErrorFromErr("Missing or invalid repo_name parameter", err), nil
 		}
 
-		// At least one of title or description must be provided
+		// At least one of title, description, or draft must be provided
 		title := request.GetString("title", "")
 		description := request.GetString("description", "")
+		draft := request.GetBool("draft", false)
 
 		if title == "" && description == "" {
 			return mcp.NewToolResultError("At least one of title or description must be provided"), nil
@@ -310,6 +314,7 @@ func (bc *BitbucketController) newUpdatePRServerTool() server.ServerTool {
 			RepoName:      repoName,
 			Title:         title,
 			Description:   description,
+			Draft:         draft,
 			AccountName:   account,
 		}
 
