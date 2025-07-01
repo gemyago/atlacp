@@ -11,6 +11,7 @@ import (
 	"github.com/gemyago/atlacp/internal/services/bitbucket"
 	"github.com/mark3labs/mcp-go/mcp"
 	"github.com/mark3labs/mcp-go/server"
+	"github.com/samber/lo"
 	"go.uber.org/dig"
 )
 
@@ -139,7 +140,7 @@ func (bc *BitbucketController) newCreatePRServerTool() server.ServerTool {
 			AccountName:  account,
 			RepoOwner:    repoOwner,
 			RepoName:     repoName,
-			Draft:        draft,
+			Draft:        lo.ToPtr(draft),
 		}
 
 		// Call the service to create the pull request
@@ -298,7 +299,6 @@ func (bc *BitbucketController) newUpdatePRServerTool() server.ServerTool {
 		// At least one of title, description, or draft must be provided
 		title := request.GetString("title", "")
 		description := request.GetString("description", "")
-		draft := request.GetBool("draft", false)
 
 		allArgs := request.GetArguments()
 		_, hasTitle := allArgs["title"]
@@ -307,6 +307,11 @@ func (bc *BitbucketController) newUpdatePRServerTool() server.ServerTool {
 
 		if !hasTitle && !hasDescription && !hasDraft {
 			return mcp.NewToolResultError("Missing attributes to update a PR"), nil
+		}
+
+		var draft *bool
+		if hasDraft {
+			draft = lo.ToPtr(request.GetBool("draft", false))
 		}
 
 		// Optional parameters

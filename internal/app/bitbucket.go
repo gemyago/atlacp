@@ -74,7 +74,7 @@ type BitbucketCreatePRParams struct {
 	Reviewers []string `json:"reviewers,omitempty"`
 
 	// Whether to create the pull request as a draft
-	Draft bool `json:"draft,omitempty"`
+	Draft *bool `json:"draft,omitempty"`
 }
 
 // BitbucketReadPRParams contains parameters for retrieving a pull request.
@@ -113,7 +113,7 @@ type BitbucketUpdatePRParams struct {
 	Description string `json:"description,omitempty"`
 
 	// Whether to update the pull request as a draft
-	Draft bool `json:"draft,omitempty"`
+	Draft *bool `json:"draft,omitempty"`
 }
 
 // BitbucketApprovePRParams contains parameters for approving a pull request.

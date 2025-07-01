@@ -128,7 +128,7 @@ func TestClient_CreatePR(t *testing.T) {
 		assert.True(t, result.CloseSourceBranch)
 		assert.Equal(t, createdOn, result.CreatedOn.UTC())
 		assert.Equal(t, createdOn, result.UpdatedOn.UTC())
-		assert.False(t, result.Draft)
+		assert.False(t, *result.Draft)
 	})
 
 	t.Run("success with required parameters only", func(t *testing.T) {

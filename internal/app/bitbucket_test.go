@@ -8,6 +8,7 @@ import (
 	"github.com/gemyago/atlacp/internal/services/bitbucket"
 	"github.com/gemyago/atlacp/internal/testing/mocks"
 	"github.com/go-faker/faker/v4"
+	"github.com/samber/lo"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/mock"
 	"github.com/stretchr/testify/require"
@@ -196,7 +197,7 @@ func TestBitbucketService(t *testing.T) {
 			repoOwner := "owner-" + faker.Username()
 			repoName := "repo-" + faker.Username()
 			expectedPR := bitbucket.NewRandomPullRequest()
-			expectedPR.Draft = true // Set draft status on expected PR
+			expectedPR.Draft = lo.ToPtr(true) // Set draft status on expected PR
 			token := "token-" + faker.UUIDHyphenated()
 			tokenProvider := newStaticTokenProvider(token)
 
@@ -209,7 +210,7 @@ func TestBitbucketService(t *testing.T) {
 			mockClient.EXPECT().
 				CreatePR(mock.Anything, mock.Anything, mock.MatchedBy(func(params bitbucket.CreatePRParams) bool {
 					// Verify draft flag is properly set
-					assert.True(t, params.Request.Draft)
+					assert.True(t, *params.Request.Draft)
 					return true
 				})).
 				Return(expectedPR, nil)
@@ -221,13 +222,13 @@ func TestBitbucketService(t *testing.T) {
 				Title:        expectedPR.Title,
 				SourceBranch: expectedPR.Source.Branch.Name,
 				DestBranch:   expectedPR.Destination.Branch.Name,
-				Draft:        true, // Set as draft PR
+				Draft:        lo.ToPtr(true), // Set as draft PR
 			})
 
 			// Assert
 			require.NoError(t, err)
 			assert.NotNil(t, result)
-			assert.True(t, result.Draft)
+			assert.True(t, *result.Draft)
 		})
 
 		t.Run("fails when missing required parameters", func(t *testing.T) {
@@ -793,7 +794,7 @@ func TestBitbucketService(t *testing.T) {
 
 			expectedPR := bitbucket.NewRandomPullRequest()
 			expectedPR.Title = newTitle
-			expectedPR.Draft = true // Set draft status on expected PR
+			expectedPR.Draft = lo.ToPtr(true) // Set draft status on expected PR
 
 			token := "token-" + faker.UUIDHyphenated()
 			tokenProvider := newStaticTokenProvider(token)
@@ -813,7 +814,7 @@ func TestBitbucketService(t *testing.T) {
 
 					// Verify the update request
 					assert.Equal(t, newTitle, params.Request.Title)
-					assert.True(t, params.Request.Draft)
+					assert.True(t, *params.Request.Draft)
 					return true
 				})).
 				Return(expectedPR, nil)
@@ -824,13 +825,13 @@ func TestBitbucketService(t *testing.T) {
 				RepoName:      repoName,
 				PullRequestID: pullRequestID,
 				Title:         newTitle,
-				Draft:         true,
+				Draft:         lo.ToPtr(true),
 			})
 
 			// Assert
 			require.NoError(t, err)
 			assert.Equal(t, expectedPR, result)
-			assert.True(t, result.Draft)
+			assert.True(t, *result.Draft)
 		})
 	})
 

@@ -14,6 +14,7 @@ import (
 	"github.com/gemyago/atlacp/internal/testing/mocks"
 	"github.com/go-faker/faker/v4"
 	"github.com/mark3labs/mcp-go/mcp"
+	"github.com/samber/lo"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/mock"
 	"github.com/stretchr/testify/require"
@@ -285,7 +286,7 @@ func TestBitbucketController(t *testing.T) {
 					Description:  description,
 					RepoOwner:    repoOwner,
 					RepoName:     repoName,
-					Draft:        true, // Expect draft to be true
+					Draft:        lo.ToPtr(true), // Expect draft to be true
 				}
 
 				prID := int(faker.RandomUnixTime()) % 1000000 // Generate a random PR ID
@@ -306,7 +307,7 @@ func TestBitbucketController(t *testing.T) {
 							Name: targetBranch,
 						},
 					},
-					Draft: true, // PR is a draft
+					Draft: lo.ToPtr(true), // PR is a draft
 				}
 
 				// Setup mock expectations with draft=true
@@ -318,7 +319,7 @@ func TestBitbucketController(t *testing.T) {
 							params.Description == expectedParams.Description &&
 							params.RepoOwner == expectedParams.RepoOwner &&
 							params.RepoName == expectedParams.RepoName &&
-							params.Draft == true // Verify draft flag is set to true
+							*params.Draft == true // Verify draft flag is set to true
 					})).
 					Return(expectedPR, nil)
 
@@ -1275,18 +1276,15 @@ func TestBitbucketController(t *testing.T) {
 
 				// Create test data with randomized values using faker
 				prID := int(faker.RandomUnixTime()) % 1000000 // Generate a random PR ID within a reasonable range
-				accountName := "account-" + faker.Username()
-				repoOwner := "workspace-" + faker.Username()
-				repoName := "repo-" + faker.Word()
 				draft := rand.IntN(2) == 1
 
 				// Create expected parameters and response
 				expectedParams := app.BitbucketUpdatePRParams{
 					PullRequestID: prID,
-					AccountName:   accountName,
-					RepoOwner:     repoOwner,
-					RepoName:      repoName,
-					Draft:         draft,
+					AccountName:   "account-" + faker.Username(),
+					RepoOwner:     "workspace-" + faker.Username(),
+					RepoName:      "repo-" + faker.Word(),
+					Draft:         lo.ToPtr(draft),
 				}
 
 				// Create expected PR response with random values
@@ -1298,7 +1296,7 @@ func TestBitbucketController(t *testing.T) {
 				mockService.EXPECT().
 					UpdatePR(mock.Anything, mock.MatchedBy(func(params app.BitbucketUpdatePRParams) bool {
 						return params.PullRequestID == expectedParams.PullRequestID &&
-							params.Draft == expectedParams.Draft
+							*params.Draft == *expectedParams.Draft
 					})).
 					Return(expectedPR, nil)
 
@@ -1308,10 +1306,75 @@ func TestBitbucketController(t *testing.T) {
 						Name: "bitbucket_update_pr",
 						Arguments: map[string]interface{}{
 							"pr_id":      prID,
-							"account":    accountName,
-							"repo_owner": repoOwner,
-							"repo_name":  repoName,
+							"account":    expectedParams.AccountName,
+							"repo_owner": expectedParams.RepoOwner,
+							"repo_name":  expectedParams.RepoName,
 							"draft":      draft,
+						},
+					},
+				}
+
+				// Get the handler
+				serverTool := controller.newUpdatePRServerTool()
+				handler := serverTool.Handler
+
+				// Act
+				result, err := handler(ctx, request)
+
+				// Assert
+				require.NoError(t, err)
+				require.NotNil(t, result)
+				assert.False(t, result.IsError)
+
+				// Verify the content of the result
+				content, ok := result.Content[0].(mcp.TextContent)
+				require.True(t, ok, "Result content should be text content")
+				assert.Contains(t, content.Text, fmt.Sprintf("Updated pull request #%d", prID))
+			})
+
+			t.Run("should allow just a title to be updated", func(t *testing.T) {
+				// Arrange
+				deps := makeMockDeps(t)
+				mockService := mocks.GetMock[*MockbitbucketService](t, deps.BitbucketService)
+				controller := NewBitbucketController(deps)
+				ctx := t.Context()
+
+				// Create test data with randomized values using faker
+				prID := int(faker.RandomUnixTime()) % 1000000 // Generate a random PR ID within a reasonable range
+
+				// Create expected parameters and response
+				expectedParams := app.BitbucketUpdatePRParams{
+					PullRequestID: prID,
+					AccountName:   "account-" + faker.Username(),
+					RepoOwner:     "workspace-" + faker.Username(),
+					RepoName:      "repo-" + faker.Word(),
+					Title:         "Updated-PR-" + faker.Sentence(),
+				}
+
+				// Create expected PR response with random values
+				expectedPR := &bitbucket.PullRequest{
+					ID: prID,
+				}
+
+				// Setup mock expectations with any matcher for context
+				mockService.EXPECT().
+					UpdatePR(mock.Anything, mock.MatchedBy(func(params app.BitbucketUpdatePRParams) bool {
+						return assert.Equal(t, expectedParams.PullRequestID, params.PullRequestID) &&
+							assert.Nil(t, params.Draft) &&
+							assert.Equal(t, expectedParams.Title, params.Title)
+					})).
+					Return(expectedPR, nil)
+
+				// Create the request
+				request := mcp.CallToolRequest{
+					Params: mcp.CallToolParams{
+						Name: "bitbucket_update_pr",
+						Arguments: map[string]interface{}{
+							"pr_id":      prID,
+							"account":    expectedParams.AccountName,
+							"repo_owner": expectedParams.RepoOwner,
+							"repo_name":  expectedParams.RepoName,
+							"title":      expectedParams.Title,
 						},
 					},
 				}
@@ -2733,90 +2796,6 @@ func TestBitbucketController(t *testing.T) {
 
 				// Verify that the response doesn't crash due to nil Creator
 				assert.Contains(t, content.Text, "unknown user")
-			})
-
-			t.Run("should handle UpdatePR call with draft status successfully", func(t *testing.T) {
-				// Arrange
-				deps := makeMockDeps(t)
-				mockService := mocks.GetMock[*MockbitbucketService](t, deps.BitbucketService)
-				controller := NewBitbucketController(deps)
-				ctx := t.Context()
-
-				// Create test data with randomized values using faker
-				prID := int(faker.RandomUnixTime()) % 1000000 // Generate a random PR ID within a reasonable range
-				repoOwner := "workspace-" + faker.Username()
-				repoName := "repo-" + faker.Word()
-				newTitle := "Updated-PR-" + faker.Sentence()
-
-				// Create expected parameters and response
-				expectedParams := app.BitbucketUpdatePRParams{
-					PullRequestID: prID,
-					RepoOwner:     repoOwner,
-					RepoName:      repoName,
-					Title:         newTitle,
-					Draft:         true, // Set as draft
-				}
-
-				// Create expected PR response with random values
-				expectedPR := &bitbucket.PullRequest{
-					ID:    prID,
-					Title: newTitle,
-					Draft: true, // Set as draft
-					State: "OPEN",
-					Source: bitbucket.PullRequestSource{
-						Branch: bitbucket.PullRequestBranch{
-							Name: "feature/" + faker.Username(),
-						},
-					},
-					Destination: &bitbucket.PullRequestDestination{
-						Branch: bitbucket.PullRequestBranch{
-							Name: "main",
-						},
-					},
-				}
-
-				// Setup mock expectations with any matcher for context
-				mockService.EXPECT().
-					UpdatePR(mock.Anything, mock.MatchedBy(func(params app.BitbucketUpdatePRParams) bool {
-						return params.PullRequestID == expectedParams.PullRequestID &&
-							params.RepoOwner == expectedParams.RepoOwner &&
-							params.RepoName == expectedParams.RepoName &&
-							params.Title == expectedParams.Title &&
-							params.Draft == expectedParams.Draft
-					})).
-					Return(expectedPR, nil)
-
-				// Create the request
-				request := mcp.CallToolRequest{
-					Params: mcp.CallToolParams{
-						Name: "bitbucket_update_pr",
-						Arguments: map[string]interface{}{
-							"pr_id":      prID,
-							"repo_owner": repoOwner,
-							"repo_name":  repoName,
-							"title":      newTitle,
-							"draft":      true,
-						},
-					},
-				}
-
-				// Get the handler
-				serverTool := controller.newUpdatePRServerTool()
-				handler := serverTool.Handler
-
-				// Act
-				result, err := handler(ctx, request)
-
-				// Assert
-				require.NoError(t, err)
-				require.NotNil(t, result)
-				assert.False(t, result.IsError)
-
-				// Verify the content of the result
-				content, ok := result.Content[0].(mcp.TextContent)
-				require.True(t, ok, "Result content should be text content")
-				assert.Contains(t, content.Text, fmt.Sprintf("Updated pull request #%d", prID))
-				assert.Contains(t, content.Text, newTitle)
 			})
 		})
 
