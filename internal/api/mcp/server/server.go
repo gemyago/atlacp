@@ -2,6 +2,7 @@ package server
 
 import (
 	"context"
+	"fmt"
 	"io"
 	"log/slog"
 	"time"
@@ -96,11 +97,16 @@ func NewMCPServer(deps MCPServerDeps) *MCPServer {
 
 					res, err := next(nextCtx, req)
 					if err != nil {
+						diagCtx = diag.GetLogAttributesFromContext(nextCtx)
+						correlationID := diagCtx.CorrelationID.String()
+
 						logger.ErrorContext(nextCtx, "Error processing tool call",
 							slog.String("tool", req.Params.Name),
 							slog.Any("error", err),
 						)
-						return mcp.NewToolResultError(err.Error()), nil
+
+						errorMessage := fmt.Sprintf("Error details: %s; CorrelationID: %s", err.Error(), correlationID)
+						return mcp.NewToolResultError(errorMessage), nil
 					}
 
 					logger.InfoContext(nextCtx, "Tool call processed",
