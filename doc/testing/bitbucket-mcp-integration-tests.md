@@ -6,6 +6,8 @@ This document provides step-by-step instructions for testing the Bitbucket MCP i
 
 **Important**: If not mentioned, run all tests from this file.
 
+**Very Important**: The user **MUST** provide the file system path to the repository. Current workspace is NOT the bitbucket repository. If not provided - ask the user for the path.
+
 It is expected that the prompt to start the test will have the following form:
 ```markdown
 Given the following Bitbucket repository `<file system path to the repository>`, run the tests as per the instructions in the `bitbucket-mcp-integration-tests.md` file.
