@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"math/rand/v2"
 	"testing"
 	"time"
 
@@ -2451,15 +2452,19 @@ func TestBitbucketController(t *testing.T) {
 			controller := NewBitbucketController(deps)
 			ctx := t.Context()
 
-			// Create test data
-			prID := 123
-			repoOwner := "workspace-abc"
-			repoName := "repo-xyz"
-			accountName := "account-1"
+			// Create test data with randomized values using faker
+			prID := int(faker.RandomUnixTime()) % 1000000
+			repoOwner := "workspace-" + faker.Username()
+			repoName := "repo-" + faker.Word()
+			accountName := "account-" + faker.Username()
 
 			// Create tasks with specific IDs for testing
-			taskID1 := int64(456)
-			taskID2 := int64(789)
+			taskID1 := 100 + rand.Int64N(10000)
+			taskID2 := 100 + rand.Int64N(10000)
+			task1Content := "Task: " + faker.Sentence()
+			task2Content := "Task: " + faker.Sentence()
+			creator1Name := "User-" + faker.Name()
+			creator2Name := "User-" + faker.Name()
 
 			expectedTasks := &bitbucket.PaginatedTasks{
 				Size:    2,
@@ -2472,10 +2477,10 @@ func TestBitbucketController(t *testing.T) {
 								ID:    taskID1,
 								State: "RESOLVED",
 								Content: &bitbucket.TaskContent{
-									Raw: "Task 1: Review code",
+									Raw: task1Content,
 								},
 								Creator: &bitbucket.Account{
-									DisplayName: "User One",
+									DisplayName: creator1Name,
 								},
 							},
 						},
@@ -2486,10 +2491,10 @@ func TestBitbucketController(t *testing.T) {
 								ID:    taskID2,
 								State: "UNRESOLVED",
 								Content: &bitbucket.TaskContent{
-									Raw: "Task 2: Fix tests",
+									Raw: task2Content,
 								},
 								Creator: &bitbucket.Account{
-									DisplayName: "User Two",
+									DisplayName: creator2Name,
 								},
 							},
 						},
@@ -2499,7 +2504,7 @@ func TestBitbucketController(t *testing.T) {
 
 			// Setup mock expectations
 			mockService.EXPECT().
-				ListTasks(mock.Anything, mock.MatchedBy(func(params app.BitbucketListTasksParams) bool {
+				ListTasks(ctx, mock.MatchedBy(func(params app.BitbucketListTasksParams) bool {
 					return params.PullRequestID == prID &&
 						params.AccountName == accountName &&
 						params.RepoOwner == repoOwner &&
@@ -2520,12 +2525,9 @@ func TestBitbucketController(t *testing.T) {
 				},
 			}
 
-			// Get the handler
-			serverTool := controller.newListPRTasksServerTool()
-			handler := serverTool.Handler
-
 			// Act
-			result, err := handler(ctx, request)
+			serverTool := controller.newListPRTasksServerTool()
+			result, err := serverTool.Handler(ctx, request)
 
 			// Assert
 			require.NoError(t, err)
@@ -2535,11 +2537,17 @@ func TestBitbucketController(t *testing.T) {
 			// Verify the content of the result
 			content, ok := result.Content[0].(mcp.TextContent)
 			require.True(t, ok, "Result content should be text content")
+
+			// Verify task count is shown correctly
 			assert.Contains(t, content.Text, fmt.Sprintf("Found %d tasks", expectedTasks.Size))
 
 			// Verify that the task IDs are displayed, not indices
 			assert.Contains(t, content.Text, fmt.Sprintf("Task #%d", taskID1))
 			assert.Contains(t, content.Text, fmt.Sprintf("Task #%d", taskID2))
+
+			// Verify task content is shown correctly
+			assert.Contains(t, content.Text, task1Content)
+			assert.Contains(t, content.Text, task2Content)
 
 			// Verify that indices are not used in the output
 			assert.NotContains(t, content.Text, "1. [")
