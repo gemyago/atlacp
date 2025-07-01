@@ -128,13 +128,7 @@ func (bc *BitbucketController) newCreatePRServerTool() server.ServerTool {
 		// Optional parameters
 		description := request.GetString("description", "")
 		account := request.GetString("account", "")
-		draftStr := request.GetString("draft", "")
-
-		// Parse draft flag
-		draft := false
-		if draftStr != "" {
-			draft = draftStr == "true"
-		}
+		draft := request.GetBool("draft", false)
 
 		// Create parameters for the service layer
 		params := app.BitbucketCreatePRParams{
@@ -456,14 +450,8 @@ func (bc *BitbucketController) newMergePRServerTool() server.ServerTool {
 		// Optional parameters
 		mergeStrategy := request.GetString("merge_strategy", "")
 		commitMessage := request.GetString("commit_message", "")
-		closeSourceBranchStr := request.GetString("close_source_branch", "")
+		closeSourceBranch := request.GetBool("close_source_branch", false)
 		account := request.GetString("account", "")
-
-		// Parse boolean parameter
-		var closeSourceBranch bool
-		if closeSourceBranchStr != "" {
-			closeSourceBranch = closeSourceBranchStr == "true"
-		}
 
 		// Create parameters for the service layer
 		params := app.BitbucketMergePRParams{
