@@ -567,9 +567,9 @@ func (bc *BitbucketController) newListPRTasksServerTool() server.ServerTool {
 			responseText = "No tasks found for this pull request"
 		} else {
 			responseText = fmt.Sprintf("Found %d tasks", tasks.Size)
-			for i, task := range tasks.Values {
-				responseText += fmt.Sprintf("\n%d. [%s] %s (by %s)",
-					i+1,
+			for _, task := range tasks.Values {
+				responseText += fmt.Sprintf("\nTask #%d: [%s] %s (by %s)",
+					task.ID,
 					task.State,
 					task.Content.Raw,
 					task.Creator.DisplayName)

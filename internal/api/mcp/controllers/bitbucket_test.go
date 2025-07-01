@@ -2443,6 +2443,108 @@ func TestBitbucketController(t *testing.T) {
 			require.True(t, ok, "Error content should be text content")
 			assert.Contains(t, content.Text, "Either content or state must be provided")
 		})
+
+		t.Run("should display actual task IDs in ListPRTasks output", func(t *testing.T) {
+			// Arrange
+			deps := makeBitbucketControllerDeps(t)
+			mockService := mocks.GetMock[*MockbitbucketService](t, deps.BitbucketService)
+			controller := NewBitbucketController(deps)
+			ctx := t.Context()
+
+			// Create test data
+			prID := 123
+			repoOwner := "workspace-abc"
+			repoName := "repo-xyz"
+			accountName := "account-1"
+
+			// Create tasks with specific IDs for testing
+			taskID1 := int64(456)
+			taskID2 := int64(789)
+
+			expectedTasks := &bitbucket.PaginatedTasks{
+				Size:    2,
+				Page:    1,
+				PageLen: 10,
+				Values: []bitbucket.PullRequestCommentTask{
+					{
+						PullRequestTask: bitbucket.PullRequestTask{
+							Task: bitbucket.Task{
+								ID:    taskID1,
+								State: "RESOLVED",
+								Content: &bitbucket.TaskContent{
+									Raw: "Task 1: Review code",
+								},
+								Creator: &bitbucket.Account{
+									DisplayName: "User One",
+								},
+							},
+						},
+					},
+					{
+						PullRequestTask: bitbucket.PullRequestTask{
+							Task: bitbucket.Task{
+								ID:    taskID2,
+								State: "UNRESOLVED",
+								Content: &bitbucket.TaskContent{
+									Raw: "Task 2: Fix tests",
+								},
+								Creator: &bitbucket.Account{
+									DisplayName: "User Two",
+								},
+							},
+						},
+					},
+				},
+			}
+
+			// Setup mock expectations
+			mockService.EXPECT().
+				ListTasks(mock.Anything, mock.MatchedBy(func(params app.BitbucketListTasksParams) bool {
+					return params.PullRequestID == prID &&
+						params.AccountName == accountName &&
+						params.RepoOwner == repoOwner &&
+						params.RepoName == repoName
+				})).
+				Return(expectedTasks, nil)
+
+			// Create the request
+			request := mcp.CallToolRequest{
+				Params: mcp.CallToolParams{
+					Name: "bitbucket_list_pr_tasks",
+					Arguments: map[string]interface{}{
+						"pr_id":      prID,
+						"repo_owner": repoOwner,
+						"repo_name":  repoName,
+						"account":    accountName,
+					},
+				},
+			}
+
+			// Get the handler
+			serverTool := controller.newListPRTasksServerTool()
+			handler := serverTool.Handler
+
+			// Act
+			result, err := handler(ctx, request)
+
+			// Assert
+			require.NoError(t, err)
+			require.NotNil(t, result)
+			assert.False(t, result.IsError)
+
+			// Verify the content of the result
+			content, ok := result.Content[0].(mcp.TextContent)
+			require.True(t, ok, "Result content should be text content")
+			assert.Contains(t, content.Text, fmt.Sprintf("Found %d tasks", expectedTasks.Size))
+
+			// Verify that the task IDs are displayed, not indices
+			assert.Contains(t, content.Text, fmt.Sprintf("Task #%d", taskID1))
+			assert.Contains(t, content.Text, fmt.Sprintf("Task #%d", taskID2))
+
+			// Verify that indices are not used in the output
+			assert.NotContains(t, content.Text, "1. [")
+			assert.NotContains(t, content.Text, "2. [")
+		})
 	})
 
 	// Example of how to use mocks.GetMock for retrieving the mock instance:
