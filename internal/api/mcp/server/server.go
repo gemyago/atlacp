@@ -161,6 +161,9 @@ func (s *MCPServer) NewStreamableHTTPServer() *httpserver.HTTPServer {
 		WriteTimeout:      httpWriteTimeout,
 
 		ShutdownHooks: s.shutdownHooks,
-		Handler:       mcpserver.NewStreamableHTTPServer(s.mcpServer),
+		Handler: mcpserver.NewStreamableHTTPServer(
+			s.mcpServer,
+			mcpserver.WithStateLess(true),
+		),
 	})
 }
