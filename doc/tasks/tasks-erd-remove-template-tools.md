@@ -36,14 +36,10 @@ Please read referenced files to understand the problem:
   - [x] 1.7 Run `make lint test` to verify controller layer still works correctly
   - [x] 1.8 Review and ensure no other files depend on these controllers
 
-- [ ] 2.0 Remove Math and Time Services and Update Registration
-  - [ ] 2.1 Update `internal/app/register.go` to remove Math and Time service registrations
-  - [ ] 2.2 Delete `internal/app/math.go`
-  - [ ] 2.3 Delete `internal/app/math_test.go`
-  - [ ] 2.4 Delete `internal/app/time.go`
-  - [ ] 2.5 Delete `internal/app/time_test.go`
-  - [ ] 2.6 Run `make lint test` to verify service layer still works correctly
-  - [ ] 2.7 Verify that removing these services doesn't affect other components
-
-- [ ] 3.0 Final Verification
-  - [ ] 3.1 Run `make lint test` to verify successful compilation of the entire project
+- [x] 2.0 Remove Math and Time Services and Update Registration
+  - [x] 2.1 Update `internal/app/register.go` to remove Math and Time service registrations
+  - [x] 2.2 Delete `internal/app/math.go`
+  - [x] 2.3 Delete `internal/app/math_test.go`
+  - [x] 2.4 Delete `internal/app/time.go`
+  - [x] 2.5 Delete `internal/app/time_test.go`
+  - [x] 2.6 Run `make lint test` to verify service layer still works correctly
