@@ -31,7 +31,7 @@ Please read referenced files to understand the problem:
 - `internal/app/ports.go` - Application layer ports (interfaces) for repositories (✓ created)
 - `internal/app/auth.go` - Token provider implementation for API authentication (✓ created)
 - `doc/atlassian-accounts-schema.md` - JSON schema documentation for Atlassian accounts (✓ created)
-- `examples/atlassian-accounts.json` - Example Atlassian accounts configuration (✓ created)
+- `quick-start/atlassian-accounts-stub.json` - Example Atlassian accounts configuration (✓ created)
 - `internal/services/atlassian_client.go` - Atlassian-specific HTTP client implementation
 - `internal/services/atlassian_accounts.go` - Accounts repository for managing multiple named Atlassian accounts (✓ created)
 - `internal/app/bitbucket.go` - Business logic for Bitbucket operations (✓ created with CreatePR implemented)
@@ -73,30 +73,13 @@ Please read referenced files to understand the problem:
 - `.mockery.yaml` - Mockery configuration for generating mocks (if needed)
 - `go.mod` - Go module dependencies (if new packages needed)
 
-### Notes
-
-- **Testing Framework:** Use testify for assertions and table-driven tests
-- **Architecture:** Follow clean architecture with layers: MCP → App → Services
-- **HTTP Client Infrastructure:** Built on standard Go `http.Client` and `http.RoundTripper` with middleware pattern
-- **Code Organization:** Follow the existing structure:
-  - `internal/api/mcp/` - MCP protocol layer (controllers)
-  - `internal/app/` - Application layer (business logic)
-  - `internal/services/` - Infrastructure layer (HTTP clients, repositories)
-  - `internal/services/http/` - HTTP client infrastructure and middleware
-- **Naming Conventions:** Use Go conventions (PascalCase for exported, camelCase for unexported)
-- **Authentication:** API token-based authentication via middleware for MVP
-- **Multi-Account Support:** Named accounts (e.g., "user", "merge-bot") with default account configuration
-- **Error Handling:** Use Go's idiomatic error handling with clear, actionable error messages
-- **MCP Tools:** Use service-based naming (`bitbucket_*`, `jira_*`)
-- **OpenAPI Integration:** Use official Bitbucket and Jira OpenAPI specifications for client generation
-- **Instructional Development:** Create comprehensive instructions for generating API clients
-- **Testing Commands:**
-  - `make test` - Run all tests with coverage
-  - `go test -v ./internal/path/... --run TestName` - Run specific tests
-  - `gow test -v ./internal/path/... --run TestName` - Watch mode for test development
-- **Mock Generation:** Use `go generate` with mockery for interface mocks if needed
-- **Dependency Injection:** Use uber/dig for dependency management
-- **Configuration:** Extend existing viper-based configuration system with base URLs for Atlassian APIs
+### Example and Testing Files
+- `examples/docker-compose.yml` - Docker compose configuration for testing MCP integration (✓ created)
+- `examples/test-client/package.json` - Node.js package for test client (✓ created)
+- `examples/test-client/test-bitbucket-workflow.js` - Complete Bitbucket workflow test script (✓ created)
+- `examples/test-client/test-multi-account.js` - Multi-account functionality test script (✓ created)
+- `examples/README.md` - Comprehensive documentation for examples and testing (✓ created)
+- `README.md` - Top-level project README with a concise Quick Start for MCP setup and usage (✓ updated)
 
 ## Tasks
 
@@ -154,26 +137,23 @@ Please read referenced files to understand the problem:
   - [x] 5.9 Create unit tests for business logic in `internal/app/bitbucket_test.go` (partial - CreatePR tests implemented)
   - [x] 5.10 Create unit tests for MCP controllers in `internal/api/mcp/controllers/bitbucket_test.go`
   - [x] 5.11 Register Bitbucket services in `internal/app/register.go` and controllers in `internal/api/mcp/controllers/register.go`
-- [ ] 6.0 Jira MCP Integration
-  - [ ] 6.1 Create `internal/app/jira.go` with business logic service interface and implementation
-  - [ ] 6.2 Implement `jira_read_ticket` tool: Retrieve complete ticket information including metadata and comments
-  - [ ] 6.3 Implement `jira_transition_ticket` tool: Move tickets through workflow states with validation
-  - [ ] 6.4 Implement `jira_manage_labels` tool: Add/remove labels with permission and format validation
-  - [ ] 6.5 Create `internal/api/mcp/controllers/jira.go` with MCP protocol handling for all tools
-  - [ ] 6.6 Add account parameter support to all tools with default account resolution
-  - [ ] 6.7 Create unit tests for business logic in `internal/app/jira_test.go`
-  - [ ] 6.8 Create unit tests for MCP controllers in `internal/api/mcp/controllers/jira_test.go`
-  - [ ] 6.9 Register Jira services in `internal/app/register.go` and controllers in `internal/api/mcp/controllers/register.go`
-- [ ] 9.0 Integration Testing and Validation
-  - [ ] 9.1 Create sample accounts configuration file with multiple accounts for testing
-  - [ ] 9.2 Test HTTP client infrastructure with middleware composition and authentication
-  - [ ] 9.3 Validate client generation instructions by generating test client code
-  - [ ] 9.4 Test end-to-end workflow: Create PR → Read PR → Update PR → Approve PR → Merge PR
-  - [ ] 9.5 Test end-to-end workflow: Read Jira ticket → Transition ticket → Manage labels
-  - [ ] 9.6 Validate multi-account functionality across all tools with dynamic URL parameter handling
-  - [ ] 9.7 Test error handling scenarios: invalid credentials, missing permissions, API failures
-  - [ ] 9.8 Verify MCP tool discovery and parameter validation
-  - [ ] 9.9 Run full test suite and ensure all tests pass with proper coverage
-  - [ ] 9.10 Validate configuration loading with base URLs and accounts file parsing
-  - [ ] 9.11 Test default account resolution and named account selection
-  - [ ] 9.12 Document configuration setup, usage examples, and client generation instruction usage 
+- [ ] 6.0 Bitbucket Integration Testing and Usage Documentation
+  - [x] 6.1 Create example docker compose
+  - [x] 6.2 Support user token authentication (Basic token)
+  - [x] 6.3 Allow draft PRs to be created
+  - [x] 6.4 Test end-to-end bitbucket workflow (from AI code editor): Create PR → Read PR → Update PR → Approve PR → Merge PR. Automate this with instructions for AI code editor.
+  - [x] 6.5 Validate multi-account functionality: Create PR as user -> Approve PR as bot -> Merge PR as user. Automate this with instructions for AI code editor.
+  - [x] 6.6 Test default account resolution and named account selection: Create PR as default account -> Approve PR as bot. Automate this with instructions for AI code editor.
+  - [x] 6.7 Created comprehensive testing document at `doc/testing/bitbucket-mcp-integration-tests.md`.
+  - [x] 6.8 Update README with quick start and usage instruction
+- [ ] 7.0 Jira MCP Integration
+  - [ ] 7.1 Create `internal/app/jira.go` with business logic service interface and implementation
+  - [ ] 7.2 Implement `jira_read_ticket` tool: Retrieve complete ticket information including metadata and comments
+  - [ ] 7.3 Implement `jira_transition_ticket` tool: Move tickets through workflow states with validation
+  - [ ] 7.4 Implement `jira_manage_labels` tool: Add/remove labels with permission and format validation
+  - [ ] 7.5 Create `internal/api/mcp/controllers/jira.go` with MCP protocol handling for all tools
+  - [ ] 7.6 Add account parameter support to all tools with default account resolution
+  - [ ] 7.7 Create unit tests for business logic in `internal/app/jira_test.go`
+  - [ ] 7.8 Create unit tests for MCP controllers in `internal/api/mcp/controllers/jira_test.go`
+  - [ ] 7.9 Register Jira services in `internal/app/register.go` and controllers in `internal/api/mcp/controllers/register.go`
+  - [ ] 7.10 Prepare Jira Integration Testing and Usage Documentation task

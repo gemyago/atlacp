@@ -6,12 +6,13 @@ import (
 	"net/http"
 
 	httpservices "github.com/gemyago/atlacp/internal/services/http"
+	"github.com/gemyago/atlacp/internal/services/http/middleware"
 	"go.uber.org/dig"
 )
 
 // TokenProvider provides authentication tokens for Bitbucket API requests.
 type TokenProvider interface {
-	GetToken(ctx context.Context) (string, error)
+	GetToken(ctx context.Context) (middleware.Token, error)
 }
 
 // Client provides access to Bitbucket Cloud API operations.

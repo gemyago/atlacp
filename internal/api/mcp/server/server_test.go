@@ -177,5 +177,46 @@ func TestMCPServer(t *testing.T) {
 				assert.Contains(t, content.Text, errorMsg)
 			}
 		})
+
+		t.Run("should include correlation id in error message", func(t *testing.T) {
+			deps := makeMockDeps()
+
+			wantCorrelationID := faker.UUIDHyphenated()
+			wantCall := makeToolCallRequest()
+			errorMsg := faker.Sentence()
+			wantError := errors.New(errorMsg)
+
+			callCtx := diag.SetLogAttributesToContext(t.Context(), diag.LogAttributes{
+				CorrelationID: slog.StringValue(wantCorrelationID),
+			})
+
+			deps.Controllers = newToolsFactories(
+				wantCall.Params.Name,
+				func(ctx context.Context, req mcp.CallToolRequest) (*mcp.CallToolResult, error) {
+					assert.NotNil(t, ctx)
+					assert.Equal(t, wantCall, req)
+					return nil, wantError
+				})
+			srv := NewMCPServer(deps)
+			testServer := newTestMCPServer()
+			err := testServer.Start(callCtx, srv.mcpServer)
+			require.NoError(t, err)
+
+			client := testServer.Client()
+
+			result, err := client.CallTool(callCtx, wantCall)
+			require.NoError(t, err)
+			require.NotNil(t, result)
+			assert.True(t, result.IsError)
+
+			if len(result.Content) > 0 {
+				content, ok := mcp.AsTextContent(result.Content[0])
+				require.True(t, ok, "Error content should be text content")
+				assert.Contains(t, content.Text, errorMsg)
+				assert.Contains(t, content.Text, "Error details:")
+				assert.Contains(t, content.Text, "CorrelationID:")
+				assert.Contains(t, content.Text, wantCorrelationID)
+			}
+		})
 	})
 }

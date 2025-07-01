@@ -69,6 +69,7 @@ type PullRequest struct {
 	CreatedOn         *time.Time              `json:"created_on,omitempty"`
 	UpdatedOn         *time.Time              `json:"updated_on,omitempty"`
 	MergeCommit       *PullRequestCommit      `json:"merge_commit,omitempty"`
+	Draft             bool                    `json:"draft,omitempty"`
 }
 
 // Participant represents a pull request participant (for approval responses).

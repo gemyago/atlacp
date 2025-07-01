@@ -2,14 +2,24 @@ package controllers
 
 import (
 	"context"
+	"encoding/json"
 	"fmt"
 	"log/slog"
+	"strconv"
 
 	"github.com/gemyago/atlacp/internal/app"
 	"github.com/gemyago/atlacp/internal/services/bitbucket"
 	"github.com/mark3labs/mcp-go/mcp"
 	"github.com/mark3labs/mcp-go/server"
 	"go.uber.org/dig"
+)
+
+const (
+	// TaskStateResolved represents a "RESOLVED" task state.
+	TaskStateResolved = "RESOLVED"
+
+	// TaskStateUnresolved represents an "UNRESOLVED" task state.
+	TaskStateUnresolved = "UNRESOLVED"
 )
 
 // bitbucketService defines the operations required by the BitbucketController.
@@ -20,6 +30,9 @@ type bitbucketService interface {
 	UpdatePR(ctx context.Context, params app.BitbucketUpdatePRParams) (*bitbucket.PullRequest, error)
 	ApprovePR(ctx context.Context, params app.BitbucketApprovePRParams) (*bitbucket.Participant, error)
 	MergePR(ctx context.Context, params app.BitbucketMergePRParams) (*bitbucket.PullRequest, error)
+	ListTasks(ctx context.Context, params app.BitbucketListTasksParams) (*bitbucket.PaginatedTasks, error)
+	UpdateTask(ctx context.Context, params app.BitbucketUpdateTaskParams) (*bitbucket.PullRequestCommentTask, error)
+	CreateTask(ctx context.Context, params app.BitbucketCreateTaskParams) (*bitbucket.PullRequestCommentTask, error)
 }
 
 // Ensure that app.BitbucketService implements bitbucketService.
@@ -78,8 +91,8 @@ func (bc *BitbucketController) newCreatePRServerTool() server.ServerTool {
 		mcp.WithString("account",
 			mcp.Description("Atlassian account name to use (optional, uses default if not specified)"),
 		),
-		mcp.WithArray("reviewers",
-			mcp.Description("Usernames of reviewers to assign"),
+		mcp.WithBoolean("draft",
+			mcp.Description("Create as draft pull request (optional, defaults to false)"),
 		),
 	)
 
@@ -115,9 +128,7 @@ func (bc *BitbucketController) newCreatePRServerTool() server.ServerTool {
 		// Optional parameters
 		description := request.GetString("description", "")
 		account := request.GetString("account", "")
-
-		// Extract reviewers
-		reviewers := request.GetStringSlice("reviewers", []string{})
+		draft := request.GetBool("draft", false)
 
 		// Create parameters for the service layer
 		params := app.BitbucketCreatePRParams{
@@ -126,9 +137,9 @@ func (bc *BitbucketController) newCreatePRServerTool() server.ServerTool {
 			DestBranch:   targetBranch,
 			Description:  description,
 			AccountName:  account,
-			Reviewers:    reviewers,
 			RepoOwner:    repoOwner,
 			RepoName:     repoName,
+			Draft:        draft,
 		}
 
 		// Call the service to create the pull request
@@ -204,9 +215,28 @@ func (bc *BitbucketController) newReadPRServerTool() server.ServerTool {
 			return nil, fmt.Errorf("failed to read pull request: %w", err)
 		}
 
-		// Format the result as text
-		return mcp.NewToolResultText(fmt.Sprintf("Pull request #%d: %s (Status: %s)",
-			pr.ID, pr.Title, pr.State)), nil
+		// Convert PR to JSON for the resource
+		prJSON, err := json.MarshalIndent(pr, "", "  ")
+		if err != nil {
+			return nil, fmt.Errorf("failed to marshal pull request to JSON: %w", err)
+		}
+
+		// Create a summary text for the PR
+		summaryText := fmt.Sprintf("Pull request #%d: %s (Status: %s)", pr.ID, pr.Title, pr.State)
+
+		// Return both a summary text and the full PR data as a resource
+		return &mcp.CallToolResult{
+			Content: []mcp.Content{
+				mcp.TextContent{
+					Type: "text",
+					Text: summaryText,
+				},
+
+				// Sending json as text since some clients (Cursor)
+				// do not support resources (at least not yet)
+				mcp.NewTextContent(string(prJSON)),
+			},
+		}, nil
 	}
 
 	return server.ServerTool{
@@ -420,14 +450,8 @@ func (bc *BitbucketController) newMergePRServerTool() server.ServerTool {
 		// Optional parameters
 		mergeStrategy := request.GetString("merge_strategy", "")
 		commitMessage := request.GetString("commit_message", "")
-		closeSourceBranchStr := request.GetString("close_source_branch", "")
+		closeSourceBranch := request.GetBool("close_source_branch", false)
 		account := request.GetString("account", "")
-
-		// Parse boolean parameter
-		var closeSourceBranch bool
-		if closeSourceBranchStr != "" {
-			closeSourceBranch = closeSourceBranchStr == "true"
-		}
 
 		// Create parameters for the service layer
 		params := app.BitbucketMergePRParams{
@@ -467,6 +491,354 @@ func (bc *BitbucketController) newMergePRServerTool() server.ServerTool {
 	}
 }
 
+// newListPRTasksServerTool returns a server tool for listing tasks on a pull request.
+func (bc *BitbucketController) newListPRTasksServerTool() server.ServerTool {
+	tool := mcp.NewTool(
+		"bitbucket_list_pr_tasks",
+		mcp.WithDescription("List tasks on a pull request in Bitbucket"),
+		mcp.WithNumber("pr_id",
+			mcp.Description("Pull request ID"),
+			mcp.Required(),
+		),
+		mcp.WithString("repo_owner",
+			mcp.Description("Repository owner (username/workspace)"),
+			mcp.Required(),
+		),
+		mcp.WithString("repo_name",
+			mcp.Description("Repository name (slug)"),
+			mcp.Required(),
+		),
+		mcp.WithString("account",
+			mcp.Description("Atlassian account name to use (optional, uses default if not specified)"),
+		),
+	)
+
+	handler := func(ctx context.Context, request mcp.CallToolRequest) (*mcp.CallToolResult, error) {
+		bc.logger.Debug("Received bitbucket_list_pr_tasks request", "params", request.Params)
+
+		// Extract required parameters using RequireXXX methods
+		prID, err := request.RequireInt("pr_id")
+		if err != nil {
+			return mcp.NewToolResultErrorFromErr("Missing or invalid pr_id parameter", err), nil
+		}
+
+		repoOwner, err := request.RequireString("repo_owner")
+		if err != nil {
+			return mcp.NewToolResultErrorFromErr("Missing or invalid repo_owner parameter", err), nil
+		}
+
+		repoName, err := request.RequireString("repo_name")
+		if err != nil {
+			return mcp.NewToolResultErrorFromErr("Missing or invalid repo_name parameter", err), nil
+		}
+
+		// Optional parameters
+		account := request.GetString("account", "")
+
+		// Create parameters for the service layer
+		params := app.BitbucketListTasksParams{
+			PullRequestID: prID,
+			RepoOwner:     repoOwner,
+			RepoName:      repoName,
+			AccountName:   account,
+		}
+
+		// Call the service to list tasks
+		tasks, err := bc.bitbucketService.ListTasks(ctx, params)
+		if err != nil {
+			return nil, fmt.Errorf("failed to list tasks: %w", err)
+		}
+
+		// Create a response with the tasks details
+		var responseText string
+		if tasks.Size == 0 {
+			responseText = "No tasks found for this pull request"
+		} else {
+			responseText = fmt.Sprintf("Found %d tasks", tasks.Size)
+			for _, task := range tasks.Values {
+				// Get creator display name, handling nil Creator
+				var creatorName string
+				if task.Creator != nil && task.Creator.DisplayName != "" {
+					creatorName = task.Creator.DisplayName
+				} else {
+					creatorName = "unknown user"
+				}
+
+				responseText += fmt.Sprintf("\nTask #%d: [%s] %s (by %s)",
+					task.ID,
+					task.State,
+					task.Content.Raw,
+					creatorName)
+			}
+		}
+
+		return mcp.NewToolResultText(responseText), nil
+	}
+
+	return server.ServerTool{
+		Tool:    tool,
+		Handler: handler,
+	}
+}
+
+// newUpdatePRTaskServerTool returns a server tool for updating a task on a pull request.
+func (bc *BitbucketController) newUpdatePRTaskServerTool() server.ServerTool {
+	tool := mcp.NewTool(
+		"bitbucket_update_pr_task",
+		mcp.WithDescription("Update a task on a pull request in Bitbucket"),
+		mcp.WithNumber("pr_id",
+			mcp.Description("Pull request ID"),
+			mcp.Required(),
+		),
+		mcp.WithNumber("task_id",
+			mcp.Description("Task ID to update"),
+			mcp.Required(),
+		),
+		mcp.WithString("repo_owner",
+			mcp.Description("Repository owner (username/workspace)"),
+			mcp.Required(),
+		),
+		mcp.WithString("repo_name",
+			mcp.Description("Repository name (slug)"),
+			mcp.Required(),
+		),
+		mcp.WithString("content",
+			mcp.Description("New content for the task (optional if state is provided)"),
+		),
+		mcp.WithString("state",
+			mcp.Description("New state for the task: RESOLVED or UNRESOLVED (optional if content is provided)"),
+		),
+		mcp.WithString("account",
+			mcp.Description("Atlassian account name to use (optional, uses default if not specified)"),
+		),
+	)
+
+	handler := bc.makeUpdatePRTaskHandler()
+
+	return server.ServerTool{
+		Tool:    tool,
+		Handler: handler,
+	}
+}
+
+// makeUpdatePRTaskHandler creates a handler function for the update PR task tool.
+// This is split out to reduce the overall function length.
+func (bc *BitbucketController) makeUpdatePRTaskHandler() func(
+	ctx context.Context,
+	request mcp.CallToolRequest,
+) (*mcp.CallToolResult, error) {
+	return func(ctx context.Context, request mcp.CallToolRequest) (*mcp.CallToolResult, error) {
+		bc.logger.Debug("Received bitbucket_update_pr_task request", "params", request.Params)
+
+		// Extract parameters and validate
+		params, errResult := bc.validateUpdateTaskParams(request)
+		if errResult != nil {
+			return errResult, nil // This returns a tool result error
+		}
+
+		// Call the service to update the task
+		task, err := bc.bitbucketService.UpdateTask(ctx, params)
+		if err != nil {
+			return nil, fmt.Errorf("failed to update task: %w", err)
+		}
+
+		// Build response text
+		responseText := bc.formatUpdateTaskResponse(task, params.TaskID, params.Content, params.State)
+		return mcp.NewToolResultText(responseText), nil
+	}
+}
+
+// validateUpdateTaskParams extracts and validates parameters for the update task request.
+func (bc *BitbucketController) validateUpdateTaskParams(
+	request mcp.CallToolRequest,
+) (app.BitbucketUpdateTaskParams, *mcp.CallToolResult) {
+	// Extract required parameters
+	prID, err := request.RequireInt("pr_id")
+	if err != nil {
+		return app.BitbucketUpdateTaskParams{}, mcp.NewToolResultErrorFromErr("Missing or invalid pr_id parameter", err)
+	}
+
+	taskID, err := request.RequireInt("task_id")
+	if err != nil {
+		return app.BitbucketUpdateTaskParams{}, mcp.NewToolResultErrorFromErr("Missing or invalid task_id parameter", err)
+	}
+
+	repoOwner, err := request.RequireString("repo_owner")
+	if err != nil {
+		return app.BitbucketUpdateTaskParams{}, mcp.NewToolResultErrorFromErr("Missing or invalid repo_owner parameter", err)
+	}
+
+	repoName, err := request.RequireString("repo_name")
+	if err != nil {
+		return app.BitbucketUpdateTaskParams{}, mcp.NewToolResultErrorFromErr("Missing or invalid repo_name parameter", err)
+	}
+
+	// Optional parameters
+	content := request.GetString("content", "")
+	state := request.GetString("state", "")
+	account := request.GetString("account", "")
+
+	// Either content or state must be provided
+	if content == "" && state == "" {
+		return app.BitbucketUpdateTaskParams{}, mcp.NewToolResultError("Either content or state must be provided")
+	}
+
+	// Validate state if provided
+	if state != "" && state != TaskStateResolved && state != TaskStateUnresolved {
+		return app.BitbucketUpdateTaskParams{}, mcp.NewToolResultError("State must be either RESOLVED or UNRESOLVED")
+	}
+
+	// Create and return parameters for the service layer
+	return app.BitbucketUpdateTaskParams{
+		PullRequestID: prID,
+		TaskID:        taskID,
+		RepoOwner:     repoOwner,
+		RepoName:      repoName,
+		AccountName:   account,
+		Content:       content,
+		State:         state,
+	}, nil
+}
+
+// formatUpdateTaskResponse creates an appropriate response message based on what was updated.
+func (bc *BitbucketController) formatUpdateTaskResponse(
+	task *bitbucket.PullRequestCommentTask,
+	taskID int,
+	content,
+	state string,
+) string {
+	switch {
+	case content != "" && state != "":
+		return fmt.Sprintf("Updated task #%d content and marked as %s", taskID, task.State)
+	case content != "":
+		return fmt.Sprintf("Updated task #%d content", taskID)
+	default:
+		return fmt.Sprintf("Updated task #%d state to %s", taskID, task.State)
+	}
+}
+
+// newCreatePRTaskServerTool returns a server tool for creating tasks on a pull request.
+func (bc *BitbucketController) newCreatePRTaskServerTool() server.ServerTool {
+	tool := mcp.NewTool(
+		"bitbucket_create_pr_task",
+		mcp.WithDescription("Create a task on a pull request in Bitbucket"),
+		mcp.WithNumber("pr_id",
+			mcp.Description("Pull request ID"),
+			mcp.Required(),
+		),
+		mcp.WithString("content",
+			mcp.Description("Task content"),
+			mcp.Required(),
+		),
+		mcp.WithString("repo_owner",
+			mcp.Description("Repository owner (username/workspace)"),
+			mcp.Required(),
+		),
+		mcp.WithString("repo_name",
+			mcp.Description("Repository name (slug)"),
+			mcp.Required(),
+		),
+		mcp.WithNumber("comment_id",
+			mcp.Description("Comment ID to associate with the task (optional)"),
+		),
+		mcp.WithString("state",
+			mcp.Description("Initial state for the task: RESOLVED or UNRESOLVED (optional, defaults to UNRESOLVED)"),
+		),
+		mcp.WithString("account",
+			mcp.Description("Atlassian account name to use (optional, uses default if not specified)"),
+		),
+	)
+
+	handler := bc.makeCreatePRTaskHandler()
+
+	return server.ServerTool{
+		Tool:    tool,
+		Handler: handler,
+	}
+}
+
+// makeCreatePRTaskHandler creates a handler function for the create PR task tool.
+// This is split out to reduce the overall function length.
+func (bc *BitbucketController) makeCreatePRTaskHandler() func(
+	ctx context.Context,
+	request mcp.CallToolRequest,
+) (*mcp.CallToolResult, error) {
+	return func(ctx context.Context, request mcp.CallToolRequest) (*mcp.CallToolResult, error) {
+		bc.logger.Debug("Received bitbucket_create_pr_task request", "params", request.Params)
+
+		// Extract required parameters
+		prID, err := request.RequireInt("pr_id")
+		if err != nil {
+			return mcp.NewToolResultErrorFromErr("Missing or invalid pr_id parameter", err), nil
+		}
+
+		content, err := request.RequireString("content")
+		if err != nil {
+			return mcp.NewToolResultErrorFromErr("Missing or invalid content parameter", err), nil
+		}
+
+		repoOwner, err := request.RequireString("repo_owner")
+		if err != nil {
+			return mcp.NewToolResultErrorFromErr("Missing or invalid repo_owner parameter", err), nil
+		}
+
+		repoName, err := request.RequireString("repo_name")
+		if err != nil {
+			return mcp.NewToolResultErrorFromErr("Missing or invalid repo_name parameter", err), nil
+		}
+
+		// Optional parameters
+		account := request.GetString("account", "")
+		state := request.GetString("state", "")
+		commentIDStr := request.GetString("comment_id", "")
+
+		// Parse comment_id if provided
+		var commentID int64
+		if commentIDStr != "" {
+			// Try to convert the string to int64
+			var commentIDFloat float64
+			commentIDFloat, parseErr := strconv.ParseFloat(commentIDStr, 64)
+			if parseErr != nil {
+				return mcp.NewToolResultErrorFromErr("Invalid comment_id parameter", parseErr), nil
+			}
+			commentID = int64(commentIDFloat)
+		}
+
+		// Validate state if provided
+		if state != "" && state != TaskStateResolved && state != TaskStateUnresolved {
+			return mcp.NewToolResultError("State must be either RESOLVED or UNRESOLVED"), nil
+		}
+
+		// Create parameters for the service layer
+		params := app.BitbucketCreateTaskParams{
+			PullRequestID: prID,
+			Content:       content,
+			RepoOwner:     repoOwner,
+			RepoName:      repoName,
+			AccountName:   account,
+			State:         state,
+			CommentID:     commentID,
+		}
+
+		// Call the service to create the task
+		task, err := bc.bitbucketService.CreateTask(ctx, params)
+		if err != nil {
+			return nil, fmt.Errorf("failed to create task: %w", err)
+		}
+
+		// Format response text
+		var responseText string
+		if task.Comment != nil {
+			responseText = fmt.Sprintf("Created task on PR #%d: %s (on comment #%d)",
+				prID, task.Content.Raw, task.Comment.ID)
+		} else {
+			responseText = fmt.Sprintf("Created task on PR #%d: %s", prID, task.Content.Raw)
+		}
+
+		return mcp.NewToolResultText(responseText), nil
+	}
+}
+
 // NewTools returns the tools for this controller.
 func (bc *BitbucketController) NewTools() []server.ServerTool {
 	return []server.ServerTool{
@@ -475,5 +847,8 @@ func (bc *BitbucketController) NewTools() []server.ServerTool {
 		bc.newUpdatePRServerTool(),
 		bc.newApprovePRServerTool(),
 		bc.newMergePRServerTool(),
+		bc.newListPRTasksServerTool(),
+		bc.newUpdatePRTaskServerTool(),
+		bc.newCreatePRTaskServerTool(),
 	}
 }

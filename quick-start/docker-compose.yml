@@ -1,0 +1,12 @@
+services:
+  # MCP Server for testing HTTP transport
+  atlacp-http:
+    image: ghcr.io/gemyago/atlacp-mcp:latest
+    command:
+      - http
+      - --atlassian-accounts-file=/app/config/atlassian-accounts.json
+      - --log-level=info
+    volumes:
+      - ./atlassian-accounts.json:/app/config/atlassian-accounts.json:ro
+    ports:
+      - "8080:8080"

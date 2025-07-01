@@ -9,26 +9,17 @@ type AtlassianAccount struct {
 	Default bool `json:"default"`
 
 	// Bitbucket-specific configuration (optional)
-	Bitbucket *BitbucketAccount `json:"bitbucket,omitempty"`
+	Bitbucket *AtlassianToken `json:"bitbucket,omitempty"`
 
 	// Jira-specific configuration (optional)
-	Jira *JiraAccount `json:"jira,omitempty"`
+	Jira *AtlassianToken `json:"jira,omitempty"`
 }
 
-// BitbucketAccount contains Bitbucket-specific account configuration.
-type BitbucketAccount struct {
-	// API token for authentication
-	Token string `json:"token"`
+// AtlassianToken contains authentication token information.
+type AtlassianToken struct {
+	// Token type (e.g., "Bearer", "Basic"). Defaults to "Bearer" if not specified.
+	Type string `json:"type,omitempty"`
 
-	// Workspace is the Bitbucket workspace/username for this account
-	Workspace string `json:"workspace"`
-}
-
-// JiraAccount contains Jira-specific account configuration.
-type JiraAccount struct {
-	// API token for authentication
-	Token string `json:"token"`
-
-	// Domain is the Jira cloud instance domain (e.g., "mycompany" for mycompany.atlassian.net)
-	Domain string `json:"domain"`
+	// Token value for authentication
+	Value string `json:"value"`
 }

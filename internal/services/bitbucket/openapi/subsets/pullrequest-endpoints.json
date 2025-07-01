@@ -1,0 +1,54 @@
+{
+  "paths": {
+    "/repositories/{workspace}/{repo_slug}/pullrequests": {
+      "get": {
+        "tags": ["Pullrequests"],
+        "summary": "List pull requests",
+        "description": "Returns all pull requests on the specified repository.",
+        "operationId": "getPullrequests"
+      },
+      "post": {
+        "tags": ["Pullrequests"],
+        "summary": "Create a pull request",
+        "description": "Creates a new pull request where the destination repository is this repository and the author is the authenticated user.",
+        "operationId": "createPullrequest"
+      }
+    },
+    "/repositories/{workspace}/{repo_slug}/pullrequests/{pull_request_id}": {
+      "get": {
+        "tags": ["Pullrequests"],
+        "summary": "Get a pull request",
+        "description": "Returns the specified pull request.",
+        "operationId": "getPullrequest"
+      },
+      "put": {
+        "tags": ["Pullrequests"],
+        "summary": "Update a pull request",
+        "description": "Updates the specified pull request.",
+        "operationId": "updatePullrequest"
+      }
+    },
+    "/repositories/{workspace}/{repo_slug}/pullrequests/{pull_request_id}/approve": {
+      "post": {
+        "tags": ["Pullrequests"],
+        "summary": "Approve a pull request",
+        "description": "Approve the specified pull request as the authenticated user.",
+        "operationId": "approvePullrequest"
+      },
+      "delete": {
+        "tags": ["Pullrequests"],
+        "summary": "Remove pull request approval",
+        "description": "Removes the authenticated user's approval of the specified pull request.",
+        "operationId": "deletePullrequestApproval"
+      }
+    },
+    "/repositories/{workspace}/{repo_slug}/pullrequests/{pull_request_id}/merge": {
+      "post": {
+        "tags": ["Pullrequests"],
+        "summary": "Merge a pull request",
+        "description": "Merges the specified pull request.",
+        "operationId": "mergePullrequest"
+      }
+    }
+  }
+} 

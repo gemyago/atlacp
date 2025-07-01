@@ -3,24 +3,35 @@ package bitbucket
 import (
 	"errors"
 	"fmt"
+	"math/rand"
 	"net/http"
 	"net/http/httptest"
 	"testing"
 
+	"github.com/go-faker/faker/v4"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
 
 func TestClient_ApprovePR(t *testing.T) {
-	mockTokenProvider := &MockTokenProvider{}
-
 	t.Run("success with all parameters and fields", func(t *testing.T) {
-		// Setup mock server
+		// Arrange
+		username := "test-user-" + faker.Word()
+		repoSlug := "test-repo-" + faker.Word()
+		pullRequestID := rand.Intn(1000) + 1
+
+		mockTokenProvider := &MockTokenProvider{
+			TokenType:  "Bearer",
+			TokenValue: faker.UUIDHyphenated(),
+		}
+
 		server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 			// Verify request details
 			assert.Equal(t, "POST", r.Method)
-			assert.Equal(t, "/repositories/test-user/test-repo/pullrequests/1/approve", r.URL.Path)
-			assert.Equal(t, "Bearer test-token", r.Header.Get("Authorization"))
+			expectedPath := fmt.Sprintf("/repositories/%s/%s/pullrequests/%d/approve",
+				username, repoSlug, pullRequestID)
+			assert.Equal(t, expectedPath, r.URL.Path)
+			assert.Equal(t, "Bearer "+mockTokenProvider.TokenValue, r.Header.Get("Authorization"))
 
 			// Return complete successful response
 			w.Header().Set("Content-Type", "application/json")
@@ -43,21 +54,17 @@ func TestClient_ApprovePR(t *testing.T) {
 		defer server.Close()
 
 		// Create client with mock dependencies
-		deps := makeMockDeps(server.URL)
+		deps := makeMockDepsWithTestName(t, server.URL)
 		client := NewClient(deps)
 
-		// Setup token provider
-		mockTokenProvider.Token = "test-token"
-		mockTokenProvider.Err = nil
-
-		// Execute the request
+		// Act
 		result, err := client.ApprovePR(t.Context(), mockTokenProvider, ApprovePRParams{
-			Username:      "test-user",
-			RepoSlug:      "test-repo",
-			PullRequestID: 1,
+			Username:      username,
+			RepoSlug:      repoSlug,
+			PullRequestID: pullRequestID,
 		})
 
-		// Verify the result
+		// Assert
 		require.NoError(t, err)
 		assert.Equal(t, "Test User", result.User.DisplayName)
 		assert.Equal(t, "testuser", result.User.Username)
@@ -68,7 +75,16 @@ func TestClient_ApprovePR(t *testing.T) {
 	})
 
 	t.Run("success with required parameters only", func(t *testing.T) {
-		// Setup mock server
+		// Arrange
+		username := "test-user-" + faker.Word()
+		repoSlug := "test-repo-" + faker.Word()
+		pullRequestID := rand.Intn(1000) + 1
+
+		mockTokenProvider := &MockTokenProvider{
+			TokenType:  "Bearer",
+			TokenValue: faker.UUIDHyphenated(),
+		}
+
 		server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) {
 			// Return minimal successful response
 			w.Header().Set("Content-Type", "application/json")
@@ -85,21 +101,17 @@ func TestClient_ApprovePR(t *testing.T) {
 		defer server.Close()
 
 		// Create client with mock dependencies
-		deps := makeMockDeps(server.URL)
+		deps := makeMockDepsWithTestName(t, server.URL)
 		client := NewClient(deps)
 
-		// Setup token provider
-		mockTokenProvider.Token = "test-token"
-		mockTokenProvider.Err = nil
-
-		// Execute the request
+		// Act
 		result, err := client.ApprovePR(t.Context(), mockTokenProvider, ApprovePRParams{
-			Username:      "test-user",
-			RepoSlug:      "test-repo",
-			PullRequestID: 1,
+			Username:      username,
+			RepoSlug:      repoSlug,
+			PullRequestID: pullRequestID,
 		})
 
-		// Verify the result
+		// Assert
 		require.NoError(t, err)
 		assert.Equal(t, "testuser", result.User.Username)
 		assert.True(t, result.Approved)
@@ -107,7 +119,16 @@ func TestClient_ApprovePR(t *testing.T) {
 	})
 
 	t.Run("handles API error", func(t *testing.T) {
-		// Setup mock server
+		// Arrange
+		username := "test-user-" + faker.Word()
+		repoSlug := "test-repo-" + faker.Word()
+		pullRequestID := rand.Intn(1000) + 1
+
+		mockTokenProvider := &MockTokenProvider{
+			TokenType:  "Bearer",
+			TokenValue: faker.UUIDHyphenated(),
+		}
+
 		server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) {
 			// Return error response
 			w.Header().Set("Content-Type", "application/json")
@@ -121,42 +142,47 @@ func TestClient_ApprovePR(t *testing.T) {
 		defer server.Close()
 
 		// Create client with mock dependencies
-		deps := makeMockDeps(server.URL)
+		deps := makeMockDepsWithTestName(t, server.URL)
 		client := NewClient(deps)
 
-		// Setup token provider
-		mockTokenProvider.Token = "test-token"
-		mockTokenProvider.Err = nil
-
-		// Execute the request
-		_, err := client.ApprovePR(t.Context(), mockTokenProvider, ApprovePRParams{
-			Username:      "test-user",
-			RepoSlug:      "test-repo",
-			PullRequestID: 1,
+		// Act
+		result, err := client.ApprovePR(t.Context(), mockTokenProvider, ApprovePRParams{
+			Username:      username,
+			RepoSlug:      repoSlug,
+			PullRequestID: pullRequestID,
 		})
 
-		// Verify the error
+		// Assert
 		require.Error(t, err)
-		assert.Contains(t, err.Error(), "approve pull request failed")
+		assert.Nil(t, result)
+		assert.ErrorContains(t, err, "approve pull request failed")
 	})
 
 	t.Run("handles token provider error", func(t *testing.T) {
+		// Arrange
+		username := "test-user-" + faker.Word()
+		repoSlug := "test-repo-" + faker.Word()
+		pullRequestID := rand.Intn(1000) + 1
+
+		mockTokenProvider := &MockTokenProvider{
+			Err: errors.New(faker.Sentence()),
+		}
+
 		// Create client with mock dependencies
-		deps := makeMockDeps("http://example.com")
+		deps := makeMockDepsWithTestName(t, "http://example.com")
 		client := NewClient(deps)
 
-		// Setup token provider to return an error
-		mockTokenProvider.Err = errors.New("token error")
-
-		// Execute the request
-		_, err := client.ApprovePR(t.Context(), mockTokenProvider, ApprovePRParams{
-			Username:      "test-user",
-			RepoSlug:      "test-repo",
-			PullRequestID: 1,
+		// Act
+		result, err := client.ApprovePR(t.Context(), mockTokenProvider, ApprovePRParams{
+			Username:      username,
+			RepoSlug:      repoSlug,
+			PullRequestID: pullRequestID,
 		})
 
-		// Verify the error
+		// Assert
 		require.Error(t, err)
-		assert.Contains(t, err.Error(), "failed to get token")
+		assert.Nil(t, result)
+		expectedError := fmt.Errorf("failed to get token: %w", mockTokenProvider.Err)
+		assert.Equal(t, expectedError.Error(), err.Error())
 	})
 }

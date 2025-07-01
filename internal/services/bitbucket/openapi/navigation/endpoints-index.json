@@ -1,0 +1,20 @@
+{
+  "pullrequests": {
+    "paths": [
+      "/repositories/{workspace}/{repo_slug}/pullrequests",
+      "/repositories/{workspace}/{repo_slug}/pullrequests/{pull_request_id}",
+      "/repositories/{workspace}/{repo_slug}/pullrequests/{pull_request_id}/approve",
+      "/repositories/{workspace}/{repo_slug}/pullrequests/{pull_request_id}/merge"
+    ],
+    "line_ranges": {
+      "list": [13012, 13068],
+      "get": [13231, 13274],
+      "create": [13079, 13139],
+      "update": [13285, 13345],
+      "approve": [13451, 13500],
+      "merge": [13511, 13555]
+    },
+    "tags": ["Pullrequests"],
+    "methods": ["GET", "POST", "PUT", "DELETE"]
+  }
+} 

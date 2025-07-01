@@ -5,83 +5,76 @@
 
 An MCP (Model Context Protocol) interface for Atlassian products (Jira and Bitbucket).
 
-## Project structure
+## Available tools
 
-* [cmd/server](./cmd/server) is a main entrypoint to start the server
-* [cmd/jobs](./cmd/jobs) is a main entrypoint to start jobs
-* [internal/api/http](./internal/api/http) - includes http routes related stuff
-  * [internal/api/http/v1routes.yaml](./internal/api/http/v1routes.yaml) - OpenAPI spec for the api routes. HTTP layer is generated with [apigen](github.com/gemyago/apigen)
-* `internal/app` - place to add application layer code (e.g business logic).
-* `internal/services` - lower level components are supposed to be here (e.g database access layer e.t.c).
+- `bitbucket_create_pr` - create a pull request
+- `bitbucket_read_pr` - read a pull request
+- `bitbucket_update_pr` - update a pull request
+- `bitbucket_approve_pr` - approve a pull request
+- `bitbucket_merge_pr` - merge a pull request
+- `bitbucket_list_pr_tasks` - list tasks on a pull request
+- `bitbucket_update_pr_task` - update a task on a pull request
+- `bitbucket_create_pr_task` - create a task on a pull request
 
-## Project Setup
+## Quick Start
 
-Please have the following tools installed: 
-* [direnv](https://github.com/direnv/direnv) 
-* [gobrew](https://github.com/kevincobain2000/gobrew#install-or-update)
+### Configure accounts
 
-Install/Update dependencies: 
-```sh
-# Install
-go mod download
-go install tool
+The tool is designed to be running locally on developer's machine. In order to run the tool you need to configure your Atlassian accounts first. For bitbucket you need to create a personal access token that can read and write to the repository.
 
-# Update:
-go get -u ./... && go mod tidy
+Example `accounts-config.json` file:
+```json
+{
+  "accounts": [
+    {
+      "name": "user",
+      "default": true,
+      "bitbucket": { "type": "Basic", "value": "ATBBxxxxxxxxxxxxxxxx" }
+    }
+  ]
+} 
 ```
 
-### Build dependencies
+You may optionally configure multiple accounts for different roles or different workspaces, for example you may have `user` and `bot` accounts. See `quick-start/atlassian-accounts-stub.json` for more details.
 
-This step is required if you plan to work on the build tooling. In this case please make sure to install:
-* [pyenv](https://github.com/pyenv/pyenv?tab=readme-ov-file#installation).
+More on Atlassian tokens:
+- [Personal API Tokens](https://support.atlassian.com/atlassian-account/docs/manage-api-tokens-for-your-atlassian-account/#Create-an-API-token) 
+ (keep in mind to create a basic token for API use). When using personal access tokens, all requests will be made on behalf of the user.
+- [Bitbucket Access Tokens](https://support.atlassian.com/bitbucket-cloud/docs/access-tokens/) - good for bots and other automation tools.
 
-```sh
-# Install required python version
-pyenv install -s
+### Start the MCP server
 
-# Setup python environment
-python -m venv .venv
-
-# Reload env
-direnv reload
-
-# Install python dependencies
-pip install -r requirements.txt
-```
-
-If updating python dependencies, please lock them:
-```sh
-pip freeze > requirements.txt
-```
-
-## Development
-
-### Lint and Tests
-
-Run all lint and tests:
-```bash
-make lint
-make test
-```
-
-Run specific tests:
-```bash
-# Run once
-go test -v ./internal/api/http/v1controllers/ --run TestHealthCheck
-
-# Run same test multiple times
-# This is useful to catch flaky tests
-go test -v -count=5 ./internal/api/http/v1controllers/ --run TestHealthCheck
-
-# Run and watch. Useful when iterating on tests
-gow test -v ./internal/api/http/v1controllers/ --run TestHealthCheck
-```
-### Run local API server:
+Start docker container pointing on the `accounts-config.json` file:
 
 ```bash
-# Regular mode
-go run ./cmd/server/ start
-
-# Watch mode (double ^C to stop)
-gow run ./cmd/server/ start
+docker run -d --name atlacp-mcp \
+  --restart=always \
+  -p 8080:8080 \
+  -v $(pwd)/accounts-config.json:/app/accounts-config.json \
+  ghcr.io/gemyago/atlacp-mcp:latest
 ```
+
+### Integrate with AI editors
+
+Cursor MCP config (.cursor/mcp.json) section may look like this:
+
+```json
+{
+  "mcpServers": {
+    "Atlassian MCP": {
+      "url": "http://localhost:8080"
+    }
+  }
+}
+```
+
+Once configured, try to send a prompt to the editor, similar to below:
+```text
+Check pull request 12345 from bitbucket repo owner/repo-name
+```
+
+You should see a response with PR details.
+
+## License
+
+MIT

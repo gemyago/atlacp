@@ -13,7 +13,7 @@
   "mcpServer": {
     "name": "atlacp-mcp",
     "version": "1.0.0",
-    "httpHost": "localhost",
+    "httpHost": "[::]",
     "httpPort": 8080
   },
   "atlassian": {

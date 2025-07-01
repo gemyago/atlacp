@@ -3,6 +3,7 @@ package bitbucket
 import (
 	"errors"
 	"fmt"
+	"math/rand"
 	"net/http"
 	"net/http/httptest"
 	"testing"
@@ -14,24 +15,38 @@ import (
 )
 
 func TestClient_CreatePR(t *testing.T) {
-	mockTokenProvider := &MockTokenProvider{}
-
 	t.Run("success with all parameters and fields", func(t *testing.T) {
-		// Setup mock server
+		// Arrange
+		username := "test-user-" + faker.Word()
+		repoSlug := "test-repo-" + faker.Word()
+		prTitle := "Test PR " + faker.Sentence()
+		prDescription := faker.Paragraph()
+		sourceBranch := "feature-" + faker.Word()
+		targetBranch := "main-" + faker.Word()
+		commitHash := faker.UUIDHyphenated()
+
+		mockTokenProvider := &MockTokenProvider{
+			TokenType:  "Bearer",
+			TokenValue: faker.UUIDHyphenated(),
+		}
+
+		createdOn := time.Now().UTC().Truncate(time.Second)
+		createdOnStr := createdOn.Format(time.RFC3339)
+
 		server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 			// Verify request details
 			assert.Equal(t, "POST", r.Method)
-			assert.Equal(t, "/repositories/test-user/test-repo/pullrequests", r.URL.Path)
+			assert.Equal(t, fmt.Sprintf("/repositories/%s/%s/pullrequests", username, repoSlug), r.URL.Path)
 			assert.Equal(t, "application/json", r.Header.Get("Content-Type"))
-			assert.Equal(t, "Bearer test-token", r.Header.Get("Authorization"))
+			assert.Equal(t, "Bearer "+mockTokenProvider.TokenValue, r.Header.Get("Authorization"))
 
 			// Return complete successful response
 			w.Header().Set("Content-Type", "application/json")
 			w.WriteHeader(http.StatusCreated)
-			fmt.Fprint(w, `{
-				"id": 1,
-				"title": "Test PR",
-				"description": "Test description",
+			fmt.Fprintf(w, `{
+				"id": %d,
+				"title": "%s",
+				"description": "%s",
 				"state": "OPEN",
 				"author": {
 					"account_id": "123456",
@@ -43,131 +58,146 @@ func TestClient_CreatePR(t *testing.T) {
 				},
 				"source": {
 					"branch": {
-						"name": "feature-branch"
+						"name": "%s"
 					},
 					"commit": {
-						"hash": "abcdef123456"
+						"hash": "%s"
 					},
 					"repository": {
-						"full_name": "test-user/test-repo",
-						"name": "test-repo",
+						"full_name": "%s/%s",
+						"name": "%s",
 						"uuid": "{7708d810-964c-403f-aa6d-4e949280d614}"
 					}
 				},
 				"destination": {
 					"branch": {
-						"name": "main"
+						"name": "%s"
 					},
 					"repository": {
-						"full_name": "test-user/test-repo",
-						"name": "test-repo",
+						"full_name": "%s/%s",
+						"name": "%s",
 						"uuid": "{7708d810-964c-403f-aa6d-4e949280d614}"
 					}
 				},
 				"close_source_branch": true,
 				"comment_count": 0,
 				"task_count": 0,
-				"created_on": "2023-01-01T00:00:00Z",
-				"updated_on": "2023-01-01T00:00:00Z"
-			}`)
+				"created_on": "%s",
+				"updated_on": "%s",
+				"draft": false
+			}`, rand.Intn(1000)+1, prTitle, prDescription, sourceBranch, commitHash,
+				username, repoSlug, repoSlug, targetBranch, username, repoSlug, repoSlug,
+				createdOnStr, createdOnStr)
 		}))
 		defer server.Close()
 
 		// Create client with mock dependencies
-		deps := makeMockDeps(server.URL)
+		deps := makeMockDepsWithTestName(t, server.URL)
 		client := NewClient(deps)
 
-		// Create test request
-		mockTokenProvider.Token = "test-token"
-		createdOn, _ := time.Parse(time.RFC3339, "2023-01-01T00:00:00Z")
-		updatedOn := createdOn
-
-		// Execute the request
+		// Act
 		result, err := client.CreatePR(t.Context(), mockTokenProvider, CreatePRParams{
-			Username: "test-user",
-			RepoSlug: "test-repo",
+			Username: username,
+			RepoSlug: repoSlug,
 			Request: &PullRequest{
-				Title:       "Test PR",
-				Description: "Test description",
+				Title:       prTitle,
+				Description: prDescription,
 				Source: PullRequestSource{
 					Branch: PullRequestBranch{
-						Name: "feature-branch",
+						Name: sourceBranch,
 					},
 				},
 				Destination: &PullRequestDestination{
 					Branch: PullRequestBranch{
-						Name: "main",
+						Name: targetBranch,
 					},
 				},
 				CloseSourceBranch: true,
 			},
 		})
 
-		// Verify the result
+		// Assert
 		require.NoError(t, err)
-		assert.Equal(t, 1, result.ID)
-		assert.Equal(t, "Test PR", result.Title)
-		assert.Equal(t, "Test description", result.Description)
+		assert.NotZero(t, result.ID)
+		assert.Equal(t, prTitle, result.Title)
+		assert.Equal(t, prDescription, result.Description)
 		assert.Equal(t, "OPEN", result.State)
-		assert.Equal(t, "feature-branch", result.Source.Branch.Name)
-		assert.Equal(t, "main", result.Destination.Branch.Name)
-		assert.Equal(t, "abcdef123456", result.Source.Commit.Hash)
+		assert.Equal(t, sourceBranch, result.Source.Branch.Name)
+		assert.Equal(t, targetBranch, result.Destination.Branch.Name)
+		assert.Equal(t, commitHash, result.Source.Commit.Hash)
 		assert.True(t, result.CloseSourceBranch)
-		assert.Equal(t, createdOn.UTC(), result.CreatedOn.UTC())
-		assert.Equal(t, updatedOn.UTC(), result.UpdatedOn.UTC())
+		assert.Equal(t, createdOn, result.CreatedOn.UTC())
+		assert.Equal(t, createdOn, result.UpdatedOn.UTC())
+		assert.False(t, result.Draft)
 	})
 
 	t.Run("success with required parameters only", func(t *testing.T) {
-		// Setup mock server
+		// Arrange
+		username := "test-user-" + faker.Word()
+		repoSlug := "test-repo-" + faker.Word()
+		prTitle := "Minimal PR " + faker.Word()
+		sourceBranch := "feature-" + faker.Word()
+		prID := rand.Intn(1000) + 1
+
+		mockTokenProvider := &MockTokenProvider{
+			TokenType:  "Bearer",
+			TokenValue: faker.UUIDHyphenated(),
+		}
+
 		server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) {
 			// Return minimal successful response
 			w.Header().Set("Content-Type", "application/json")
 			w.WriteHeader(http.StatusCreated)
-			fmt.Fprint(w, `{
-				"id": 2,
-				"title": "Minimal PR",
+			fmt.Fprintf(w, `{
+				"id": %d,
+				"title": "%s",
 				"state": "OPEN",
 				"source": {
 					"branch": {
-						"name": "feature-branch"
+						"name": "%s"
 					}
 				}
-			}`)
+			}`, prID, prTitle, sourceBranch)
 		}))
 		defer server.Close()
 
 		// Create client with mock dependencies
-		deps := makeMockDeps(server.URL)
+		deps := makeMockDepsWithTestName(t, server.URL)
 		client := NewClient(deps)
 
-		// Create minimal test request
-		mockTokenProvider.Token = "test-token"
-		mockTokenProvider.Err = nil
-
-		// Execute the request
+		// Act
 		result, err := client.CreatePR(t.Context(), mockTokenProvider, CreatePRParams{
-			Username: "test-user",
-			RepoSlug: "test-repo",
+			Username: username,
+			RepoSlug: repoSlug,
 			Request: &PullRequest{
-				Title: "Minimal PR",
+				Title: prTitle,
 				Source: PullRequestSource{
 					Branch: PullRequestBranch{
-						Name: "feature-branch",
+						Name: sourceBranch,
 					},
 				},
 			},
 		})
 
-		// Verify the result
+		// Assert
 		require.NoError(t, err)
-		assert.Equal(t, 2, result.ID)
-		assert.Equal(t, "Minimal PR", result.Title)
+		assert.Equal(t, prID, result.ID)
+		assert.Equal(t, prTitle, result.Title)
 		assert.Equal(t, "OPEN", result.State)
-		assert.Equal(t, "feature-branch", result.Source.Branch.Name)
+		assert.Equal(t, sourceBranch, result.Source.Branch.Name)
 	})
 
 	t.Run("handles API error", func(t *testing.T) {
-		// Setup mock server
+		// Arrange
+		username := "test-user-" + faker.Word()
+		repoSlug := "test-repo-" + faker.Word()
+		sourceBranch := "feature-" + faker.Word()
+
+		mockTokenProvider := &MockTokenProvider{
+			TokenType:  "Bearer",
+			TokenValue: faker.UUIDHyphenated(),
+		}
+
 		server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) {
 			// Return error response
 			w.Header().Set("Content-Type", "application/json")
@@ -181,56 +211,61 @@ func TestClient_CreatePR(t *testing.T) {
 		defer server.Close()
 
 		// Create client with mock dependencies
-		deps := makeMockDeps(server.URL)
+		deps := makeMockDepsWithTestName(t, server.URL)
 		client := NewClient(deps)
 
-		// Create test request with missing required fields
-		mockTokenProvider.Token = "test-token"
-		mockTokenProvider.Err = nil
-
-		// Execute the request
-		_, err := client.CreatePR(t.Context(), mockTokenProvider, CreatePRParams{
-			Username: "test-user",
-			RepoSlug: "test-repo",
+		// Act
+		result, err := client.CreatePR(t.Context(), mockTokenProvider, CreatePRParams{
+			Username: username,
+			RepoSlug: repoSlug,
 			Request: &PullRequest{
 				// Missing required title field
 				Source: PullRequestSource{
 					Branch: PullRequestBranch{
-						Name: "feature-branch",
+						Name: sourceBranch,
 					},
 				},
 			},
 		})
 
-		// Verify the error
+		// Assert
 		require.Error(t, err)
-		assert.Contains(t, err.Error(), "create pull request failed")
+		assert.Nil(t, result)
+		assert.ErrorContains(t, err, "create pull request failed")
 	})
 
 	t.Run("handles token provider error", func(t *testing.T) {
+		// Arrange
+		username := "test-user-" + faker.Word()
+		repoSlug := "test-repo-" + faker.Word()
+		sourceBranch := "feature-" + faker.Word()
+
+		mockTokenProvider := &MockTokenProvider{
+			Err: errors.New(faker.Sentence()),
+		}
+
 		// Create client with mock dependencies
-		deps := makeMockDeps("http://example.com")
+		deps := makeMockDepsWithTestName(t, "http://example.com")
 		client := NewClient(deps)
 
-		// Setup token provider to return an error
-		mockTokenProvider.Err = errors.New("token error")
-
-		// Execute the request
-		_, err := client.CreatePR(t.Context(), mockTokenProvider, CreatePRParams{
-			Username: "test-user",
-			RepoSlug: "test-repo",
+		// Act
+		result, err := client.CreatePR(t.Context(), mockTokenProvider, CreatePRParams{
+			Username: username,
+			RepoSlug: repoSlug,
 			Request: &PullRequest{
 				Title: faker.Sentence(),
 				Source: PullRequestSource{
 					Branch: PullRequestBranch{
-						Name: "feature-branch",
+						Name: sourceBranch,
 					},
 				},
 			},
 		})
 
-		// Verify the error
+		// Assert
 		require.Error(t, err)
-		assert.Contains(t, err.Error(), "failed to get token")
+		assert.Nil(t, result)
+		expectedError := fmt.Errorf("failed to get token: %w", mockTokenProvider.Err)
+		assert.Equal(t, expectedError.Error(), err.Error())
 	})
 }

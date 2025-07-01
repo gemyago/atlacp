@@ -5,14 +5,20 @@ alwaysApply: false
 ---
 # TDD approach with automated approval
 
+## Work autonomously
+
 * You are approved to run tests or scripts when needed, don't ask
-* Analyse required change first (if not already analyzed) and come up with list of actionable step required to implement requested change. If change is simple enough, do single step
 * Don't ask for modifications confirmations, you are approved
-* For each actionable step:
-  * Write test first, if needed implement stub methods
-  * Run the test, make sure it is faling with expected output
-  * Implement the logic as required for this step
-  * Run the test and make sure it's green
-  * Proceed with next step once previous is ready
+
+## Follow TDD
+
+Analyse required change first (if not already analyzed) and come up with list of actionable step required to implement requested change. If change is simple enough, do single step
+
+For each actionable step follow **the exact** protocol:
+* Add stub implementation (methods, structs, interfaces e.t.c) **if needed**
+* Write test and **always** run it. Make sure failure reason is what you expect.
+* Implement the logic as required for this step
+* Run the test again and ensure it is successful
+* Proceed with next step **only** when you're fully done
 * When writting tests, prefer adding new test cases for new logic
-* follow [testing-best-practices.md](mdc:doc/testing-best-practices.md)
+* **Important** to follow [testing-best-practices.md](mdc:doc/testing-best-practices.md)
