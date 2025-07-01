@@ -21,11 +21,7 @@ func newToolsFactory[T server.ToolsFactory](controller T) controllerResult {
 
 func Register(container *dig.Container) error {
 	return di.ProvideAll(container,
-		NewMathController,
-		NewTimeController,
 		NewBitbucketController,
-		newToolsFactory[*MathController],
-		newToolsFactory[*TimeController],
 		newToolsFactory[*BitbucketController],
 		di.ProvideAs[*app.BitbucketService, bitbucketService],
 	)
