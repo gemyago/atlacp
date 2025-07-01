@@ -64,14 +64,14 @@ integration-tests/
 
 Use a timestamp format for the results file (e.g., results-20230615-120000.md).
 
-## Test 1: End-to-End Bitbucket Workflow
+## Test 1: PR Creation and Updates
 
-This test verifies the complete PR lifecycle using a single Atlassian account.
+This test verifies the PR creation, reading, updating, approval, and merging using a single Atlassian account.
 
 ### Steps
 
 1. **Setup test environment**
-   - Create a new working branch from main: `feature/integration-test-{timestamp}`
+   - Create a new working branch from main: `feature/pr-lifecycle-test-{timestamp}`
    - Create (or update) a test file `integration-tests/bitbucket/test-files/integration-test-file.txt`
    - Add some test content to the file (e.g. current time)
    - Commit the changes
@@ -81,12 +81,12 @@ This test verifies the complete PR lifecycle using a single Atlassian account.
 
 2. **Create a Pull Request**
    - Use the `mcp.bitbucket_create_pr` tool with the following parameters:
-     - title: "Integration Test 1 PR {timestamp}"
-     - source_branch: "feature/integration-test-{timestamp}"
+     - title: "PR Lifecycle Test {timestamp}"
+     - source_branch: "feature/pr-lifecycle-test-{timestamp}"
      - target_branch: "main"
      - repo_owner: your workspace name
      - repo_name: your repository name
-     - description: "This is an automated integration test (Test 1) PR"
+     - description: "This is an automated PR lifecycle test (Test 1)"
    - Extract and save the PR ID for subsequent steps
 
 3. **Read the Pull Request details**
@@ -96,54 +96,92 @@ This test verifies the complete PR lifecycle using a single Atlassian account.
      - The PR title matches what was set in the creation step
      - The PR status is "OPEN"
 
-4. **Create a PR task**
-   - Use the `mcp.bitbucket_create_pr_task` tool with:
-     - pr_id: the PR ID from step 2
-     - content: "Verify integration test {timestamp}"
-     - repo_owner and repo_name: same as previous steps
-   - Create few more seed tasks for the PR
-   - Extract and save the task ID for the next step
-
-5. **List PR tasks**
-   - Use the `mcp.bitbucket_list_pr_tasks` tool for the PR
-   - Verify that the task with the content from step 4 appears in the list
-   - Verify that total number of tasks corresponds to the number of tasks created in step 4
-
-6. **Update PR task**
-   - Use the `mcp.bitbucket_update_pr_task` tool to mark the task as "RESOLVED"
-   - List the tasks again to verify the task is now marked as "RESOLVED"
-   - Verify that the task state has changed
-
-7. **Update the Pull Request**
+4. **Update the Pull Request**
    - Use the `mcp.bitbucket_update_pr` tool to change:
-     - title to "Updated Integration Test 1 PR {timestamp}"
-     - description to "This PR has been updated as part of the integration test (Test 1) {timestamp}"
+     - title to "Updated PR Lifecycle Test {timestamp}"
+     - description to "This PR has been updated as part of the PR lifecycle test (Test 1) {timestamp}"
    - Read the PR again to verify the changes were applied
    - Verify the title and description match what was set
 
-8. **Approve the Pull Request**
+5. **Approve the Pull Request**
    - Use the `mcp.bitbucket_approve_pr` tool
    - Read the PR again to verify it shows as approved
    - Verify the "approved" status is true
 
-9. **Merge the Pull Request**
+6. **Merge the Pull Request**
    - Use the `mcp.bitbucket_merge_pr` tool with:
      - merge_strategy: "squash"
-     - merge_message: "Squash merged Integration Test 1 PR (Test 1) {timestamp}"
+     - merge_message: "Squash merged PR Lifecycle Test (Test 1) {timestamp}"
      - close_source_branch: "true"
    - Read the PR again to verify it was merged
    - Verify the PR state is "MERGED"
 
-10. **Clean up**
-    - Make sure the main branch is checked out again
-    - Pull the latest changes
-    - Delete the working branch
-    - Review the commit history to verify that there is a single commit (Squash merge)
-    - Ensure commits from step 1 are not present in the main branch
+7. **Clean up**
+   - Make sure the main branch is checked out again
+   - Pull the latest changes
+   - Delete the working branch
+   - Review the commit history to verify that there is a single commit (Squash merge)
+   - Ensure commits from step 1 are not present in the main branch
 
 Prepare a report as per instruction further down in this instruction.
 
-## Test 2: Multi-Account PR Workflow
+## Test 2: PR Tasks Management
+
+This test verifies the PR tasks creation, listing, and updating functionality.
+
+### Steps
+
+1. **Setup test environment**
+   - Create a new working branch from main: `feature/pr-tasks-test-{timestamp}`
+   - Create (or update) a test file `integration-tests/bitbucket/test-files/integration-test-file.txt`
+   - Add some test content to the file (e.g. current time)
+   - Commit and push the changes
+
+2. **Create a Pull Request**
+   - Use the `mcp.bitbucket_create_pr` tool with the following parameters:
+     - title: "PR Tasks Test {timestamp}"
+     - source_branch: "feature/pr-tasks-test-{timestamp}"
+     - target_branch: "main"
+     - repo_owner: your workspace name
+     - repo_name: your repository name
+     - description: "This is an automated PR tasks test (Test 2)"
+   - Extract and save the PR ID for subsequent steps
+
+3. **Create multiple PR tasks**
+   - Use the `mcp.bitbucket_create_pr_task` tool with:
+     - pr_id: the PR ID from step 2
+     - content: "Task 1: Verify integration test {timestamp}"
+     - repo_owner and repo_name: same as previous steps
+   - Create two more tasks with different content:
+     - "Task 2: Review code changes {timestamp}"
+     - "Task 3: Test functionality {timestamp}"
+   - Extract and save at least one task ID for the next steps
+
+4. **List PR tasks**
+   - Use the `mcp.bitbucket_list_pr_tasks` tool for the PR
+   - Verify that all three tasks created in step 3 appear in the list
+   - Verify that total number of tasks corresponds to the number of tasks created in step 3
+
+5. **Update PR tasks**
+   - Use the `mcp.bitbucket_update_pr_task` tool to mark "Task 1" as "RESOLVED"
+   - Use the `mcp.bitbucket_update_pr_task` tool to update the content of "Task 2" to "Task 2: Code review completed {timestamp}"
+   - List the tasks again to verify:
+     - "Task 1" is now marked as "RESOLVED"
+     - "Task 2" content has been updated
+     - "Task 3" remains unchanged
+
+6. **Clean up**
+   - Approve the PR using the `mcp.bitbucket_approve_pr` tool
+   - Merge the PR using the `mcp.bitbucket_merge_pr` tool with:
+     - merge_strategy: "squash"
+     - close_source_branch: "true"
+   - Make sure the main branch is checked out again
+   - Pull the latest changes
+   - Delete the working branch
+
+Prepare a report as per instruction further down in this instruction.
+
+## Test 3: Multi-Account PR Workflow
 
 This test verifies that different accounts can be used for different PR operations.
 
@@ -178,7 +216,7 @@ This test verifies that different accounts can be used for different PR operatio
 
 Prepare a report as per instruction further down in this instruction.
 
-## Test 3: Draft Pull Request Creation and Verification
+## Test 4: Draft Pull Request Creation and Verification
 
 This test verifies that a Pull Request can be created in draft mode and that its draft status is correctly reflected in Bitbucket.
 
@@ -240,13 +278,25 @@ Follow the protocol below when performing the test:
 # Bitbucket MCP Integration Test Results
 Test executed at: {timestamp}
 
-## Test 1: <Test Name>
+## Test 1: PR Creation and Updates
 - Step 1: <Step description> - PASS
 - Step 2: <Step 2 description> (Pull Request (PR #{pr_id}) - PASS
 - Step 3: <Step 3 description> - PASS
 ......
 
-## Test 2: <Test Name>
+## Test 2: PR Tasks Management
+- Step 1: <Step description> - PASS
+- Step 2: <Step 2 description> (Pull Request (PR #{pr_id}) - PASS
+- Step 3: <Step 3 description> - PASS
+......
+
+## Test 3: Multi-Account PR Workflow
+- Step 1: <Step description> - PASS
+- Step 2: <Step 2 description> (Pull Request (PR #{pr_id}) - PASS
+- Step 3: <Step 3 description> - PASS
+......
+
+## Test 4: Draft Pull Request Creation and Verification
 - Step 1: <Step description> - PASS
 - Step 2: <Step 2 description> (Pull Request (PR #{pr_id}) - PASS
 - Step 3: <Step 3 description> - PASS
