@@ -97,6 +97,7 @@ This test verifies the PR creation, reading, updating, approval, and merging usi
      - The PR ID matches the one from the creation step
      - The PR title matches what was set in the creation step
      - The PR status is "OPEN"
+     - The PR is not a draft
 
 4. **Update the Pull Request**
    - Use the `mcp.bitbucket_update_pr` tool to change:
@@ -248,11 +249,15 @@ This test verifies that a Pull Request can be created in draft mode and that its
      - The PR status is "OPEN"
      - The PR is marked as a draft (check the draft status field)
 
-4. **Update the Pull Request to Ready for Review**
-   - Use the `mcp.bitbucket_update_pr` tool to set the PR as ready for review (i.e., remove draft status if supported)
-   - Read the PR again to verify the draft status is now false or the PR is no longer a draft
+4. **Update the Pull Request Draft Status**
+   - Use the `mcp.bitbucket_update_pr` with just draft parameter set to false
+   - Read the PR again to verify the draft status is now false
+   - Use the `mcp.bitbucket_update_pr` with just draft parameter set to true again
+   - Read the PR again to verify the draft status is now true
+   - Use the `mcp.bitbucket_update_pr` with just draft parameter set to false
+   - Read the PR again to verify the draft status is now false
 
-3. **Merge the Pull Request**
+5. **Merge the Pull Request**
    - Use the `mcp.bitbucket_merge_pr` tool with:
      - merge_strategy: "fast_forward"
    - Read the PR again to verify it was merged
