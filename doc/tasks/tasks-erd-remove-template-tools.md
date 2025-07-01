@@ -26,15 +26,15 @@ Please read referenced files to understand the problem:
 
 ## Tasks
 
-- [ ] 1.0 Remove Math and Time Controllers and Update Registration
-  - [ ] 1.1 Update `internal/api/mcp/controllers/register.go` to remove Math and Time controller imports
-  - [ ] 1.2 Update `internal/api/mcp/controllers/register.go` to remove Math and Time controller registrations
-  - [ ] 1.3 Delete `internal/api/mcp/controllers/math.go`
-  - [ ] 1.4 Delete `internal/api/mcp/controllers/math_test.go`
-  - [ ] 1.5 Delete `internal/api/mcp/controllers/time.go`
-  - [ ] 1.6 Delete `internal/api/mcp/controllers/time_test.go`
-  - [ ] 1.7 Run `make lint test` to verify controller layer still works correctly
-  - [ ] 1.8 Review and ensure no other files depend on these controllers
+- [x] 1.0 Remove Math and Time Controllers and Update Registration
+  - [x] 1.1 Update `internal/api/mcp/controllers/register.go` to remove Math and Time controller imports
+  - [x] 1.2 Update `internal/api/mcp/controllers/register.go` to remove Math and Time controller registrations
+  - [x] 1.3 Delete `internal/api/mcp/controllers/math.go`
+  - [x] 1.4 Delete `internal/api/mcp/controllers/math_test.go`
+  - [x] 1.5 Delete `internal/api/mcp/controllers/time.go`
+  - [x] 1.6 Delete `internal/api/mcp/controllers/time_test.go`
+  - [x] 1.7 Run `make lint test` to verify controller layer still works correctly
+  - [x] 1.8 Review and ensure no other files depend on these controllers
 
 - [ ] 2.0 Remove Math and Time Services and Update Registration
   - [ ] 2.1 Update `internal/app/register.go` to remove Math and Time service registrations
