@@ -300,8 +300,13 @@ func (bc *BitbucketController) newUpdatePRServerTool() server.ServerTool {
 		description := request.GetString("description", "")
 		draft := request.GetBool("draft", false)
 
-		if title == "" && description == "" {
-			return mcp.NewToolResultError("At least one of title or description must be provided"), nil
+		allArgs := request.GetArguments()
+		_, hasTitle := allArgs["title"]
+		_, hasDescription := allArgs["description"]
+		_, hasDraft := allArgs["draft"]
+
+		if !hasTitle && !hasDescription && !hasDraft {
+			return mcp.NewToolResultError("Missing attributes to update a PR"), nil
 		}
 
 		// Optional parameters
