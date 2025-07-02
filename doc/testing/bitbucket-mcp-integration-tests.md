@@ -324,7 +324,19 @@ When completed all tests, copy the results file from a **current workspace** to 
     - merge_strategy: "squash"
     - merge message: <same as pr title>
     - close_source_branch: "true"
-6. Share a summary of the results with the user 
+6. Share a summary of the results with the user
+7. Attach the results file URL to the PR in this repository as follows:
+```bash
+# In a current workspace, check if there is an active PR for this branch
+gh pr view
+
+# If there is no Active PR, DO NOTHING
+
+# If there is an Active PR, attach the results file URL to the PR
+# Results file url should have the following structure: 
+# https://bitbucket.org/gemyago/atlacp-integration-tests/src/main/integration-tests/bitbucket/results-20250702-082610.md
+gh pr comment <pr_id> --body "Integration tests results: <results file URL>"
+```
 
 ## Automation Instructions for AI Model
 
