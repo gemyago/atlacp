@@ -343,8 +343,8 @@ func (s *BitbucketService) UpdatePR(
 	if params.PullRequestID <= 0 {
 		return nil, errors.New("pull request ID must be positive")
 	}
-	if params.Title == "" && params.Description == "" {
-		return nil, errors.New("either title or description must be provided")
+	if params.Title == "" && params.Description == "" && params.Draft == nil {
+		return nil, errors.New("either title, description or draft must be provided")
 	}
 
 	// Get token provider from auth factory

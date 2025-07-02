@@ -715,13 +715,13 @@ func TestBitbucketService(t *testing.T) {
 					errMsg: "pull request ID must be positive",
 				},
 				{
-					name: "missing both title and description",
+					name: "missing all the content attributes",
 					params: BitbucketUpdatePRParams{
 						RepoOwner:     "owner-" + faker.Username(),
 						RepoName:      "repo-" + faker.Username(),
 						PullRequestID: 1,
 					},
-					errMsg: "either title or description must be provided",
+					errMsg: "either title, description or draft must be provided",
 				},
 			}
 
@@ -790,10 +790,7 @@ func TestBitbucketService(t *testing.T) {
 			repoName := "repo-" + faker.Username()
 			pullRequestID := int(faker.RandomUnixTime()) % 10000
 
-			newTitle := "Updated: " + faker.Sentence()
-
 			expectedPR := bitbucket.NewRandomPullRequest()
-			expectedPR.Title = newTitle
 			expectedPR.Draft = lo.ToPtr(true) // Set draft status on expected PR
 
 			token := "token-" + faker.UUIDHyphenated()
@@ -813,7 +810,6 @@ func TestBitbucketService(t *testing.T) {
 					assert.Equal(t, pullRequestID, params.PullRequestID)
 
 					// Verify the update request
-					assert.Equal(t, newTitle, params.Request.Title)
 					assert.True(t, *params.Request.Draft)
 					return true
 				})).
@@ -824,7 +820,6 @@ func TestBitbucketService(t *testing.T) {
 				RepoOwner:     repoOwner,
 				RepoName:      repoName,
 				PullRequestID: pullRequestID,
-				Title:         newTitle,
 				Draft:         lo.ToPtr(true),
 			})
 

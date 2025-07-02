@@ -70,6 +70,7 @@ type PullRequest struct {
 
 	Destination       *PullRequestDestination `json:"destination,omitempty"`
 	Reviewers         []PullRequestAuthor     `json:"reviewers,omitempty"`
+	Participants      []Participant           `json:"participants,omitempty"`
 	CloseSourceBranch bool                    `json:"close_source_branch,omitempty"`
 	Summary           *PullRequestSummary     `json:"summary,omitempty"`
 	CommentCount      int                     `json:"comment_count,omitempty"`

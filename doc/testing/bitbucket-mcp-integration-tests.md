@@ -109,7 +109,7 @@ This test verifies the PR creation, reading, updating, approval, and merging usi
 5. **Approve the Pull Request**
    - Use the `mcp.bitbucket_approve_pr` tool
    - Read the PR again to verify it shows as approved
-   - Verify the "approved" status is true
+   - Verify the "approved" status is true in participants list
 
 6. **Merge the Pull Request**
    - Use the `mcp.bitbucket_merge_pr` tool with:
@@ -126,7 +126,7 @@ This test verifies the PR creation, reading, updating, approval, and merging usi
    - Review the commit history to verify that there is a single commit (Squash merge)
    - Ensure commits from step 1 are not present in the main branch
 
-Prepare a report as per instruction further down in this instruction.
+Update a report as per [instruction](#test-results-reporting).
 
 ## Test 2: PR Tasks Management
 
@@ -182,7 +182,7 @@ This test verifies the PR tasks creation, listing, and updating functionality.
    - Pull the latest changes
    - Delete the working branch
 
-Prepare a report as per instruction further down in this instruction.
+Update a report as per [instruction](#test-results-reporting).
 
 ## Test 3: Multi-Account PR Workflow
 
@@ -217,7 +217,7 @@ This test verifies that different accounts can be used for different PR operatio
    - Delete the working branch
    - Ensure the commit from step 1 is present in addition to the merge commit
 
-Prepare a report as per instruction further down in this instruction.
+Update a report as per [instruction](#test-results-reporting).
 
 ## Test 4: Draft Pull Request Creation and Verification
 
@@ -270,47 +270,43 @@ This test verifies that a Pull Request can be created in draft mode and that its
    - Delete the working branch
    - Ensure the commit from step 1 is present and no merge commit is present after the merge
 
-Prepare a report as per instruction further down in this instruction.
+Update a report as per [instruction](#test-results-reporting).
 
 ## Test Results Reporting
 
 Follow the protocol below when performing the test:
-* In a **current workspace** create a file `tmp/integration-tests-{timestamp}-results.md`
-* With each step - update the file (see format below) mentioning the step number, description, status (PASS/FAIL)
-* If failed - comment what failed and why
-* **Do not stop** if any step fails, document and continue
+1. In a **current workspace** create a file (if not yet exists) `tmp/integration-tests-{YYYYMMDD-HHMMSS}-results.md`
+2. With each step - update the file (see format below) mentioning the step number, description, status (PASS/FAIL). Keep formatting.
+3. If failed - comment what failed and why
+4. **Do not stop** if any step fails, document and continue
 
-**Format of the results file**
+### Format of the results file
+
 ```markdown
 # Bitbucket MCP Integration Test Results
 Test executed at: {timestamp}
 
-## Test 1: PR Creation and Updates
+## Test 1: <Title of the test>
 - Step 1: <Step description> - PASS
 - Step 2: <Step 2 description> (Pull Request (PR #{pr_id}) - PASS
 - Step 3: <Step 3 description> - PASS
 ......
 
-## Test 2: PR Tasks Management
+## Test 2: <Title of the test>
 - Step 1: <Step description> - PASS
 - Step 2: <Step 2 description> (Pull Request (PR #{pr_id}) - PASS
 - Step 3: <Step 3 description> - PASS
 ......
 
-## Test 3: Multi-Account PR Workflow
-- Step 1: <Step description> - PASS
-- Step 2: <Step 2 description> (Pull Request (PR #{pr_id}) - PASS
-- Step 3: <Step 3 description> - PASS
-......
-
-## Test 4: Draft Pull Request Creation and Verification
-- Step 1: <Step description> - PASS
-- Step 2: <Step 2 description> (Pull Request (PR #{pr_id}) - PASS
-- Step 3: <Step 3 description> - PASS
+<Other Reports in a same format>
 
 ## Summary
 - All tests: PASS/FAIL
 - Issues encountered: None/List issues
+  - <Test 1> Short issue details
+  - <Test 2> Short issue details
+  ......
+
 ```
 
 When completed all tests, copy the results file from a **current workspace** to the integration tests repository. Do steps below:
@@ -326,6 +322,7 @@ When completed all tests, copy the results file from a **current workspace** to 
     - repo_owner: your workspace name
     - repo_name: your repository name
     - merge_strategy: "squash"
+    - merge message: <same as pr title>
     - close_source_branch: "true"
 6. Share a summary of the results with the user 
 
