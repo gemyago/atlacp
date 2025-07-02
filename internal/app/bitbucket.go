@@ -74,7 +74,7 @@ type BitbucketCreatePRParams struct {
 	Reviewers []string `json:"reviewers,omitempty"`
 
 	// Whether to create the pull request as a draft
-	Draft bool `json:"draft,omitempty"`
+	Draft *bool `json:"draft,omitempty"`
 }
 
 // BitbucketReadPRParams contains parameters for retrieving a pull request.
@@ -111,6 +111,9 @@ type BitbucketUpdatePRParams struct {
 
 	// Updated description (optional)
 	Description string `json:"description,omitempty"`
+
+	// Whether to update the pull request as a draft
+	Draft *bool `json:"draft,omitempty"`
 }
 
 // BitbucketApprovePRParams contains parameters for approving a pull request.
@@ -340,8 +343,8 @@ func (s *BitbucketService) UpdatePR(
 	if params.PullRequestID <= 0 {
 		return nil, errors.New("pull request ID must be positive")
 	}
-	if params.Title == "" && params.Description == "" {
-		return nil, errors.New("either title or description must be provided")
+	if params.Title == "" && params.Description == "" && params.Draft == nil {
+		return nil, errors.New("either title, description or draft must be provided")
 	}
 
 	// Get token provider from auth factory
@@ -351,6 +354,7 @@ func (s *BitbucketService) UpdatePR(
 	updateRequest := &bitbucket.PullRequest{
 		Title:       params.Title,
 		Description: params.Description,
+		Draft:       params.Draft,
 	}
 
 	// Call the client to update the pull request

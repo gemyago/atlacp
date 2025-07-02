@@ -8,6 +8,7 @@ import (
 	"github.com/gemyago/atlacp/internal/services/bitbucket"
 	"github.com/gemyago/atlacp/internal/testing/mocks"
 	"github.com/go-faker/faker/v4"
+	"github.com/samber/lo"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/mock"
 	"github.com/stretchr/testify/require"
@@ -196,7 +197,7 @@ func TestBitbucketService(t *testing.T) {
 			repoOwner := "owner-" + faker.Username()
 			repoName := "repo-" + faker.Username()
 			expectedPR := bitbucket.NewRandomPullRequest()
-			expectedPR.Draft = true // Set draft status on expected PR
+			expectedPR.Draft = lo.ToPtr(true) // Set draft status on expected PR
 			token := "token-" + faker.UUIDHyphenated()
 			tokenProvider := newStaticTokenProvider(token)
 
@@ -209,7 +210,7 @@ func TestBitbucketService(t *testing.T) {
 			mockClient.EXPECT().
 				CreatePR(mock.Anything, mock.Anything, mock.MatchedBy(func(params bitbucket.CreatePRParams) bool {
 					// Verify draft flag is properly set
-					assert.True(t, params.Request.Draft)
+					assert.True(t, *params.Request.Draft)
 					return true
 				})).
 				Return(expectedPR, nil)
@@ -221,13 +222,13 @@ func TestBitbucketService(t *testing.T) {
 				Title:        expectedPR.Title,
 				SourceBranch: expectedPR.Source.Branch.Name,
 				DestBranch:   expectedPR.Destination.Branch.Name,
-				Draft:        true, // Set as draft PR
+				Draft:        lo.ToPtr(true), // Set as draft PR
 			})
 
 			// Assert
 			require.NoError(t, err)
 			assert.NotNil(t, result)
-			assert.True(t, result.Draft)
+			assert.True(t, *result.Draft)
 		})
 
 		t.Run("fails when missing required parameters", func(t *testing.T) {
@@ -714,13 +715,13 @@ func TestBitbucketService(t *testing.T) {
 					errMsg: "pull request ID must be positive",
 				},
 				{
-					name: "missing both title and description",
+					name: "missing all the content attributes",
 					params: BitbucketUpdatePRParams{
 						RepoOwner:     "owner-" + faker.Username(),
 						RepoName:      "repo-" + faker.Username(),
 						PullRequestID: 1,
 					},
-					errMsg: "either title or description must be provided",
+					errMsg: "either title, description or draft must be provided",
 				},
 			}
 
@@ -775,6 +776,57 @@ func TestBitbucketService(t *testing.T) {
 			assert.Nil(t, result)
 			require.Error(t, err)
 			assert.Equal(t, expectedErr, errors.Unwrap(err))
+		})
+
+		t.Run("successfully updates pull request draft status", func(t *testing.T) {
+			// Arrange
+			deps := makeMockDeps(t)
+			mockClient := mocks.GetMock[*MockbitbucketClient](t, deps.Client)
+			mockAuth := mocks.GetMock[*MockbitbucketAuthFactory](t, deps.AuthFactory)
+			service := NewBitbucketService(deps)
+
+			// Create test data
+			repoOwner := "owner-" + faker.Username()
+			repoName := "repo-" + faker.Username()
+			pullRequestID := int(faker.RandomUnixTime()) % 10000
+
+			expectedPR := bitbucket.NewRandomPullRequest()
+			expectedPR.Draft = lo.ToPtr(true) // Set draft status on expected PR
+
+			token := "token-" + faker.UUIDHyphenated()
+			tokenProvider := newStaticTokenProvider(token)
+
+			// Mock the auth factory to return our token provider
+			mockAuth.EXPECT().
+				getTokenProvider(mock.Anything, "").
+				Return(tokenProvider)
+
+			// Mock the client to return expected PR
+			mockClient.EXPECT().
+				UpdatePR(mock.Anything, mock.Anything, mock.MatchedBy(func(params bitbucket.UpdatePRParams) bool {
+					// Verify the parameters
+					assert.Equal(t, repoOwner, params.Username)
+					assert.Equal(t, repoName, params.RepoSlug)
+					assert.Equal(t, pullRequestID, params.PullRequestID)
+
+					// Verify the update request
+					assert.True(t, *params.Request.Draft)
+					return true
+				})).
+				Return(expectedPR, nil)
+
+			// Act
+			result, err := service.UpdatePR(t.Context(), BitbucketUpdatePRParams{
+				RepoOwner:     repoOwner,
+				RepoName:      repoName,
+				PullRequestID: pullRequestID,
+				Draft:         lo.ToPtr(true),
+			})
+
+			// Assert
+			require.NoError(t, err)
+			assert.Equal(t, expectedPR, result)
+			assert.True(t, *result.Draft)
 		})
 	})
 

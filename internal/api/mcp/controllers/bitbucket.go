@@ -11,6 +11,7 @@ import (
 	"github.com/gemyago/atlacp/internal/services/bitbucket"
 	"github.com/mark3labs/mcp-go/mcp"
 	"github.com/mark3labs/mcp-go/server"
+	"github.com/samber/lo"
 	"go.uber.org/dig"
 )
 
@@ -139,7 +140,7 @@ func (bc *BitbucketController) newCreatePRServerTool() server.ServerTool {
 			AccountName:  account,
 			RepoOwner:    repoOwner,
 			RepoName:     repoName,
-			Draft:        draft,
+			Draft:        lo.ToPtr(draft),
 		}
 
 		// Call the service to create the pull request
@@ -268,6 +269,9 @@ func (bc *BitbucketController) newUpdatePRServerTool() server.ServerTool {
 		mcp.WithString("description",
 			mcp.Description("New pull request description"),
 		),
+		mcp.WithBoolean("draft",
+			mcp.Description("Update as draft pull request (optional)"),
+		),
 		mcp.WithString("account",
 			mcp.Description("Atlassian account name to use (optional, uses default if not specified)"),
 		),
@@ -292,12 +296,22 @@ func (bc *BitbucketController) newUpdatePRServerTool() server.ServerTool {
 			return mcp.NewToolResultErrorFromErr("Missing or invalid repo_name parameter", err), nil
 		}
 
-		// At least one of title or description must be provided
+		// At least one of title, description, or draft must be provided
 		title := request.GetString("title", "")
 		description := request.GetString("description", "")
 
-		if title == "" && description == "" {
-			return mcp.NewToolResultError("At least one of title or description must be provided"), nil
+		allArgs := request.GetArguments()
+		_, hasTitle := allArgs["title"]
+		_, hasDescription := allArgs["description"]
+		_, hasDraft := allArgs["draft"]
+
+		if !hasTitle && !hasDescription && !hasDraft {
+			return mcp.NewToolResultError("Missing attributes to update a PR"), nil
+		}
+
+		var draft *bool
+		if hasDraft {
+			draft = lo.ToPtr(request.GetBool("draft", false))
 		}
 
 		// Optional parameters
@@ -310,6 +324,7 @@ func (bc *BitbucketController) newUpdatePRServerTool() server.ServerTool {
 			RepoName:      repoName,
 			Title:         title,
 			Description:   description,
+			Draft:         draft,
 			AccountName:   account,
 		}
 
