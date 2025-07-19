@@ -33,7 +33,7 @@ More on Atlassian tokens:
   ```
 * Create a Basic token from it using shell command below:
   ```bash
-  echo "<your-email>:<your-api-token>" | base64
+  echo -n "<your-email>:<your-api-token>" | base64
   ```
 * Copy the token value and use it in the `atlassian-accounts.json` file as a user account.
 
