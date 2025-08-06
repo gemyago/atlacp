@@ -7,8 +7,9 @@ tmp
 test.log
 .venv
 
-# Ignore MCP config file for now
+# Ignore MCP configs for now
 .cursor/mcp.json
+.kilocode/mcp.json
 
 # Ignore some examples
 quick-start/atlassian-accounts.json
