@@ -4,6 +4,7 @@ import (
 	"context"
 	"errors"
 	"log/slog"
+	"net/http"
 	"testing"
 
 	"github.com/gemyago/atlacp/internal/diag"
@@ -32,6 +33,7 @@ func TestMCPServer(t *testing.T) {
 			Params: mcp.CallToolParams{
 				Name: "tool-1-" + faker.Word(),
 			},
+			Header: http.Header{},
 		}
 	}
 
