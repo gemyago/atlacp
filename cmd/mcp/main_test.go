@@ -22,6 +22,19 @@ func TestMain(t *testing.T) {
 			})
 			require.NoError(t, rootCmd.Execute())
 		})
+		t.Run("should initialize for SSE mode", func(t *testing.T) {
+			rootCmd := setupCommands()
+			rootCmd.SetArgs([]string{
+				"http",
+				"--noop",
+				"--sse",
+				"--logs-file",
+				"../../test.log",
+				"--atlassian-accounts-file",
+				"../../quick-start/atlassian-accounts-stub.json",
+			})
+			require.NoError(t, rootCmd.Execute())
+		})
 		t.Run("should fail if bad log level", func(t *testing.T) {
 			rootCmd := setupCommands()
 			rootCmd.SilenceErrors = true

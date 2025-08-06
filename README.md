@@ -5,7 +5,9 @@
 
 An MCP (Model Context Protocol) interface for Atlassian products (Jira and Bitbucket).
 
-## Available tools
+## Features
+
+### Supported tools
 
 - `bitbucket_create_pr` - create a pull request
 - `bitbucket_read_pr` - read a pull request
@@ -15,6 +17,12 @@ An MCP (Model Context Protocol) interface for Atlassian products (Jira and Bitbu
 - `bitbucket_list_pr_tasks` - list tasks on a pull request
 - `bitbucket_update_pr_task` - update a task on a pull request
 - `bitbucket_create_pr_task` - create a task on a pull request
+
+### Supported transports
+
+- Streamable HTTP (default)
+- SSE
+- STDIO
 
 ## Quick Start
 

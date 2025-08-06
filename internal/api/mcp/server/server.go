@@ -167,3 +167,22 @@ func (s *MCPServer) NewStreamableHTTPServer() *httpserver.HTTPServer {
 		),
 	})
 }
+
+// NewSSEServer creates a new SSE server.
+func (s *MCPServer) NewSSEServer() *httpserver.HTTPServer {
+	return httpserver.NewHTTPServer(httpserver.HTTPServerDeps{
+		RootLogger: s.logger,
+
+		Host:              s.deps.HTTPHost,
+		Port:              s.deps.HTTPPort,
+		IdleTimeout:       httpIdleTimeout,
+		ReadHeaderTimeout: httpReadTimeout,
+		ReadTimeout:       httpReadTimeout,
+		WriteTimeout:      httpWriteTimeout,
+
+		ShutdownHooks: s.shutdownHooks,
+		Handler: mcpserver.NewSSEServer(
+			s.mcpServer,
+		),
+	})
+}
