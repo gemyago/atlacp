@@ -7,7 +7,6 @@ import (
 	"os/signal"
 	"time"
 
-	httpserver "github.com/gemyago/atlacp/internal/api/http/server"
 	mcpserver "github.com/gemyago/atlacp/internal/api/mcp/server"
 	"github.com/gemyago/atlacp/internal/diag"
 	"github.com/gemyago/atlacp/internal/services"
@@ -20,7 +19,6 @@ type startHTTPServerParams struct {
 	dig.In `ignore-unexported:"true"`
 
 	noop bool
-	sse  bool
 
 	RootLogger *slog.Logger
 
@@ -31,12 +29,7 @@ type startHTTPServerParams struct {
 
 func startHTTPServer(rootCtx context.Context, params startHTTPServerParams) error {
 	rootLogger := params.RootLogger
-	var httpServer *httpserver.HTTPServer
-	if params.sse {
-		httpServer = params.MCPServer.NewSSEServer()
-	} else {
-		httpServer = params.MCPServer.NewStreamableHTTPServer()
-	}
+	httpServer := params.MCPServer.NewHTTPServer()
 
 	shutdown := func() error {
 		rootLogger.InfoContext(rootCtx, "Trying to shut down gracefully")
@@ -82,15 +75,13 @@ func startHTTPServer(rootCtx context.Context, params startHTTPServerParams) erro
 
 func newHTTPCmd(container *dig.Container) *cobra.Command {
 	noop := false
-	sse := false
 	cmd := &cobra.Command{
 		Use:   "http",
-		Short: "Start MCP server (Streamable HTTP by default)",
-		Long:  "Start MCP server using using Streamable HTTP (default) or SSE (run with `--sse` flag)",
+		Short: "Start MCP server",
+		Long:  "Start MCP server via HTTP transport",
 		RunE: func(cmd *cobra.Command, _ []string) error {
 			return container.Invoke(func(p startHTTPServerParams) error {
 				p.noop = noop
-				p.sse = sse
 				return startHTTPServer(cmd.Context(), p)
 			})
 		},
@@ -100,12 +91,6 @@ func newHTTPCmd(container *dig.Container) *cobra.Command {
 		"noop",
 		false,
 		"Run in noop mode. Useful for testing if setup is all working.",
-	)
-	cmd.Flags().BoolVar(
-		&sse,
-		"sse",
-		false,
-		"Start SSE server instead of Streamable HTTP server.",
 	)
 	return cmd
 }
