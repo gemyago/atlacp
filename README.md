@@ -52,17 +52,19 @@ More on Atlassian tokens:
 
 ### Start the MCP server
 
-Start docker container pointing on the `accounts-config.json` file:
+Start docker container pointing on the `atlassian-accounts.json` file:
 
 ```bash
 docker run -d --name atlacp-mcp \
   --restart=always \
   -p 8080:8080 \
-  -v $(pwd)/accounts-config.json:/app/accounts-config.json \
-  ghcr.io/gemyago/atlacp-mcp:latest
+  -v $(pwd)/atlassian-accounts.json:/app/atlassian-accounts.json \
+  ghcr.io/gemyago/atlacp-mcp:latest \
+  -a /app/atlassian-accounts.json \
+  http
 ```
 
-### Integrate with AI editors
+### Integrate AI tools
 
 Cursor MCP config (.cursor/mcp.json) section may look like this:
 
@@ -82,6 +84,14 @@ Check pull request 12345 from bitbucket repo owner/repo-name
 ```
 
 You should see a response with PR details.
+
+### Pick appropriate transport
+
+Root url will serve Streamable HTTP transport. You can use SSE transport by appending `/sse` to the root url. Example:
+* `http://localhost:8080` - Streamable HTTP transport
+* `http://localhost:8080/sse` - SSE transport
+
+STDIO is supported as well. Use docker run with `stdio` subcommand instead of `http` to use it.
 
 ## License
 
