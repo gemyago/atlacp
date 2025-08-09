@@ -30,8 +30,6 @@ jobs:
         # TODO - docker build step should produce list of images
         # Here we should do the cleanup, probably via makefile.
         run: |
-          ./scripts/ghcr.py cleanup-versions --namespace "users/${GITHUB_REPOSITORY_OWNER}" --package atlacp-jobs --really-remove
-          ./scripts/ghcr.py cleanup-versions --namespace "users/${GITHUB_REPOSITORY_OWNER}" --package atlacp-server --really-remove
           ./scripts/ghcr.py cleanup-versions --namespace "users/${GITHUB_REPOSITORY_OWNER}" --package atlacp-mcp --really-remove
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
