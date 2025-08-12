@@ -10,6 +10,7 @@ test.log
 # Ignore MCP configs for now
 .cursor/mcp.json
 .kilocode/mcp.json
+.continue/mcpServers/
 
 # Ignore some examples
 quick-start/atlassian-accounts.json
