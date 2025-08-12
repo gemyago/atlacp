@@ -19,10 +19,9 @@ import (
 
 // Constants for server configuration.
 const (
-	httpReadTimeout  = 30 * time.Second
-	httpWriteTimeout = 30 * time.Second
-	httpIdleTimeout  = 120 * time.Second
-	shutdownTimeout  = 10 * time.Second
+	httpReadTimeout  = 5 * time.Second
+	httpWriteTimeout = 0 // no timeout, for SSE transport best not to have it
+	httpIdleTimeout  = 0 // no timeout, for SSE transport best not to have it
 )
 
 type ToolsFactory interface {
