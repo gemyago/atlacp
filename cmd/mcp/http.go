@@ -4,6 +4,7 @@ import (
 	"context"
 	"errors"
 	"log/slog"
+	"os"
 	"os/signal"
 	"time"
 
@@ -27,11 +28,29 @@ type startHTTPServerParams struct {
 	*services.ShutdownHooks
 }
 
+func watchForceSignal(
+	rootCtx context.Context,
+	rootLogger *slog.Logger,
+	signals []os.Signal,
+) {
+	forceSignal := make(chan os.Signal, 1)
+	signal.Notify(forceSignal, signals...)
+
+	go func() {
+		<-forceSignal
+		rootLogger.InfoContext(rootCtx, "Forcing shutdown")
+		os.Exit(1)
+	}()
+}
+
 func startHTTPServer(rootCtx context.Context, params startHTTPServerParams) error {
 	rootLogger := params.RootLogger
 	httpServer := params.MCPServer.NewHTTPServer()
 
+	shutdownSignals := []os.Signal{unix.SIGINT, unix.SIGTERM}
+
 	shutdown := func() error {
+		watchForceSignal(rootCtx, rootLogger, shutdownSignals)
 		rootLogger.InfoContext(rootCtx, "Trying to shut down gracefully")
 		ts := time.Now()
 
@@ -46,7 +65,7 @@ func startHTTPServer(rootCtx context.Context, params startHTTPServerParams) erro
 		return err
 	}
 
-	signalCtx, cancel := signal.NotifyContext(rootCtx, unix.SIGINT, unix.SIGTERM)
+	signalCtx, cancel := signal.NotifyContext(rootCtx, shutdownSignals...)
 	defer cancel()
 
 	const startedComponents = 2
