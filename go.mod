@@ -42,7 +42,7 @@ require (
 	github.com/mattn/go-isatty v0.0.20 // indirect
 	github.com/mitchellh/go-homedir v1.1.0 // indirect
 	github.com/mitchellh/mapstructure v1.5.0 // indirect
-	github.com/mitranim/gg v0.1.19 // indirect
+	github.com/mitranim/gg v0.1.28 // indirect
 	github.com/mitranim/gow v0.0.0-20250328223101-576bf37beebc // indirect
 	github.com/narqo/go-badge v0.0.0-20230821190521-c9a75c019a59 // indirect
 	github.com/pelletier/go-toml/v2 v2.2.4 // indirect
@@ -70,6 +70,9 @@ require (
 	golang.org/x/tools v0.36.0 // indirect
 	gopkg.in/yaml.v3 v3.0.1 // indirect
 )
+
+// Using gg v0.1.19 until https://github.com/mitranim/gow/issues/48 is fixed
+replace github.com/mitranim/gg => github.com/mitranim/gg v0.1.19
 
 tool (
 	github.com/gemyago/apigen
