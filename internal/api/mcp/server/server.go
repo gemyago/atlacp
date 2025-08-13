@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"io"
 	"log/slog"
+	"net/http"
 	"time"
 
 	httpserver "github.com/gemyago/atlacp/internal/api/http/server"
@@ -18,10 +19,9 @@ import (
 
 // Constants for server configuration.
 const (
-	httpReadTimeout  = 30 * time.Second
-	httpWriteTimeout = 30 * time.Second
-	httpIdleTimeout  = 120 * time.Second
-	shutdownTimeout  = 10 * time.Second
+	httpReadTimeout  = 5 * time.Second
+	httpWriteTimeout = 0 // no timeout, for SSE transport best not to have it
+	httpIdleTimeout  = 0 // no timeout, for SSE transport best not to have it
 )
 
 type ToolsFactory interface {
@@ -148,8 +148,23 @@ func (s *MCPServer) ListenStdioServer(
 	return stdioSrv.Listen(ctx, stdin, stdout)
 }
 
-// NewStreamableHTTPServer creates a new streamable HTTP server.
-func (s *MCPServer) NewStreamableHTTPServer() *httpserver.HTTPServer {
+// NewHTTPServer creates a new HTTP server with streamable and SSE handlers.
+func (s *MCPServer) NewHTTPServer() *httpserver.HTTPServer {
+	rootHandler := http.NewServeMux()
+
+	rootHandler.Handle("/", mcpserver.NewStreamableHTTPServer(
+		s.mcpServer,
+		mcpserver.WithStateLess(true),
+	))
+
+	sseServer := mcpserver.NewSSEServer(
+		s.mcpServer,
+		mcpserver.WithSSEEndpoint("/sse/"),
+		mcpserver.WithMessageEndpoint("/sse/message"),
+	)
+	rootHandler.Handle("/sse", sseServer.SSEHandler())
+	rootHandler.Handle("/sse/message", sseServer.MessageHandler())
+
 	return httpserver.NewHTTPServer(httpserver.HTTPServerDeps{
 		RootLogger: s.logger,
 
@@ -161,9 +176,6 @@ func (s *MCPServer) NewStreamableHTTPServer() *httpserver.HTTPServer {
 		WriteTimeout:      httpWriteTimeout,
 
 		ShutdownHooks: s.shutdownHooks,
-		Handler: mcpserver.NewStreamableHTTPServer(
-			s.mcpServer,
-			mcpserver.WithStateLess(true),
-		),
+		Handler:       rootHandler,
 	})
 }

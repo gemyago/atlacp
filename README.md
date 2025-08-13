@@ -5,7 +5,9 @@
 
 An MCP (Model Context Protocol) interface for Atlassian products (Jira and Bitbucket).
 
-## Available tools
+## Features
+
+### Supported tools
 
 - `bitbucket_create_pr` - create a pull request
 - `bitbucket_read_pr` - read a pull request
@@ -15,6 +17,12 @@ An MCP (Model Context Protocol) interface for Atlassian products (Jira and Bitbu
 - `bitbucket_list_pr_tasks` - list tasks on a pull request
 - `bitbucket_update_pr_task` - update a task on a pull request
 - `bitbucket_create_pr_task` - create a task on a pull request
+
+### Supported transports
+
+- Streamable HTTP (default)
+- SSE
+- STDIO
 
 ## Quick Start
 
@@ -44,17 +52,19 @@ More on Atlassian tokens:
 
 ### Start the MCP server
 
-Start docker container pointing on the `accounts-config.json` file:
+Start docker container pointing on the `atlassian-accounts.json` file:
 
 ```bash
 docker run -d --name atlacp-mcp \
   --restart=always \
   -p 8080:8080 \
-  -v $(pwd)/accounts-config.json:/app/accounts-config.json \
-  ghcr.io/gemyago/atlacp-mcp:latest
+  -v $(pwd)/atlassian-accounts.json:/app/atlassian-accounts.json \
+  ghcr.io/gemyago/atlacp-mcp:latest \
+  -a /app/atlassian-accounts.json \
+  http
 ```
 
-### Integrate with AI editors
+### Integrate AI tools
 
 Cursor MCP config (.cursor/mcp.json) section may look like this:
 
@@ -74,6 +84,14 @@ Check pull request 12345 from bitbucket repo owner/repo-name
 ```
 
 You should see a response with PR details.
+
+### Pick appropriate transport
+
+Root url will serve Streamable HTTP transport. You can use SSE transport by appending `/sse` to the root url. Example:
+* `http://localhost:8080` - Streamable HTTP transport
+* `http://localhost:8080/sse` - SSE transport
+
+STDIO is supported as well. Use docker run with `stdio` subcommand instead of `http` to use it.
 
 ## License
 

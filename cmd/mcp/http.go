@@ -4,6 +4,7 @@ import (
 	"context"
 	"errors"
 	"log/slog"
+	"os"
 	"os/signal"
 	"time"
 
@@ -27,11 +28,29 @@ type startHTTPServerParams struct {
 	*services.ShutdownHooks
 }
 
+func watchForceSignal(
+	rootCtx context.Context,
+	rootLogger *slog.Logger,
+	signals []os.Signal,
+) {
+	forceSignal := make(chan os.Signal, 1)
+	signal.Notify(forceSignal, signals...)
+
+	go func() {
+		<-forceSignal
+		rootLogger.InfoContext(rootCtx, "Forcing shutdown")
+		os.Exit(1)
+	}()
+}
+
 func startHTTPServer(rootCtx context.Context, params startHTTPServerParams) error {
 	rootLogger := params.RootLogger
-	httpServer := params.MCPServer.NewStreamableHTTPServer()
+	httpServer := params.MCPServer.NewHTTPServer()
+
+	shutdownSignals := []os.Signal{unix.SIGINT, unix.SIGTERM}
 
 	shutdown := func() error {
+		watchForceSignal(rootCtx, rootLogger, shutdownSignals)
 		rootLogger.InfoContext(rootCtx, "Trying to shut down gracefully")
 		ts := time.Now()
 
@@ -46,7 +65,7 @@ func startHTTPServer(rootCtx context.Context, params startHTTPServerParams) erro
 		return err
 	}
 
-	signalCtx, cancel := signal.NotifyContext(rootCtx, unix.SIGINT, unix.SIGTERM)
+	signalCtx, cancel := signal.NotifyContext(rootCtx, shutdownSignals...)
 	defer cancel()
 
 	const startedComponents = 2
@@ -77,8 +96,8 @@ func newHTTPCmd(container *dig.Container) *cobra.Command {
 	noop := false
 	cmd := &cobra.Command{
 		Use:   "http",
-		Short: "Start MCP server with HTTP transport",
-		Long:  "Start MCP server using HTTP transport for web-based MCP clients",
+		Short: "Start MCP server",
+		Long:  "Start MCP server via HTTP transport",
 		RunE: func(cmd *cobra.Command, _ []string) error {
 			return container.Invoke(func(p startHTTPServerParams) error {
 				p.noop = noop
@@ -92,6 +111,5 @@ func newHTTPCmd(container *dig.Container) *cobra.Command {
 		false,
 		"Run in noop mode. Useful for testing if setup is all working.",
 	)
-
 	return cmd
 }

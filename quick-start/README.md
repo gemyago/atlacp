@@ -64,8 +64,10 @@ Due to ghcr constraints, if you are logged in to ghcr, you may have to run `dock
 docker run -d --name atlacp-mcp \
   --restart=always \
   -p 8080:8080 \
-  -v $(pwd)/accounts-config.json:/app/accounts-config.json \
-  ghcr.io/gemyago/atlacp-mcp:latest
+  -v $(pwd)/atlassian-accounts.json:/app/atlassian-accounts.json \
+  ghcr.io/gemyago/atlacp-mcp:latest \
+  -a /app/atlassian-accounts.json \
+  http
 ```
 
 ### Run using Docker Compose
@@ -108,3 +110,5 @@ Example configuration for Cursor (.cursor/mcp.json):
   }
 }
 ```
+
+Use `http://localhost:8080/sse` - for SSE transport. Otherwise Streamable HTTP transport is used.
