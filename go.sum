@@ -75,12 +75,10 @@ github.com/mitchellh/go-homedir v1.1.0 h1:lukF9ziXFxDFPkA1vsr5zpc1XuPDn/wFntq5mG
 github.com/mitchellh/go-homedir v1.1.0/go.mod h1:SfyaCUpYCn1Vlf4IUYiD9fPX4A5wJrkLzIz1N1q0pr0=
 github.com/mitchellh/mapstructure v1.5.0 h1:jeMsZIYE/09sWLaz43PL7Gy6RuMjD2eJVyuac5Z2hdY=
 github.com/mitchellh/mapstructure v1.5.0/go.mod h1:bFUtVrKA4DC2yAKiSyO/QUcy7e+RRV2QTWOzhPopBRo=
-github.com/mitranim/gg v0.1.19 h1:4eTg5lOekYzz5mSBh8J3ruJH08AywMO4VEzJGZTk0gk=
-github.com/mitranim/gg v0.1.19/go.mod h1:x2V+nJJOpeMl/XEoHou9zlTvFxYAcGOCqOAKpVkF0Yc=
 github.com/mitranim/gg v0.1.28 h1:+ip6d+rviDUztbsWY5I+Izp4UZnOr46gz//AAzuV1SI=
 github.com/mitranim/gg v0.1.28/go.mod h1:x2V+nJJOpeMl/XEoHou9zlTvFxYAcGOCqOAKpVkF0Yc=
-github.com/mitranim/gow v0.0.0-20250328223101-576bf37beebc h1:G2MXqwcUGomN6t6QXAp2FCvQISuCdN2Hv6DkLvuDkdE=
-github.com/mitranim/gow v0.0.0-20250328223101-576bf37beebc/go.mod h1:5EoX+lDjxFS8FsGddO+JvLbf5xUzga7UgM5Hh5ZGjco=
+github.com/mitranim/gow v0.0.0-20250813114836-466e175ff699 h1:1SmNJMZpxH8RvmEpsEQePQA1EQUuERXmspJ7DpGX0lA=
+github.com/mitranim/gow v0.0.0-20250813114836-466e175ff699/go.mod h1:u9z0VPXeuHx5lzkR6TJsX+fx0YzbLS+UZnp1HlBxeNU=
 github.com/narqo/go-badge v0.0.0-20230821190521-c9a75c019a59 h1:kbREB9muGo4sHLoZJD/E/IV8yK3Y15eEA9mYi/ztRsk=
 github.com/narqo/go-badge v0.0.0-20230821190521-c9a75c019a59/go.mod h1:m9BzkaxwU4IfPQi9ko23cmuFltayFe8iS0dlRlnEWiM=
 github.com/pelletier/go-toml/v2 v2.2.4 h1:mye9XuhQ6gvn5h28+VilKrrPoQVanw5PMw/TB0t5Ec4=
