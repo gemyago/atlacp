@@ -43,7 +43,7 @@ require (
 	github.com/mitchellh/go-homedir v1.1.0 // indirect
 	github.com/mitchellh/mapstructure v1.5.0 // indirect
 	github.com/mitranim/gg v0.1.28 // indirect
-	github.com/mitranim/gow v0.0.0-20250328223101-576bf37beebc // indirect
+	github.com/mitranim/gow v0.0.0-20250813114836-466e175ff699 // indirect
 	github.com/narqo/go-badge v0.0.0-20230821190521-c9a75c019a59 // indirect
 	github.com/pelletier/go-toml/v2 v2.2.4 // indirect
 	github.com/pmezard/go-difflib v1.0.1-0.20181226105442-5d4384ee4fb2 // indirect
