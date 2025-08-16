@@ -71,9 +71,6 @@ require (
 	gopkg.in/yaml.v3 v3.0.1 // indirect
 )
 
-// Using gg v0.1.19 until https://github.com/mitranim/gow/issues/48 is fixed
-replace github.com/mitranim/gg => github.com/mitranim/gg v0.1.19
-
 tool (
 	github.com/gemyago/apigen
 	github.com/mitranim/gow

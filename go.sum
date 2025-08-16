@@ -75,8 +75,6 @@ github.com/mitchellh/go-homedir v1.1.0 h1:lukF9ziXFxDFPkA1vsr5zpc1XuPDn/wFntq5mG
 github.com/mitchellh/go-homedir v1.1.0/go.mod h1:SfyaCUpYCn1Vlf4IUYiD9fPX4A5wJrkLzIz1N1q0pr0=
 github.com/mitchellh/mapstructure v1.5.0 h1:jeMsZIYE/09sWLaz43PL7Gy6RuMjD2eJVyuac5Z2hdY=
 github.com/mitchellh/mapstructure v1.5.0/go.mod h1:bFUtVrKA4DC2yAKiSyO/QUcy7e+RRV2QTWOzhPopBRo=
-github.com/mitranim/gg v0.1.19 h1:4eTg5lOekYzz5mSBh8J3ruJH08AywMO4VEzJGZTk0gk=
-github.com/mitranim/gg v0.1.19/go.mod h1:x2V+nJJOpeMl/XEoHou9zlTvFxYAcGOCqOAKpVkF0Yc=
 github.com/mitranim/gg v0.1.28 h1:+ip6d+rviDUztbsWY5I+Izp4UZnOr46gz//AAzuV1SI=
 github.com/mitranim/gg v0.1.28/go.mod h1:x2V+nJJOpeMl/XEoHou9zlTvFxYAcGOCqOAKpVkF0Yc=
 github.com/mitranim/gow v0.0.0-20250328223101-576bf37beebc h1:G2MXqwcUGomN6t6QXAp2FCvQISuCdN2Hv6DkLvuDkdE=
