@@ -25,7 +25,7 @@ func (c *Client) RequestPRChanges(
 	ctx context.Context,
 	tokenProvider TokenProvider,
 	params RequestPRChangesParams,
-) (status string, removedAt time.Time, err error) {
+) (string, time.Time, error) {
 	token, err := tokenProvider.GetToken(ctx)
 	if err != nil {
 		return "", time.Time{}, fmt.Errorf("failed to get token: %w", err)

@@ -4,12 +4,66 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"net/http"
 	"net/url"
 	"strconv"
 
 	httpservices "github.com/gemyago/atlacp/internal/services/http"
 	"github.com/gemyago/atlacp/internal/services/http/middleware"
 )
+
+func paginateDiffStat(
+	ctx context.Context,
+	httpClient *http.Client,
+	startURL string,
+) ([]DiffStat, int, int, int, error) {
+	var (
+		allValues []DiffStat
+		page      int
+		pageLen   int
+		totalSize int
+		firstPage = true
+	)
+	nextURL := startURL
+	for {
+		var resp paginatedResponse
+		pageErr := httpservices.SendRequest(
+			ctx,
+			httpClient,
+			httpservices.SendRequestParams[interface{}, paginatedResponse]{
+				Method: "GET",
+				URL:    nextURL,
+				Target: &resp,
+			},
+		)
+		if pageErr != nil {
+			return nil, 0, 0, 0, fmt.Errorf("get diffstat failed: %w", pageErr)
+		}
+
+		if firstPage {
+			page = resp.Page
+			pageLen = resp.PageLen
+			totalSize = resp.Size
+			firstPage = false
+		}
+		allValues = append(allValues, resp.Values...)
+
+		if resp.Next == "" {
+			break
+		}
+		nextURL = resp.Next
+	}
+	return allValues, page, pageLen, totalSize, nil
+}
+
+type paginatedResponse struct {
+	Size     int        `json:"size,omitempty"`
+	Page     int        `json:"page,omitempty"`
+	PageLen  int        `json:"pagelen,omitempty"`
+	Next     string     `json:"next,omitempty"`
+	Previous string     `json:"previous,omitempty"`
+	Values   []DiffStat `json:"values"`
+}
 
 // GetPRDiffStatParams contains parameters for getting diffstat for a pull request.
 type GetPRDiffStatParams struct {
@@ -21,7 +75,8 @@ type GetPRDiffStatParams struct {
 	Account   *string  // optional
 }
 
-// GetPRDiffStat retrieves the diffstat for a pull request, handling all query parameters, pagination, and model unification.
+// GetPRDiffStat retrieves the diffstat for a pull request, handling all query parameters,
+// pagination, and model unification.
 func (c *Client) GetPRDiffStat(
 	ctx context.Context,
 	tokenProvider TokenProvider,
@@ -70,59 +125,15 @@ func (c *Client) GetPRDiffStat(
 		query.Set("account_id", *params.Account)
 	}
 
-	// Pagination loop
-	type paginatedResponse struct {
-		Size     int        `json:"size,omitempty"`
-		Page     int        `json:"page,omitempty"`
-		PageLen  int        `json:"pagelen,omitempty"`
-		Next     string     `json:"next,omitempty"`
-		Previous string     `json:"previous,omitempty"`
-		Values   []DiffStat `json:"values"`
-	}
-
-	var (
-		allValues []DiffStat
-		page      int
-		pageLen   int
-		totalSize int
-		firstPage = true
-		nextURL   string
-	)
-
 	// Initial URL
 	baseURL := c.baseURL + path
 	if len(query) > 0 {
 		baseURL += "?" + query.Encode()
 	}
-	nextURL = baseURL
 
-	for {
-		var resp paginatedResponse
-		err := httpservices.SendRequest(
-			ctxWithAuth,
-			c.httpClient,
-			httpservices.SendRequestParams[interface{}, paginatedResponse]{
-				Method: "GET",
-				URL:    nextURL,
-				Target: &resp,
-			},
-		)
-		if err != nil {
-			return nil, fmt.Errorf("get diffstat failed: %w", err)
-		}
-
-		if firstPage {
-			page = resp.Page
-			pageLen = resp.PageLen
-			totalSize = resp.Size
-			firstPage = false
-		}
-		allValues = append(allValues, resp.Values...)
-
-		if resp.Next == "" {
-			break
-		}
-		nextURL = resp.Next
+	allValues, page, pageLen, totalSize, err := paginateDiffStat(ctxWithAuth, c.httpClient, baseURL)
+	if err != nil {
+		return nil, err
 	}
 
 	return &struct {

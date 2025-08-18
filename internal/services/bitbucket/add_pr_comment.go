@@ -9,6 +9,8 @@ import (
 	"github.com/gemyago/atlacp/internal/services/http/middleware"
 )
 
+const addPRCommentStatusSuccess = "success"
+
 // AddPRCommentParams contains parameters for adding a comment to a pull request.
 type AddPRCommentParams struct {
 	Workspace   string // repo_owner
@@ -87,5 +89,5 @@ func (c *Client) AddPRComment(
 		return 0, "", fmt.Errorf("add pull request comment failed: %w", err)
 	}
 
-	return response.ID, "success", nil
+	return response.ID, addPRCommentStatusSuccess, nil
 }

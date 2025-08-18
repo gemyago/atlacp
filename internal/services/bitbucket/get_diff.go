@@ -12,6 +12,8 @@ import (
 	"github.com/gemyago/atlacp/internal/services/http/middleware"
 )
 
+type contextKey string
+
 // GetPRDiffParams contains parameters for getting diff for a pull request.
 type GetPRDiffParams struct {
 	RepoOwner string
@@ -65,7 +67,8 @@ func (c *Client) GetPRDiff(
 	// Bitbucket API does not support account as a query param, but if needed as a header:
 	if params.Account != nil {
 		// Use a custom header for account if required by internal convention
-		ctxWithAuth = context.WithValue(ctxWithAuth, "X-Atlassian-Account", *params.Account)
+		const contextKeyAtlassianAccount = contextKey("X-Atlassian-Account")
+		ctxWithAuth = context.WithValue(ctxWithAuth, contextKeyAtlassianAccount, *params.Account)
 	}
 
 	fullURL := c.baseURL + path
@@ -76,18 +79,18 @@ func (c *Client) GetPRDiff(
 	var aggregatedDiff []byte
 	nextURL := fullURL
 	for {
-		req, err := http.NewRequestWithContext(ctxWithAuth, http.MethodGet, nextURL, nil)
-		if err != nil {
-			return nil, fmt.Errorf("failed to create request: %w", err)
+		req, reqErr := http.NewRequestWithContext(ctxWithAuth, http.MethodGet, nextURL, nil)
+		if reqErr != nil {
+			return nil, fmt.Errorf("failed to create request: %w", reqErr)
 		}
 		req.Header.Set("Accept", "text/plain")
 		if params.Account != nil {
 			req.Header.Set("X-Atlassian-Account", *params.Account)
 		}
 
-		resp, err := c.httpClient.Do(req)
-		if err != nil {
-			return nil, fmt.Errorf("get diff failed: %w", err)
+		resp, doErr := c.httpClient.Do(req)
+		if doErr != nil {
+			return nil, fmt.Errorf("get diff failed: %w", doErr)
 		}
 		defer resp.Body.Close()
 
@@ -96,9 +99,9 @@ func (c *Client) GetPRDiff(
 			return nil, fmt.Errorf("get diff failed: status %d, body: %s", resp.StatusCode, string(body))
 		}
 
-		body, err := io.ReadAll(resp.Body)
-		if err != nil {
-			return nil, fmt.Errorf("failed to read diff response: %w", err)
+		body, readErr := io.ReadAll(resp.Body)
+		if readErr != nil {
+			return nil, fmt.Errorf("failed to read diff response: %w", readErr)
 		}
 		aggregatedDiff = append(aggregatedDiff, body...)
 

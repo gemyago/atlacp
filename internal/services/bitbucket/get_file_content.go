@@ -44,9 +44,9 @@ func (c *Client) GetFileContent(
 	// Add ?account=... if provided
 	fullURL := c.baseURL + path
 	if params.Account != nil && *params.Account != "" {
-		u, err := url.Parse(fullURL)
-		if err != nil {
-			return nil, fmt.Errorf("failed to parse request URL: %w", err)
+		u, parseErr := url.Parse(fullURL)
+		if parseErr != nil {
+			return nil, fmt.Errorf("failed to parse request URL: %w", parseErr)
 		}
 		q := u.Query()
 		q.Set("account", *params.Account)

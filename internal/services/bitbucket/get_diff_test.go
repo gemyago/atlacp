@@ -60,7 +60,7 @@ func TestClient_GetPRDiff(t *testing.T) {
 			TokenType:  "Bearer",
 			TokenValue: faker.UUIDHyphenated(),
 		}
-		server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) {
 			w.Header().Set("Content-Type", "text/plain")
 			w.WriteHeader(http.StatusOK)
 			// Hijack the connection to simulate a read error
@@ -96,15 +96,16 @@ func TestClient_GetPRDiff(t *testing.T) {
 		var server *httptest.Server
 		handler := func(w http.ResponseWriter, r *http.Request) {
 			w.Header().Set("Content-Type", "text/plain")
-			if r.URL.Path == fmt.Sprintf("/repositories/%s/%s/pullrequests/%d/diff", username, repoSlug, prID) {
+			switch r.URL.Path {
+			case fmt.Sprintf("/repositories/%s/%s/pullrequests/%d/diff", username, repoSlug, prID):
 				// First request
 				assert.Equal(t, "GET", r.Method)
 				assert.Equal(t, "Bearer "+mockTokenProvider.TokenValue, r.Header.Get("Authorization"))
 				w.Header().Set("X-Next-Page", server.URL+"/next")
 				fmt.Fprint(w, page1)
-			} else if r.URL.Path == "/next" {
+			case "/next":
 				fmt.Fprint(w, page2)
-			} else {
+			default:
 				t.Fatalf("unexpected path: %s", r.URL.Path)
 			}
 		}
@@ -220,5 +221,29 @@ func TestClient_GetPRDiff(t *testing.T) {
 		require.Error(t, err)
 		assert.Nil(t, result)
 		assert.ErrorContains(t, err, "failed to get token")
+	})
+	t.Run("parameter validation errors", func(t *testing.T) {
+		mockTokenProvider := &MockTokenProvider{
+			TokenType:  "Bearer",
+			TokenValue: faker.UUIDHyphenated(),
+		}
+		tests := []struct {
+			name   string
+			params GetPRDiffParams
+			errMsg string
+		}{
+			{"missing RepoOwner", GetPRDiffParams{RepoName: "repo", PRID: 1}, "RepoOwner is required"},
+			{"missing RepoName", GetPRDiffParams{RepoOwner: "owner", PRID: 1}, "RepoName is required"},
+			{"missing PRID", GetPRDiffParams{RepoOwner: "owner", RepoName: "repo"}, "PRID is required and must be non-zero"},
+		}
+		client := NewClient(makeMockDepsWithTestName(t, "http://example.com"))
+		for _, tc := range tests {
+			t.Run(tc.name, func(t *testing.T) {
+				result, err := client.GetPRDiff(t.Context(), mockTokenProvider, tc.params)
+				require.Error(t, err)
+				assert.Nil(t, result)
+				assert.ErrorContains(t, err, tc.errMsg)
+			})
+		}
 	})
 }

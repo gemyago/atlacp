@@ -32,7 +32,7 @@ func TestClient_AddPRComment(t *testing.T) {
 		}
 
 		expectedCommentID := faker.RandomUnixTime()
-		expectedStatus := "success"
+		expectedStatus := addPRCommentStatusSuccess
 		expectedContent := &TaskContent{Raw: commentText}
 		expectedComment := Comment{
 			ID:        expectedCommentID,
@@ -51,11 +51,18 @@ func TestClient_AddPRComment(t *testing.T) {
 			var payload map[string]interface{}
 			err := json.NewDecoder(r.Body).Decode(&payload)
 			assert.NoError(t, err)
-			assert.Equal(t, commentText, payload["content"].(map[string]interface{})["raw"])
-			inline := payload["inline"].(map[string]interface{})
+			contentMap, ok := payload["content"].(map[string]interface{})
+			if !assert.True(t, ok, "payload[\"content\"] is not a map[string]interface{}") {
+				return
+			}
+			assert.Equal(t, commentText, contentMap["raw"])
+			inline, ok := payload["inline"].(map[string]interface{})
+			if !assert.True(t, ok, "payload[\"inline\"] is not a map[string]interface{}") {
+				return
+			}
 			assert.Equal(t, filePath, inline["path"])
-			assert.Equal(t, float64(lineFrom), inline["from"])
-			assert.Equal(t, float64(lineTo), inline["to"])
+			assert.InDelta(t, float64(lineFrom), inline["from"], 1e-9)
+			assert.InDelta(t, float64(lineTo), inline["to"], 1e-9)
 
 			w.Header().Set("Content-Type", "application/json")
 			w.WriteHeader(http.StatusCreated)
@@ -94,7 +101,7 @@ func TestClient_AddPRComment(t *testing.T) {
 		}
 
 		expectedCommentID := faker.RandomUnixTime()
-		expectedStatus := "success"
+		expectedStatus := addPRCommentStatusSuccess
 		expectedContent := &TaskContent{Raw: commentText}
 		expectedComment := Comment{
 			ID:        expectedCommentID,
@@ -113,7 +120,11 @@ func TestClient_AddPRComment(t *testing.T) {
 			var payload map[string]interface{}
 			err := json.NewDecoder(r.Body).Decode(&payload)
 			assert.NoError(t, err)
-			assert.Equal(t, commentText, payload["content"].(map[string]interface{})["raw"])
+			contentMap, ok := payload["content"].(map[string]interface{})
+			if !assert.True(t, ok, "payload[\"content\"] is not a map[string]interface{}") {
+				return
+			}
+			assert.Equal(t, commentText, contentMap["raw"])
 			assert.Nil(t, payload["inline"])
 
 			w.Header().Set("Content-Type", "application/json")
@@ -149,7 +160,7 @@ func TestClient_AddPRComment(t *testing.T) {
 			TokenValue: faker.UUIDHyphenated(),
 		}
 
-		server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) {
 			w.Header().Set("Content-Type", "application/json")
 			w.WriteHeader(http.StatusBadRequest)
 			fmt.Fprint(w, `{"error": {"message": "Invalid request"}}`)

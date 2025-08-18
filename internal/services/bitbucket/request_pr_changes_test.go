@@ -72,7 +72,7 @@ func TestClient_RequestPRChanges(t *testing.T) {
 			TokenValue: faker.UUIDHyphenated(),
 		}
 
-		server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) {
 			w.Header().Set("Content-Type", "application/json")
 			w.WriteHeader(http.StatusBadRequest)
 			fmt.Fprint(w, `{"error": {"message": "Invalid request"}}`)
