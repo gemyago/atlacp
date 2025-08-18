@@ -33,6 +33,7 @@ func (c *Client) GetFileContent(
 	}
 	ctxWithAuth := middleware.WithAuthTokenV2(ctx, token)
 
+	// Build the path
 	path := fmt.Sprintf("/repositories/%s/%s/src/%s/%s",
 		url.PathEscape(params.RepoOwner),
 		url.PathEscape(params.RepoName),
@@ -40,7 +41,20 @@ func (c *Client) GetFileContent(
 		params.FilePath,
 	)
 
-	req, err := http.NewRequestWithContext(ctxWithAuth, http.MethodGet, c.baseURL+path, nil)
+	// Add ?account=... if provided
+	fullURL := c.baseURL + path
+	if params.Account != nil && *params.Account != "" {
+		u, err := url.Parse(fullURL)
+		if err != nil {
+			return nil, fmt.Errorf("failed to parse request URL: %w", err)
+		}
+		q := u.Query()
+		q.Set("account", *params.Account)
+		u.RawQuery = q.Encode()
+		fullURL = u.String()
+	}
+
+	req, err := http.NewRequestWithContext(ctxWithAuth, http.MethodGet, fullURL, nil)
 	if err != nil {
 		return nil, fmt.Errorf("failed to create request: %w", err)
 	}
@@ -52,14 +66,19 @@ func (c *Client) GetFileContent(
 	}
 	defer resp.Body.Close()
 
-	if resp.StatusCode != http.StatusOK {
-		return nil, fmt.Errorf("get file content failed: status %d", resp.StatusCode)
-	}
-
 	body, err := io.ReadAll(resp.Body)
 	if err != nil {
 		return nil, fmt.Errorf("failed to read file content response: %w", err)
 	}
 
-	return &FileContent{Content: string(body)}, nil
+	if resp.StatusCode != http.StatusOK {
+		// Include response body in error for better diagnostics
+		return nil, fmt.Errorf("get file content failed: status %d, body: %s", resp.StatusCode, string(body))
+	}
+
+	return &FileContent{
+		Path:    params.FilePath,
+		Commit:  params.CommitHash,
+		Content: string(body),
+	}, nil
 }

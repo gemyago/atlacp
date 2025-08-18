@@ -78,16 +78,16 @@ type PaginatedTasks struct {
 
 // DiffStat represents a summary of changes made to a file between two commits.
 type DiffStat struct {
-	Type         string `json:"type,omitempty"`
-	Status       string `json:"status,omitempty"`
-	LinesAdded   int    `json:"lines_added,omitempty"`
-	LinesRemoved int    `json:"lines_removed,omitempty"`
-	Old          string `json:"old,omitempty"`
-	New          string `json:"new,omitempty"`
-	Path         string `json:"path,omitempty"`
-	EscapedPath  string `json:"escaped_path,omitempty"`
-	Hunks        []any  `json:"hunks,omitempty"` // TODO: define hunk structure if needed
-	Links        *Links `json:"links,omitempty"`
+	Type         string     `json:"type,omitempty"`
+	Status       string     `json:"status,omitempty"`
+	LinesAdded   int        `json:"lines_added,omitempty"`
+	LinesRemoved int        `json:"lines_removed,omitempty"`
+	Old          string     `json:"old,omitempty"`
+	New          string     `json:"new,omitempty"`
+	Path         string     `json:"path,omitempty"`
+	EscapedPath  string     `json:"escaped_path,omitempty"`
+	Hunks        []DiffHunk `json:"hunks,omitempty"` // Detailed hunk information for the diff
+	Links        *Links     `json:"links,omitempty"`
 }
 
 // FileContent represents the content of a file at a specific commit.
@@ -99,3 +99,24 @@ type FileContent struct {
 
 // Diff represents a raw diff as a string.
 type Diff string
+
+// DiffHunk represents a hunk of changes in a diff.
+// This struct can be extended with more fields as needed.
+type DiffHunk struct {
+	Content  string `json:"content,omitempty"`
+	NewLines int    `json:"new_lines,omitempty"`
+	OldLines int    `json:"old_lines,omitempty"`
+	Type     string `json:"type,omitempty"`
+}
+
+// PRCommentRequest represents the payload for adding a comment to a pull request.
+// Supports both general and inline comments.
+type PRCommentRequest struct {
+	Content  string `json:"content"`
+	FilePath string `json:"file_path,omitempty"` // Optional, for inline comments
+	LineFrom int    `json:"line_from,omitempty"` // Optional, for inline comments
+	LineTo   int    `json:"line_to,omitempty"`   // Optional, for inline comments
+}
+
+// PRChangeRequest represents the payload for requesting changes on a pull request.
+// Bitbucket's API does not require a payload for this operation.

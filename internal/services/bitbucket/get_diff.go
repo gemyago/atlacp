@@ -2,10 +2,12 @@ package bitbucket
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"io"
 	"net/http"
 	"net/url"
+	"strconv"
 
 	"github.com/gemyago/atlacp/internal/services/http/middleware"
 )
@@ -20,49 +22,94 @@ type GetPRDiffParams struct {
 	Account   *string  // optional
 }
 
-// DiffContent represents the raw diff content.
-type DiffContent struct {
-	Content string
-}
-
-// GetPRDiff retrieves the diff for a pull request.
+// GetPRDiff retrieves the diff for a pull request, handling parameters, pagination, and error validation.
 func (c *Client) GetPRDiff(
 	ctx context.Context,
 	tokenProvider TokenProvider,
 	params GetPRDiffParams,
-) (*DiffContent, error) {
+) (*Diff, error) {
+	// Parameter validation
+	if params.RepoOwner == "" {
+		return nil, errors.New("RepoOwner is required")
+	}
+	if params.RepoName == "" {
+		return nil, errors.New("RepoName is required")
+	}
+	if params.PRID == 0 {
+		return nil, errors.New("PRID is required and must be non-zero")
+	}
+
 	token, err := tokenProvider.GetToken(ctx)
 	if err != nil {
 		return nil, fmt.Errorf("failed to get token: %w", err)
 	}
 	ctxWithAuth := middleware.WithAuthTokenV2(ctx, token)
 
+	// Build path
 	path := fmt.Sprintf("/repositories/%s/%s/pullrequests/%d/diff",
 		url.PathEscape(params.RepoOwner),
 		url.PathEscape(params.RepoName),
 		params.PRID,
 	)
 
-	req, err := http.NewRequestWithContext(ctxWithAuth, http.MethodGet, c.baseURL+path, nil)
-	if err != nil {
-		return nil, fmt.Errorf("failed to create request: %w", err)
+	// Build query parameters
+	query := url.Values{}
+	if len(params.FilePaths) > 0 {
+		for _, fp := range params.FilePaths {
+			query.Add("path", fp)
+		}
 	}
-	req.Header.Set("Accept", "text/plain")
-
-	resp, err := c.httpClient.Do(req)
-	if err != nil {
-		return nil, fmt.Errorf("get diff failed: %w", err)
+	if params.Context != nil {
+		query.Set("context", strconv.Itoa(*params.Context))
 	}
-	defer resp.Body.Close()
-
-	if resp.StatusCode != http.StatusOK {
-		return nil, fmt.Errorf("get diff failed: status %d", resp.StatusCode)
-	}
-
-	body, err := io.ReadAll(resp.Body)
-	if err != nil {
-		return nil, fmt.Errorf("failed to read diff response: %w", err)
+	// Bitbucket API does not support account as a query param, but if needed as a header:
+	if params.Account != nil {
+		// Use a custom header for account if required by internal convention
+		ctxWithAuth = context.WithValue(ctxWithAuth, "X-Atlassian-Account", *params.Account)
 	}
 
-	return &DiffContent{Content: string(body)}, nil
+	fullURL := c.baseURL + path
+	if len(query) > 0 {
+		fullURL += "?" + query.Encode()
+	}
+
+	var aggregatedDiff []byte
+	nextURL := fullURL
+	for {
+		req, err := http.NewRequestWithContext(ctxWithAuth, http.MethodGet, nextURL, nil)
+		if err != nil {
+			return nil, fmt.Errorf("failed to create request: %w", err)
+		}
+		req.Header.Set("Accept", "text/plain")
+		if params.Account != nil {
+			req.Header.Set("X-Atlassian-Account", *params.Account)
+		}
+
+		resp, err := c.httpClient.Do(req)
+		if err != nil {
+			return nil, fmt.Errorf("get diff failed: %w", err)
+		}
+		defer resp.Body.Close()
+
+		if resp.StatusCode != http.StatusOK {
+			body, _ := io.ReadAll(resp.Body)
+			return nil, fmt.Errorf("get diff failed: status %d, body: %s", resp.StatusCode, string(body))
+		}
+
+		body, err := io.ReadAll(resp.Body)
+		if err != nil {
+			return nil, fmt.Errorf("failed to read diff response: %w", err)
+		}
+		aggregatedDiff = append(aggregatedDiff, body...)
+
+		// Check for pagination: Bitbucket raw diff endpoint does not paginate, but if it did, look for a "next" link header
+		nextLink := resp.Header.Get("X-Next-Page")
+		if nextLink == "" {
+			break
+		}
+		nextURL = nextLink
+	}
+
+	diff := Diff(string(aggregatedDiff))
+	return &diff, nil
 }
