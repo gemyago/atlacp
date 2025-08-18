@@ -1,42 +1,221 @@
----
-description: 
-globs: 
-alwaysApply: false
----
-# Task List Management
 
-Guidelines for managing task lists in markdown files to track progress on completing a PRD
+# Task List Processing Guide
 
-## Task Implementation
-- **One sub-task at a time:** 
-  - Do **NOT** start the next sub-task until you ask the user for permission and they say “yes” or "y"
-  - The user may request processing more (or all tasks) without confirmation. In this case follow the **Completion Protocol**.
-- **Completion protocol:**  
-  1. When you finish a **sub-task**, **immediately** mark it as completed by changing `[ ]` to `[x]`.  
-  2. If **all** subtasks underneath a parent task are now `[x]`, also mark the **parent task** as completed.  
-- Stop after each sub-task and wait for the user's go-ahead.
-  - This doesn't apply if user requested to complete multiple tasks at once.
+**For Small Context LLM Models - Focused TDD Workflow**
 
-## Task List Maintenance
+## MANDATORY RULES
 
-1. **Update the task list as you work:**
-   - Mark tasks and subtasks as completed (`[x]`) per the protocol above.
-   - Add new tasks as they emerge.
+### 🚫 NEVER DO THESE:
+- Work on multiple sub-tasks simultaneously
+- Skip writing tests first
+- Implement before having a failing test
+- Continue to next sub-task without explicit user approval
 
-2. **Maintain the “Relevant Files” section:**
-   - List every file created or modified.
-   - Give each file a one-line description of its purpose.
+### ✅ ALWAYS DO THESE:
+- Read ONLY the current sub-task before starting
+- Write ONE failing test for current sub-task only
+- Verify test fails with assertion error (not compilation error)
+- Implement minimal code to make test pass
+- Run test to verify it passes
+- Update task list immediately after completion
+- Stop and ask for approval before next sub-task
 
-## AI Instructions
+## STRICT WORKFLOW
 
-When working with task lists, the AI must:
+When user provides `@process-task-list.mdc X.Y`:
 
-1. Regularly update the task list file after finishing any significant work.
-2. Follow the completion protocol:
-   - Mark each finished **sub-task** `[x]`.
-   - Mark the **parent task** `[x]` once **all** its subtasks are `[x]`.
-3. Add newly discovered tasks.
-4. Keep “Relevant Files” accurate and up to date.
-5. Before starting work, check which sub-task is next.
-6. Run all tests and make sure all green (e.g `make test` to run all or `go test <path to package> --run <test filter>` to run specific tests)
-7. After implementing a sub-task, update the file and then pause for user approval.
+### Step 1: FOCUS
+- Read ONLY sub-task X.Y from the task list
+- Do NOT read other sub-tasks
+- Understand what this specific sub-task requires
+
+### Step 2: WRITE FAILING TEST
+- Create test for sub-task X.Y ONLY
+- Follow Given/When/Then structure
+- Avoid static variables shared across tests
+- Use random data when possible, use faker (github.com/go-faker/faker/v4)
+- Don't pollute testing namespace - if helper functions are only used within one test, nest them inside that test function
+- Compare entire structs when possible instead of individual fields (e.g `assert.Equal(t, expectedUser, actualUser)`)
+- Use factory functions to create reusable random data
+- Test must fail with assertion error, not compilation error
+
+### Step 3: VERIFY FAILURE
+- Run test: `go test -v ./<package path> --run <test name>`
+- Confirm test fails for the RIGHT reason (assertion, not compilation)
+- If compilation error, add minimal stub and re-run test
+
+### Step 4: MINIMAL IMPLEMENTATION
+- Write ONLY the code needed to make THIS test pass
+- Leave TODO comments for future sub-tasks
+- Don't implement features for other sub-tasks
+
+### Step 5: VERIFY SUCCESS
+- Run test: `go test -v ./<package path> --run <test name>`
+- Confirm test passes
+
+### Step 6: UPDATE & STOP
+- **MANDATORY**: Mark sub-task X.Y as `[x]` complete in task list
+- **MANDATORY**: Update "Relevant Files" section if files were modified
+- Say: "Sub-task X.Y complete. Should I continue with X.Z?"
+- **STOP** - wait for user approval
+
+## MANDATORY TASK LIST UPDATES
+
+### ⚠️ CRITICAL REQUIREMENT ⚠️
+**You MUST update the task list file after completing each sub-task. This is NOT optional.**
+
+### How to Update:
+1. **Change checkbox**: `- [ ] X.Y Description` → `- [x] X.Y Description`
+2. **Update Relevant Files section** if any files were created/modified
+3. **Save the task list file** before stopping
+
+### Example Update:
+```markdown
+## Tasks
+- [x] 1.1 Add publisher to protocol ✓
+- [ ] 1.2 Add documentation comment
+```
+
+### Completion Checklist:
+Before saying "Sub-task X.Y complete", verify:
+- [ ] Test written and passes
+- [ ] Code implemented
+- [ ] Task list updated with `[x]`
+- [ ] Relevant Files section updated (if applicable)
+- [ ] Ready to ask user for approval
+
+### If You Forget to Update:
+- User will ask you to update the task list
+- Always update immediately when reminded
+- Don't proceed to next sub-task until task list is updated
+
+## ADVANCED: MICRO-STEPPING FOR COMPLEX SUB-TASKS
+
+When a sub-task involves multiple scenarios (happy path + edge cases), use micro-stepping:
+
+### When to Use Micro-Steps:
+- Sub-task involves error handling
+- Multiple input validation scenarios
+- Different execution paths based on conditions
+- Complex business logic with edge cases
+
+### Micro-Step Workflow:
+1. **Assess Complexity**: Read the sub-task and determine if it needs micro-stepping
+2. **Create Internal Todo**: If complex, create your own micro-step todo list:
+   ```
+   Internal Todo for Sub-task X.Y:
+   - [ ] X.Y.a Happy path: [description]
+   - [ ] X.Y.b Edge case: [description]
+   - [ ] X.Y.c Edge case: [description]
+   ```
+3. **Follow Your Todo**: Work through each micro-step using TDD:
+   ```
+   For each micro-step:
+   a) Write failing test for THIS scenario only
+   b) Run test - verify it fails correctly
+   c) Write minimal code to make THIS test pass
+   d) Run test - verify it passes
+   e) Mark micro-step complete in your internal todo
+   ```
+
+### Example Micro-Step Flow:
+```
+User: @process-task-list-v2.mdc 3.4
+
+AI: "Sub-task 3.4 is complex. Creating internal todo:
+- [ ] 3.4.a Happy path: acceptConnectionRequest updates state to .connected
+- [ ] 3.4.b Edge case: handle invalid macId gracefully
+- [ ] 3.4.c Edge case: emit connectionEstablished after state update
+
+Working on 3.4.a..."
+[follows TDD cycle]
+"3.4.a complete ✓"
+
+"Working on 3.4.b..."
+[follows TDD cycle]
+"3.4.b complete ✓"
+
+"Working on 3.4.c..."
+[follows TDD cycle]
+"3.4.c complete ✓"
+
+"All micro-steps complete. Sub-task 3.4 complete. Should I continue with 3.5?"
+```
+
+### Micro-Step Rules:
+- **LLM creates its own micro-step todo** when sub-task is complex
+- **Don't modify the original task list** - keep micro-steps internal
+- Happy path ALWAYS comes first in your internal todo
+- Each micro-step gets its own test
+- Only use for genuinely complex sub-tasks
+- Mark the original sub-task complete only when all micro-steps are done
+
+## CONTEXT MANAGEMENT
+
+### For Small Context Models:
+- Focus on current sub-task only
+- Don't load entire codebase
+- Read only files mentioned in current sub-task
+- Keep imports minimal
+- Reference existing patterns from similar files
+
+### File Reading Strategy:
+1. Read current sub-task from task list
+2. Read only files directly mentioned in sub-task
+3. Look for existing patterns in similar files
+4. Don't read entire large files unless necessary
+
+## ERROR HANDLING
+
+### If Test Won't Compile:
+1. Add minimal stub implementation
+2. Run test again
+3. Verify test now fails with assertion error
+4. Proceed with implementation
+
+### If Test Passes Immediately:
+1. Test is too weak or implementation already exists
+2. Make test more specific to current sub-task
+3. Ensure test actually verifies the new behavior
+
+### If Multiple Tests Fail:
+1. Fix compilation errors first
+2. Focus only on making current sub-task test pass
+3. Don't fix unrelated test failures in this iteration
+
+## TASK LIST MAINTENANCE
+
+### Marking Complete:
+- Change `[ ]` to `[x]` for completed sub-task
+- Update "Relevant Files" section with any new/modified files
+- Mark parent task complete only when ALL sub-tasks are `[x]`
+
+## EXAMPLE INTERACTION
+
+```
+User: @process-task-list-v2.mdc 1.1
+
+AI Response:
+1. Reading sub-task 1.1: "Add logic to publish document"
+2. Writing failing test
+3. Running test - fails as expected (e.g document repository not invoked)
+4. Adding minimal implementation to publish document
+5. Running test - passes
+6. Updating task list: marking 1.1 as [x] complete
+
+Sub-task 1.1 complete. Should I continue with 1.2?
+```
+
+## RECOVERY STRATEGIES
+
+### If Stuck:
+- Re-read current sub-task description
+- Look for similar patterns in existing codebase
+- Ask user for clarification on current sub-task only
+
+### If Context Limit Reached:
+- Focus on current sub-task only
+- Don't read unnecessary files
+- Use minimal imports and references
+
+**Remember: One sub-task, one test, one implementation, one task list update, one confirmation. Keep it simple and focused.**
