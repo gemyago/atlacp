@@ -75,3 +75,27 @@ type PaginatedTasks struct {
 	Previous string                   `json:"previous,omitempty"`
 	Values   []PullRequestCommentTask `json:"values"`
 }
+
+// DiffStat represents a summary of changes made to a file between two commits.
+type DiffStat struct {
+	Type         string `json:"type,omitempty"`
+	Status       string `json:"status,omitempty"`
+	LinesAdded   int    `json:"lines_added,omitempty"`
+	LinesRemoved int    `json:"lines_removed,omitempty"`
+	Old          string `json:"old,omitempty"`
+	New          string `json:"new,omitempty"`
+	Path         string `json:"path,omitempty"`
+	EscapedPath  string `json:"escaped_path,omitempty"`
+	Hunks        []any  `json:"hunks,omitempty"` // TODO: define hunk structure if needed
+	Links        *Links `json:"links,omitempty"`
+}
+
+// FileContent represents the content of a file at a specific commit.
+type FileContent struct {
+	Path    string `json:"path"`
+	Commit  string `json:"commit"`
+	Content string `json:"content"`
+}
+
+// Diff represents a raw diff as a string.
+type Diff string
