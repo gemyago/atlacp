@@ -8,8 +8,9 @@
 ### 🚫 NEVER DO THESE:
 - Work on multiple sub-tasks simultaneously
 - Skip writing tests first
+  - Exception: you are adding new data structures
+- Add tests for data structures. Data structures should not be tested directly, but rather through the functions that use them.
 - Implement before having a failing test
-- Continue to next sub-task without explicit user approval
 
 ### ✅ ALWAYS DO THESE:
 - Read ONLY the current sub-task before starting
@@ -18,7 +19,6 @@
 - Implement minimal code to make test pass
 - Run test to verify it passes
 - Update task list immediately after completion
-- Stop and ask for approval before next sub-task
 
 ## STRICT WORKFLOW
 
