@@ -41,10 +41,10 @@ func TestClient_GetFileContent(t *testing.T) {
 		client := NewClient(deps)
 
 		result, err := client.GetFileContent(t.Context(), mockTokenProvider, GetFileContentParams{
-			Username: username,
-			RepoSlug: repoSlug,
-			Commit:   commit,
-			FilePath: filePath,
+			RepoOwner:  username,
+			RepoName:   repoSlug,
+			CommitHash: commit,
+			FilePath:   filePath,
 		})
 
 		require.NoError(t, err)
@@ -74,10 +74,10 @@ func TestClient_GetFileContent(t *testing.T) {
 		client := NewClient(deps)
 
 		result, err := client.GetFileContent(t.Context(), mockTokenProvider, GetFileContentParams{
-			Username: username,
-			RepoSlug: repoSlug,
-			Commit:   commit,
-			FilePath: filePath,
+			RepoOwner:  username,
+			RepoName:   repoSlug,
+			CommitHash: commit,
+			FilePath:   filePath,
 		})
 
 		require.Error(t, err)
@@ -99,10 +99,10 @@ func TestClient_GetFileContent(t *testing.T) {
 		client := NewClient(deps)
 
 		result, err := client.GetFileContent(t.Context(), mockTokenProvider, GetFileContentParams{
-			Username: username,
-			RepoSlug: repoSlug,
-			Commit:   commit,
-			FilePath: filePath,
+			RepoOwner:  username,
+			RepoName:   repoSlug,
+			CommitHash: commit,
+			FilePath:   filePath,
 		})
 
 		require.Error(t, err)

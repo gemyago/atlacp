@@ -59,9 +59,9 @@ func TestClient_GetPRDiffStat(t *testing.T) {
 		client := NewClient(deps)
 
 		result, err := client.GetPRDiffStat(t.Context(), mockTokenProvider, GetPRDiffStatParams{
-			Username:      username,
-			RepoSlug:      repoSlug,
-			PullRequestID: prID,
+			RepoOwner: username,
+			RepoName:  repoSlug,
+			PRID:      prID,
 		})
 
 		require.NoError(t, err)
@@ -93,9 +93,9 @@ func TestClient_GetPRDiffStat(t *testing.T) {
 		client := NewClient(deps)
 
 		result, err := client.GetPRDiffStat(t.Context(), mockTokenProvider, GetPRDiffStatParams{
-			Username:      username,
-			RepoSlug:      repoSlug,
-			PullRequestID: prID,
+			RepoOwner: username,
+			RepoName:  repoSlug,
+			PRID:      prID,
 		})
 
 		require.Error(t, err)
@@ -116,9 +116,9 @@ func TestClient_GetPRDiffStat(t *testing.T) {
 		client := NewClient(deps)
 
 		result, err := client.GetPRDiffStat(t.Context(), mockTokenProvider, GetPRDiffStatParams{
-			Username:      username,
-			RepoSlug:      repoSlug,
-			PullRequestID: prID,
+			RepoOwner: username,
+			RepoName:  repoSlug,
+			PRID:      prID,
 		})
 
 		require.Error(t, err)

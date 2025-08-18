@@ -11,9 +11,12 @@ import (
 
 // GetPRDiffStatParams contains parameters for getting diffstat for a pull request.
 type GetPRDiffStatParams struct {
-	Username      string
-	RepoSlug      string
-	PullRequestID int
+	RepoOwner string
+	RepoName  string
+	PRID      int
+	FilePaths []string // optional
+	Context   *int     // optional, default 3
+	Account   *string  // optional
 }
 
 // PaginatedDiffStat represents a paginated list of diffstat results.
@@ -39,9 +42,9 @@ func (c *Client) GetPRDiffStat(
 	ctxWithAuth := middleware.WithAuthTokenV2(ctx, token)
 
 	path := fmt.Sprintf("/repositories/%s/%s/pullrequests/%d/diffstat",
-		url.PathEscape(params.Username),
-		url.PathEscape(params.RepoSlug),
-		params.PullRequestID,
+		url.PathEscape(params.RepoOwner),
+		url.PathEscape(params.RepoName),
+		params.PRID,
 	)
 
 	var result PaginatedDiffStat

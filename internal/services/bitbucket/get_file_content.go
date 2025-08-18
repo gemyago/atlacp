@@ -12,10 +12,11 @@ import (
 
 // GetFileContentParams contains parameters for getting file content from a commit.
 type GetFileContentParams struct {
-	Username string
-	RepoSlug string
-	Commit   string
-	FilePath string
+	RepoOwner  string
+	RepoName   string
+	CommitHash string
+	FilePath   string
+	Account    *string // optional
 }
 
 // FileContent represents the raw file content.
@@ -33,9 +34,9 @@ func (c *Client) GetFileContent(
 	ctxWithAuth := middleware.WithAuthTokenV2(ctx, token)
 
 	path := fmt.Sprintf("/repositories/%s/%s/src/%s/%s",
-		url.PathEscape(params.Username),
-		url.PathEscape(params.RepoSlug),
-		url.PathEscape(params.Commit),
+		url.PathEscape(params.RepoOwner),
+		url.PathEscape(params.RepoName),
+		url.PathEscape(params.CommitHash),
 		params.FilePath,
 	)
 

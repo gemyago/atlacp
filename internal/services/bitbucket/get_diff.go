@@ -12,24 +12,17 @@ import (
 
 // GetPRDiffParams contains parameters for getting diff for a pull request.
 type GetPRDiffParams struct {
-	Username      string
-	RepoSlug      string
-	PullRequestID int
+	RepoOwner string
+	RepoName  string
+	PRID      int
+	FilePaths []string // optional
+	Context   *int     // optional, default 3
+	Account   *string  // optional
 }
 
 // DiffContent represents the raw diff content.
 type DiffContent struct {
 	Content string
-}
-
-// plainTextTarget is a helper for reading plain text HTTP responses.
-type plainTextTarget struct {
-	Value *string
-}
-
-func (t *plainTextTarget) UnmarshalJSON(data []byte) error {
-	// Not used, as we read plain text, not JSON.
-	return nil
 }
 
 // GetPRDiff retrieves the diff for a pull request.
@@ -45,9 +38,9 @@ func (c *Client) GetPRDiff(
 	ctxWithAuth := middleware.WithAuthTokenV2(ctx, token)
 
 	path := fmt.Sprintf("/repositories/%s/%s/pullrequests/%d/diff",
-		url.PathEscape(params.Username),
-		url.PathEscape(params.RepoSlug),
-		params.PullRequestID,
+		url.PathEscape(params.RepoOwner),
+		url.PathEscape(params.RepoName),
+		params.PRID,
 	)
 
 	req, err := http.NewRequestWithContext(ctxWithAuth, http.MethodGet, c.baseURL+path, nil)
