@@ -5,6 +5,7 @@ import (
 	"errors"
 	"fmt"
 	"log/slog"
+	"time"
 
 	"github.com/gemyago/atlacp/internal/services/bitbucket"
 	"go.uber.org/dig"
@@ -118,6 +119,20 @@ type BitbucketUpdatePRParams struct {
 
 // BitbucketApprovePRParams contains parameters for approving a pull request.
 type BitbucketApprovePRParams struct {
+	// Account name to use for authentication (optional, uses default if empty)
+	AccountName string `json:"account_name,omitempty"`
+
+	// Repository owner (username/workspace)
+	RepoOwner string `json:"repo_owner"`
+
+	// Repository name (slug)
+	RepoName string `json:"repo_name"`
+
+	// Pull request ID
+	PullRequestID int `json:"pull_request_id"`
+}
+
+type BitbucketRequestPRChangesParams struct {
 	// Account name to use for authentication (optional, uses default if empty)
 	AccountName string `json:"account_name,omitempty"`
 
@@ -405,6 +420,42 @@ func (s *BitbucketService) ApprovePR(
 	}
 
 	return participant, nil
+}
+
+// RequestPRChanges requests changes on a pull request.
+func (s *BitbucketService) RequestPRChanges(
+	ctx context.Context,
+	params BitbucketRequestPRChangesParams,
+) (string, time.Time, error) {
+	s.logger.InfoContext(ctx, "Requesting changes on pull request",
+		slog.String("repo", params.RepoOwner+"/"+params.RepoName),
+		slog.Int("pr_id", params.PullRequestID),
+	)
+
+	// Validate required parameters
+	if params.RepoOwner == "" {
+		return "", time.Time{}, errors.New("repository owner is required")
+	}
+	if params.RepoName == "" {
+		return "", time.Time{}, errors.New("repository name is required")
+	}
+	if params.PullRequestID <= 0 {
+		return "", time.Time{}, errors.New("pull request ID must be positive")
+	}
+
+	// Get token provider from auth factory
+	tokenProvider := s.authFactory.getTokenProvider(ctx, params.AccountName)
+
+	// Call the client to request PR changes
+	status, ts, err := s.client.RequestPRChanges(ctx, tokenProvider, bitbucket.RequestPRChangesParams{
+		Workspace: params.RepoOwner,
+		RepoSlug:  params.RepoName,
+		PullReqID: params.PullRequestID,
+	})
+	if err != nil {
+		return "", time.Time{}, err
+	}
+	return status, ts, nil
 }
 
 // MergePR merges a pull request.

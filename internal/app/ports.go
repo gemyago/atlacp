@@ -3,6 +3,7 @@ package app
 import (
 	"context"
 	"errors"
+	"time"
 
 	"github.com/gemyago/atlacp/internal/services/bitbucket"
 	"github.com/gemyago/atlacp/internal/services/http/middleware"
@@ -122,7 +123,7 @@ type bitbucketClient interface {
 		ctx context.Context,
 		tokenProvider bitbucket.TokenProvider,
 		params bitbucket.RequestPRChangesParams,
-	) (string, error)
+	) (string, time.Time, error)
 }
 
 // Error types for account-related operations.
