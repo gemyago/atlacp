@@ -3,6 +3,7 @@ package app
 import (
 	"errors"
 	"testing"
+	"time"
 
 	"github.com/gemyago/atlacp/internal/diag"
 	"github.com/gemyago/atlacp/internal/services/bitbucket"
@@ -2289,7 +2290,7 @@ func TestBitbucketService(t *testing.T) {
 			filePath := "src/" + faker.Word() + ".go"
 			expectedContent := "package main\n\nfunc main() {}\n"
 			expectedMeta := bitbucket.FileContentMeta{
-				Size:     42,
+				Size:     29,
 				Type:     "file",
 				Encoding: "utf-8",
 			}
@@ -2444,6 +2445,94 @@ func TestBitbucketService(t *testing.T) {
 					commentID, status, err := service.AddPRComment(t.Context(), tc.params)
 					assert.Zero(t, commentID)
 					assert.Empty(t, status)
+					require.Error(t, err)
+					assert.Contains(t, err.Error(), tc.errMsg)
+				})
+			}
+		})
+	})
+	// --- RequestPRChanges ---
+	t.Run("RequestPRChanges", func(t *testing.T) {
+		t.Run("successfully requests PR changes with default account", func(t *testing.T) {
+			deps := makeMockDeps(t)
+			mockClient := mocks.GetMock[*MockbitbucketClient](t, deps.Client)
+			mockAuth := mocks.GetMock[*MockbitbucketAuthFactory](t, deps.AuthFactory)
+			service := NewBitbucketService(deps)
+
+			repoOwner := "owner-" + faker.Username()
+			repoName := "repo-" + faker.Username()
+			prID := int(100 + faker.RandomUnixTime()%900)
+			token := "token-" + faker.UUIDHyphenated()
+			tokenProvider := newStaticTokenProvider(token)
+			expectedStatus := "changes_requested"
+			expectedTimestamp := time.Now()
+
+			mockAuth.EXPECT().
+				getTokenProvider(mock.Anything, "").
+				Return(tokenProvider)
+
+			mockClient.EXPECT().
+				RequestPRChanges(
+					mock.Anything,
+					tokenProvider,
+					mock.MatchedBy(func(params bitbucket.RequestPRChangesParams) bool {
+						assert.Equal(t, repoOwner, params.Workspace)
+						assert.Equal(t, repoName, params.RepoSlug)
+						assert.Equal(t, prID, params.PullReqID)
+						return true
+					}),
+				).
+				Return(expectedStatus, expectedTimestamp, nil)
+
+			status, ts, err := service.RequestPRChanges(t.Context(), BitbucketRequestPRChangesParams{
+				RepoOwner:     repoOwner,
+				RepoName:      repoName,
+				PullRequestID: prID,
+			})
+
+			require.NoError(t, err)
+			assert.Equal(t, expectedStatus, status)
+			assert.Equal(t, expectedTimestamp, ts)
+		})
+
+		t.Run("fails when required parameters are missing", func(t *testing.T) {
+			service := NewBitbucketService(makeMockDeps(t))
+			testCases := []struct {
+				name   string
+				params BitbucketRequestPRChangesParams
+				errMsg string
+			}{
+				{
+					name: "missing repository owner",
+					params: BitbucketRequestPRChangesParams{
+						RepoName:      "repo",
+						PullRequestID: 123,
+					},
+					errMsg: "repository owner is required",
+				},
+				{
+					name: "missing repository name",
+					params: BitbucketRequestPRChangesParams{
+						RepoOwner:     "owner",
+						PullRequestID: 123,
+					},
+					errMsg: "repository name is required",
+				},
+				{
+					name: "invalid pull request ID",
+					params: BitbucketRequestPRChangesParams{
+						RepoOwner:     "owner",
+						RepoName:      "repo",
+						PullRequestID: 0,
+					},
+					errMsg: "pull request ID must be positive",
+				},
+			}
+			for _, tc := range testCases {
+				t.Run(tc.name, func(t *testing.T) {
+					status, ts, err := service.RequestPRChanges(t.Context(), tc.params)
+					assert.Empty(t, status)
+					assert.Empty(t, ts)
 					require.Error(t, err)
 					assert.Contains(t, err.Error(), tc.errMsg)
 				})
