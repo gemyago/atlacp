@@ -2058,6 +2058,77 @@ func TestBitbucketService(t *testing.T) {
 			}
 		})
 	})
+	t.Run("GetPRDiffStat", func(t *testing.T) {
+		t.Run("successfully retrieves diffstat for a pull request", func(t *testing.T) {
+			// Arrange
+			deps := makeMockDeps(t)
+			mockClient := mocks.GetMock[*MockbitbucketClient](t, deps.Client)
+			mockAuth := mocks.GetMock[*MockbitbucketAuthFactory](t, deps.AuthFactory)
+			service := NewBitbucketService(deps)
+
+			accountName := "account-" + faker.Username()
+			repoOwner := "owner-" + faker.Username()
+			repoName := "repo-" + faker.Username()
+			prID := int(100 + faker.RandomUnixTime()%900)
+			expectedDiffstat := &PaginatedDiffStat{
+				Size:    1,
+				Page:    1,
+				PageLen: 1,
+				Values: []bitbucket.DiffStat{
+					{
+						Status:       "modified",
+						LinesAdded:   10,
+						LinesRemoved: 2,
+						Old:          "foo.go",
+						New:          "foo.go",
+					},
+				},
+			}
+			token := "token-" + faker.UUIDHyphenated()
+			tokenProvider := newStaticTokenProvider(token)
+
+			// Mock the auth factory to return our token provider
+			mockAuth.EXPECT().
+				getTokenProvider(mock.Anything, accountName).
+				Return(tokenProvider)
+
+			// Mock the client to return expected diffstat
+			mockClient.EXPECT().
+				GetPRDiffStat(
+					mock.Anything,
+					mock.Anything,
+					mock.MatchedBy(func(params bitbucket.GetPRDiffStatParams) bool {
+						assert.Equal(t, repoOwner, params.RepoOwner)
+						assert.Equal(t, repoName, params.RepoName)
+						assert.Equal(t, prID, params.PRID)
+						return true
+					}),
+				).
+				Return(&struct {
+					Size    int                  `json:"size,omitempty"`
+					Page    int                  `json:"page,omitempty"`
+					PageLen int                  `json:"pagelen,omitempty"`
+					Values  []bitbucket.DiffStat `json:"values"`
+				}{
+					Size:    expectedDiffstat.Size,
+					Page:    expectedDiffstat.Page,
+					PageLen: expectedDiffstat.PageLen,
+					Values:  expectedDiffstat.Values,
+				}, nil)
+
+			// Act
+			result, err := service.GetPRDiffStat(t.Context(), BitbucketGetPRDiffStatParams{
+				AccountName:   accountName,
+				RepoOwner:     repoOwner,
+				RepoName:      repoName,
+				PullRequestID: prID,
+			})
+
+			// Assert
+			require.NoError(t, err)
+			assert.Equal(t, expectedDiffstat, result)
+		})
+	})
 }
 
 // Helper for creating random tasks.

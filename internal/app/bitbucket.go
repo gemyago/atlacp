@@ -604,3 +604,42 @@ func (s *BitbucketService) CreateTask(
 
 	return task, nil
 }
+
+type PaginatedDiffStat struct {
+	Size    int                  `json:"size,omitempty"`
+	Page    int                  `json:"page,omitempty"`
+	PageLen int                  `json:"pagelen,omitempty"`
+	Values  []bitbucket.DiffStat `json:"values"`
+}
+
+type BitbucketGetPRDiffStatParams struct {
+	AccountName   string
+	RepoOwner     string
+	RepoName      string
+	PullRequestID int
+}
+
+func (s *BitbucketService) GetPRDiffStat(
+	ctx context.Context,
+	params BitbucketGetPRDiffStatParams,
+) (*PaginatedDiffStat, error) {
+	tokenProvider := s.authFactory.getTokenProvider(ctx, params.AccountName)
+	clientResult, err := s.client.GetPRDiffStat(
+		ctx,
+		tokenProvider,
+		bitbucket.GetPRDiffStatParams{
+			RepoOwner: params.RepoOwner,
+			RepoName:  params.RepoName,
+			PRID:      params.PullRequestID,
+		},
+	)
+	if err != nil {
+		return nil, err
+	}
+	return &PaginatedDiffStat{
+		Size:    clientResult.Size,
+		Page:    clientResult.Page,
+		PageLen: clientResult.PageLen,
+		Values:  clientResult.Values,
+	}, nil
+}
