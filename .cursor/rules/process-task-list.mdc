@@ -19,6 +19,7 @@ Begin with a concise checklist (3-7 bullets) of what you will do; keep items con
 - Write the smallest implementation to make the test pass.
 - Run the test to confirm it passes.
 - Immediately update the task list upon completion.
+- Follow ./doc/testing-best-practices.md when writing tests.
 
 ## Strict Workflow
 
