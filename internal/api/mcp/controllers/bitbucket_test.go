@@ -182,7 +182,7 @@ func TestBitbucketController(t *testing.T) {
 		tools := controller.NewTools()
 
 		// 11 tools: create, read, update, approve, merge, list, update, create task, get diffstat, get diff, get file content
-		require.Len(t, tools, 11)
+		require.Len(t, tools, 13)
 		toolNames := make([]string, len(tools))
 		for i, tool := range tools {
 			toolNames[i] = tool.Tool.Name
@@ -2915,6 +2915,146 @@ func TestBitbucketController(t *testing.T) {
 				assert.Contains(t, content.Text, taskContent)
 				assert.Contains(t, content.Text, fmt.Sprintf("on PR #%d", prID))
 			})
+		})
+	})
+	t.Run("bitbucket_request_pr_changes", func(t *testing.T) {
+		t.Run("should handle RequestPRChanges call successfully", func(t *testing.T) {
+			// Arrange
+			deps := makeMockDeps(t)
+			mockService := mocks.GetMock[*MockbitbucketService](t, deps.BitbucketService)
+			controller := NewBitbucketController(deps)
+			ctx := t.Context()
+
+			prID := 123
+			repoOwner := "workspace-abc"
+			repoName := "repo-xyz"
+			account := "account-1"
+
+			expectedParams := app.BitbucketRequestPRChangesParams{
+				PullRequestID: prID,
+				RepoOwner:     repoOwner,
+				RepoName:      repoName,
+				AccountName:   account,
+			}
+
+			expectedStatus := "changes requested"
+			expectedTimestamp := time.Date(2024, 1, 1, 12, 0, 0, 0, time.UTC)
+
+			mockService.EXPECT().
+				RequestPRChanges(mock.Anything, mock.MatchedBy(func(params app.BitbucketRequestPRChangesParams) bool {
+					return params.PullRequestID == expectedParams.PullRequestID &&
+						params.RepoOwner == expectedParams.RepoOwner &&
+						params.RepoName == expectedParams.RepoName &&
+						params.AccountName == expectedParams.AccountName
+				})).
+				Return(expectedStatus, expectedTimestamp, nil)
+
+			request := mcp.CallToolRequest{
+				Params: mcp.CallToolParams{
+					Name: "bitbucket_request_pr_changes",
+					Arguments: map[string]interface{}{
+						"pr_id":      prID,
+						"repo_owner": repoOwner,
+						"repo_name":  repoName,
+						"account":    account,
+					},
+				},
+			}
+
+			// This will fail until the tool is implemented
+			serverTool := controller.newRequestPRChangesServerTool()
+			handler := serverTool.Handler
+
+			// Act
+			result, err := handler(ctx, request)
+
+			// Assert
+			require.NoError(t, err)
+			require.NotNil(t, result)
+			assert.False(t, result.IsError)
+			content, ok := result.Content[0].(mcp.TextContent)
+			require.True(t, ok, "Result content should be text content")
+			assert.Contains(t, content.Text, "Requested changes for pull request #")
+			assert.Contains(t, content.Text, expectedStatus)
+			assert.Contains(t, content.Text, expectedTimestamp.Format("2006-01-02 15:04:05"))
+		})
+	})
+	t.Run("bitbucket_add_pr_comment", func(t *testing.T) {
+		t.Run("should handle AddPRComment call successfully", func(t *testing.T) {
+			// Arrange
+			deps := makeMockDeps(t)
+			mockService := mocks.GetMock[*MockbitbucketService](t, deps.BitbucketService)
+			controller := NewBitbucketController(deps)
+			ctx := t.Context()
+
+			// Test data
+			prID := 123
+			repoOwner := "workspace-abc"
+			repoName := "repo-xyz"
+			account := "account-1"
+			commentText := "Looks good to me!"
+			filePath := "main.go"
+			lineFrom := 10
+			lineTo := 12
+
+			expectedParams := app.BitbucketAddPRCommentParams{
+				PullRequestID: prID,
+				RepoOwner:     repoOwner,
+				RepoName:      repoName,
+				AccountName:   account,
+				Content:       commentText,
+				FilePath:      filePath,
+				LineFrom:      lineFrom,
+				LineTo:        lineTo,
+			}
+
+			expectedID := int64(456)
+			expectedContent := commentText
+
+			mockService.EXPECT().
+				AddPRComment(mock.Anything, mock.MatchedBy(func(params app.BitbucketAddPRCommentParams) bool {
+					return params.PullRequestID == expectedParams.PullRequestID &&
+						params.RepoOwner == expectedParams.RepoOwner &&
+						params.RepoName == expectedParams.RepoName &&
+						params.AccountName == expectedParams.AccountName &&
+						params.Content == expectedParams.Content &&
+						params.FilePath == expectedParams.FilePath &&
+						params.LineFrom == expectedParams.LineFrom &&
+						params.LineTo == expectedParams.LineTo
+				})).
+				Return(expectedID, expectedContent, nil)
+
+			request := mcp.CallToolRequest{
+				Params: mcp.CallToolParams{
+					Name: "bitbucket_add_pr_comment",
+					Arguments: map[string]interface{}{
+						"pr_id":            prID,
+						"repo_owner":       repoOwner,
+						"repo_name":        repoName,
+						"account":          account,
+						"comment_text":     commentText,
+						"file_path":        filePath,
+						"line_number_from": lineFrom,
+						"line_number_to":   lineTo,
+					},
+				},
+			}
+
+			// This will fail until the tool is implemented
+			serverTool := controller.newAddPRCommentServerTool()
+			handler := serverTool.Handler
+
+			// Act
+			result, err := handler(ctx, request)
+
+			// Assert
+			require.NoError(t, err)
+			require.NotNil(t, result)
+			assert.False(t, result.IsError)
+			content, ok := result.Content[0].(mcp.TextContent)
+			require.True(t, ok, "Result content should be text content")
+			assert.Contains(t, content.Text, "Added comment")
+			assert.Contains(t, content.Text, commentText)
 		})
 	})
 	t.Run("bitbucket_get_file_content", func(t *testing.T) {
