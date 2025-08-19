@@ -643,3 +643,72 @@ func (s *BitbucketService) GetPRDiffStat(
 		Values:  clientResult.Values,
 	}, nil
 }
+
+type BitbucketGetPRDiffParams struct {
+	AccountName   string
+	RepoOwner     string
+	RepoName      string
+	PullRequestID int
+	FilePaths     []string
+	ContextLines  *int
+}
+
+func (s *BitbucketService) GetPRDiff(
+	ctx context.Context,
+	params BitbucketGetPRDiffParams,
+) (*bitbucket.Diff, error) {
+	// Validate required parameters
+	if params.RepoOwner == "" {
+		return nil, errors.New("repository owner is required")
+	}
+	if params.RepoName == "" {
+		return nil, errors.New("repository name is required")
+	}
+	if params.PullRequestID <= 0 {
+		return nil, errors.New("pull request ID must be positive")
+	}
+
+	tokenProvider := s.authFactory.getTokenProvider(ctx, params.AccountName)
+	clientParams := bitbucket.GetPRDiffParams{
+		RepoOwner: params.RepoOwner,
+		RepoName:  params.RepoName,
+		PRID:      params.PullRequestID,
+		FilePaths: params.FilePaths,
+		Context:   params.ContextLines,
+	}
+	return s.client.GetPRDiff(ctx, tokenProvider, clientParams)
+}
+
+type BitbucketGetFileContentParams struct {
+	AccountName string
+	RepoOwner   string
+	RepoName    string
+	Commit      string
+	Path        string
+}
+
+func (s *BitbucketService) GetFileContent(
+	ctx context.Context,
+	params BitbucketGetFileContentParams,
+) (*bitbucket.FileContentResult, error) {
+	tokenProvider := s.authFactory.getTokenProvider(ctx, params.AccountName)
+	clientParams := bitbucket.GetFileContentParams{
+		RepoOwner:  params.RepoOwner,
+		RepoName:   params.RepoName,
+		CommitHash: params.Commit,
+		FilePath:   params.Path,
+	}
+	fileContent, err := s.client.GetFileContent(ctx, tokenProvider, clientParams)
+	if err != nil {
+		return nil, err
+	}
+	// Minimal stub: meta fields are hardcoded for now
+	return &bitbucket.FileContentResult{
+		Content: fileContent.Content,
+		Meta: bitbucket.FileContentMeta{
+			Size:     len(fileContent.Content),
+			Type:     "file",
+			Encoding: "utf-8",
+		},
+	}, nil
+}

@@ -97,6 +97,19 @@ type FileContent struct {
 	Content string `json:"content"`
 }
 
+// FileContentMeta provides metadata about a file's content.
+type FileContentMeta struct {
+	Size     int    `json:"size"`
+	Type     string `json:"type"`
+	Encoding string `json:"encoding"`
+}
+
+// FileContentResult is the result returned by the service layer for file content.
+type FileContentResult struct {
+	Content string          `json:"content"`
+	Meta    FileContentMeta `json:"meta"`
+}
+
 // Diff represents a raw diff as a string.
 type Diff string
 
