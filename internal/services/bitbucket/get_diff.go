@@ -29,21 +29,21 @@ func (c *Client) GetPRDiff(
 	ctx context.Context,
 	tokenProvider TokenProvider,
 	params GetPRDiffParams,
-) (*Diff, error) {
+) (string, error) {
 	// Parameter validation
 	if params.RepoOwner == "" {
-		return nil, errors.New("RepoOwner is required")
+		return "", errors.New("RepoOwner is required")
 	}
 	if params.RepoName == "" {
-		return nil, errors.New("RepoName is required")
+		return "", errors.New("RepoName is required")
 	}
 	if params.PRID == 0 {
-		return nil, errors.New("PRID is required and must be non-zero")
+		return "", errors.New("PRID is required and must be non-zero")
 	}
 
 	token, err := tokenProvider.GetToken(ctx)
 	if err != nil {
-		return nil, fmt.Errorf("failed to get token: %w", err)
+		return "", fmt.Errorf("failed to get token: %w", err)
 	}
 	ctxWithAuth := middleware.WithAuthTokenV2(ctx, token)
 
@@ -81,7 +81,7 @@ func (c *Client) GetPRDiff(
 	for {
 		req, reqErr := http.NewRequestWithContext(ctxWithAuth, http.MethodGet, nextURL, nil)
 		if reqErr != nil {
-			return nil, fmt.Errorf("failed to create request: %w", reqErr)
+			return "", fmt.Errorf("failed to create request: %w", reqErr)
 		}
 		req.Header.Set("Accept", "text/plain")
 		if params.Account != nil {
@@ -90,18 +90,18 @@ func (c *Client) GetPRDiff(
 
 		resp, doErr := c.httpClient.Do(req)
 		if doErr != nil {
-			return nil, fmt.Errorf("get diff failed: %w", doErr)
+			return "", fmt.Errorf("get diff failed: %w", doErr)
 		}
 		defer resp.Body.Close()
 
 		if resp.StatusCode != http.StatusOK {
 			body, _ := io.ReadAll(resp.Body)
-			return nil, fmt.Errorf("get diff failed: status %d, body: %s", resp.StatusCode, string(body))
+			return "", fmt.Errorf("get diff failed: status %d, body: %s", resp.StatusCode, string(body))
 		}
 
 		body, readErr := io.ReadAll(resp.Body)
 		if readErr != nil {
-			return nil, fmt.Errorf("failed to read diff response: %w", readErr)
+			return "", fmt.Errorf("failed to read diff response: %w", readErr)
 		}
 		aggregatedDiff = append(aggregatedDiff, body...)
 
@@ -113,6 +113,5 @@ func (c *Client) GetPRDiff(
 		nextURL = nextLink
 	}
 
-	diff := Diff(string(aggregatedDiff))
-	return &diff, nil
+	return string(aggregatedDiff), nil
 }

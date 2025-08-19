@@ -2142,9 +2142,7 @@ func TestBitbucketService(t *testing.T) {
 			repoOwner := "owner-" + faker.Username()
 			repoName := "repo-" + faker.Username()
 			prID := int(100 + faker.RandomUnixTime()%900)
-			expectedDiff := bitbucket.Diff(
-				"diff --git a/foo.go b/foo.go\nindex 123..456 100644\n--- a/foo.go\n+++ b/foo.go\n@@ ...",
-			)
+			expectedDiff := "diff --git a/foo.go b/foo.go\nindex 123..456 100644\n--- a/foo.go\n+++ b/foo.go\n@@ ..."
 			token := "token-" + faker.UUIDHyphenated()
 			tokenProvider := newStaticTokenProvider(token)
 
@@ -2165,7 +2163,7 @@ func TestBitbucketService(t *testing.T) {
 						return true
 					}),
 				).
-				Return(&expectedDiff, nil)
+				Return(expectedDiff, nil)
 
 			// Act
 			result, err := service.GetPRDiff(t.Context(), BitbucketGetPRDiffParams{
@@ -2177,7 +2175,7 @@ func TestBitbucketService(t *testing.T) {
 
 			// Assert
 			require.NoError(t, err)
-			assert.Equal(t, &expectedDiff, result)
+			assert.Equal(t, expectedDiff, result)
 		})
 	})
 	t.Run("GetPRDiff", func(t *testing.T) {
@@ -2220,7 +2218,7 @@ func TestBitbucketService(t *testing.T) {
 			for _, tc := range testCases {
 				t.Run(tc.name, func(t *testing.T) {
 					result, err := service.GetPRDiff(t.Context(), tc.params)
-					assert.Nil(t, result)
+					assert.Empty(t, result)
 					require.Error(t, err)
 					assert.Contains(t, err.Error(), tc.errMsg)
 				})
@@ -2239,7 +2237,7 @@ func TestBitbucketService(t *testing.T) {
 			prID := int(100 + faker.RandomUnixTime()%900)
 			filePaths := []string{"foo.go", "bar.go"}
 			contextLines := lo.ToPtr(7)
-			expectedDiff := bitbucket.Diff("diff --git ...")
+			expectedDiff := "diff --git ..."
 			token := "token-" + faker.UUIDHyphenated()
 			tokenProvider := newStaticTokenProvider(token)
 
@@ -2260,7 +2258,7 @@ func TestBitbucketService(t *testing.T) {
 						return true
 					}),
 				).
-				Return(&expectedDiff, nil)
+				Return(expectedDiff, nil)
 
 			result, err := service.GetPRDiff(t.Context(), BitbucketGetPRDiffParams{
 				AccountName:   accountName,
@@ -2272,7 +2270,7 @@ func TestBitbucketService(t *testing.T) {
 			})
 
 			require.NoError(t, err)
-			assert.Equal(t, &expectedDiff, result)
+			assert.Equal(t, expectedDiff, result)
 		})
 	})
 	t.Run("GetFileContent", func(t *testing.T) {

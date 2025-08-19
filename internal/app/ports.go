@@ -102,7 +102,7 @@ type bitbucketClient interface {
 		ctx context.Context,
 		tokenProvider bitbucket.TokenProvider,
 		params bitbucket.GetPRDiffParams,
-	) (*bitbucket.Diff, error)
+	) (string, error)
 
 	// GetFileContent retrieves the content of a file at a specific commit.
 	GetFileContent(

@@ -20,7 +20,7 @@ type bitbucketService interface {
 	UpdateTask(ctx context.Context, params app.BitbucketUpdateTaskParams) (*bitbucket.PullRequestCommentTask, error)
 	CreateTask(ctx context.Context, params app.BitbucketCreateTaskParams) (*bitbucket.PullRequestCommentTask, error)
 	GetPRDiffStat(ctx context.Context, params app.BitbucketGetPRDiffStatParams) (*app.PaginatedDiffStat, error)
-	GetPRDiff(ctx context.Context, params app.BitbucketGetPRDiffParams) (*bitbucket.Diff, error)
+	GetPRDiff(ctx context.Context, params app.BitbucketGetPRDiffParams) (string, error)
 	GetFileContent(ctx context.Context, params app.BitbucketGetFileContentParams) (*bitbucket.FileContentResult, error)
 	AddPRComment(ctx context.Context, params app.BitbucketAddPRCommentParams) (int64, string, error)
 	RequestPRChanges(ctx context.Context, params app.BitbucketRequestPRChangesParams) (string, time.Time, error)

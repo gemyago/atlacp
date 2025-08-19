@@ -49,7 +49,7 @@ func TestClient_GetPRDiff(t *testing.T) {
 
 		require.NoError(t, err)
 		require.NotNil(t, result)
-		assert.Equal(t, expectedDiff, string(*result))
+		assert.Equal(t, expectedDiff, result)
 	})
 
 	t.Run("handles error reading diff response body", func(t *testing.T) {
@@ -79,7 +79,7 @@ func TestClient_GetPRDiff(t *testing.T) {
 			PRID:      prID,
 		})
 		require.Error(t, err)
-		assert.Nil(t, result)
+		assert.Equal(t, "", result)
 		assert.ErrorContains(t, err, "failed to read diff response")
 	})
 
@@ -120,8 +120,8 @@ func TestClient_GetPRDiff(t *testing.T) {
 		})
 		require.NoError(t, err)
 		require.NotNil(t, result)
-		assert.Contains(t, string(*result), page1)
-		assert.Contains(t, string(*result), page2)
+		assert.Contains(t, result, page1)
+		assert.Contains(t, result, page2)
 	})
 
 	t.Run("handles optional parameters: FilePaths, Context, Account", func(t *testing.T) {
@@ -166,7 +166,7 @@ func TestClient_GetPRDiff(t *testing.T) {
 		})
 		require.NoError(t, err)
 		require.NotNil(t, result)
-		assert.Equal(t, expectedDiff, string(*result))
+		assert.Equal(t, expectedDiff, result)
 	})
 
 	t.Run("handles API error", func(t *testing.T) {
@@ -196,7 +196,7 @@ func TestClient_GetPRDiff(t *testing.T) {
 		})
 
 		require.Error(t, err)
-		assert.Nil(t, result)
+		assert.Equal(t, "", result)
 		assert.ErrorContains(t, err, "get diff failed")
 	})
 
@@ -219,7 +219,7 @@ func TestClient_GetPRDiff(t *testing.T) {
 		})
 
 		require.Error(t, err)
-		assert.Nil(t, result)
+		assert.Equal(t, "", result)
 		assert.ErrorContains(t, err, "failed to get token")
 	})
 	t.Run("parameter validation errors", func(t *testing.T) {
@@ -241,7 +241,7 @@ func TestClient_GetPRDiff(t *testing.T) {
 			t.Run(tc.name, func(t *testing.T) {
 				result, err := client.GetPRDiff(t.Context(), mockTokenProvider, tc.params)
 				require.Error(t, err)
-				assert.Nil(t, result)
+				assert.Equal(t, "", result)
 				assert.ErrorContains(t, err, tc.errMsg)
 			})
 		}

@@ -707,16 +707,16 @@ type BitbucketGetPRDiffParams struct {
 func (s *BitbucketService) GetPRDiff(
 	ctx context.Context,
 	params BitbucketGetPRDiffParams,
-) (*bitbucket.Diff, error) {
+) (string, error) {
 	// Validate required parameters
 	if params.RepoOwner == "" {
-		return nil, errors.New("repository owner is required")
+		return "", errors.New("repository owner is required")
 	}
 	if params.RepoName == "" {
-		return nil, errors.New("repository name is required")
+		return "", errors.New("repository name is required")
 	}
 	if params.PullRequestID <= 0 {
-		return nil, errors.New("pull request ID must be positive")
+		return "", errors.New("pull request ID must be positive")
 	}
 
 	tokenProvider := s.authFactory.getTokenProvider(ctx, params.AccountName)
@@ -727,7 +727,14 @@ func (s *BitbucketService) GetPRDiff(
 		FilePaths: params.FilePaths,
 		Context:   params.ContextLines,
 	}
-	return s.client.GetPRDiff(ctx, tokenProvider, clientParams)
+	diffResult, err := s.client.GetPRDiff(ctx, tokenProvider, clientParams)
+	if err != nil {
+		return "", err
+	}
+	if diffResult == "" {
+		return "", nil
+	}
+	return diffResult, nil
 }
 
 type BitbucketGetFileContentParams struct {

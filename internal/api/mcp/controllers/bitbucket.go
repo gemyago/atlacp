@@ -850,6 +850,7 @@ func (bc *BitbucketController) NewTools() []server.ServerTool {
 		bc.newUpdatePRTaskServerTool(),
 		bc.newCreatePRTaskServerTool(),
 		bc.newGetPRDiffstatServerTool(),
+		bc.newGetPRDiffServerTool(),
 	}
 }
 
@@ -923,6 +924,82 @@ func (bc *BitbucketController) newGetPRDiffstatServerTool() server.ServerTool {
 					Text: summaryText,
 				},
 				mcp.NewTextContent(string(resultJSON)),
+			},
+		}, nil
+	}
+
+	return server.ServerTool{
+		Tool:    tool,
+		Handler: handler,
+	}
+}
+
+/*
+ * newGetPRDiffServerTool returns a server tool for getting PR diff.
+ */
+func (bc *BitbucketController) newGetPRDiffServerTool() server.ServerTool {
+	tool := mcp.NewTool(
+		"bitbucket_get_pr_diff",
+		mcp.WithDescription("Get the diff for a pull request in Bitbucket"),
+		mcp.WithNumber("pr_id",
+			mcp.Description("Pull request ID"),
+			mcp.Required(),
+		),
+		mcp.WithString("repo_owner",
+			mcp.Description("Repository owner (username/workspace)"),
+			mcp.Required(),
+		),
+		mcp.WithString("repo_name",
+			mcp.Description("Repository name (slug)"),
+			mcp.Required(),
+		),
+		mcp.WithString("account",
+			mcp.Description("Atlassian account name to use (optional, uses default if not specified)"),
+		),
+	)
+
+	handler := func(ctx context.Context, request mcp.CallToolRequest) (*mcp.CallToolResult, error) {
+		bc.logger.Debug("Received bitbucket_get_pr_diff request", "params", request.Params)
+
+		// Extract required parameters
+		prID, err := request.RequireInt("pr_id")
+		if err != nil {
+			return mcp.NewToolResultErrorFromErr("Missing or invalid pr_id parameter", err), nil
+		}
+		repoOwner, err := request.RequireString("repo_owner")
+		if err != nil {
+			return mcp.NewToolResultErrorFromErr("Missing or invalid repo_owner parameter", err), nil
+		}
+		repoName, err := request.RequireString("repo_name")
+		if err != nil {
+			return mcp.NewToolResultErrorFromErr("Missing or invalid repo_name parameter", err), nil
+		}
+		account := request.GetString("account", "")
+
+		// Build params for service layer
+		params := app.BitbucketGetPRDiffParams{
+			PullRequestID: prID,
+			RepoOwner:     repoOwner,
+			RepoName:      repoName,
+			AccountName:   account,
+		}
+
+		// Call the service
+		diff, err := bc.bitbucketService.GetPRDiff(ctx, params)
+		if err != nil {
+			return nil, fmt.Errorf("failed to get diff: %w", err)
+		}
+
+		// Create summary text
+		summaryText := fmt.Sprintf("Diff for PR #%d in %s/%s", prID, repoOwner, repoName)
+
+		return &mcp.CallToolResult{
+			Content: []mcp.Content{
+				mcp.TextContent{
+					Type: "text",
+					Text: summaryText,
+				},
+				mcp.NewTextContent(diff),
 			},
 		}, nil
 	}

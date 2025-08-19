@@ -151,6 +151,17 @@ func TestBitbucketController(t *testing.T) {
 			assert.NotNil(t, serverTool.Tool.InputSchema)
 			assert.NotNil(t, serverTool.Handler)
 		})
+		t.Run("should define GetPRDiff tool correctly", func(t *testing.T) {
+			deps := makeMockDeps(t)
+			controller := NewBitbucketController(deps)
+
+			serverTool := controller.newGetPRDiffServerTool()
+
+			assert.Equal(t, "bitbucket_get_pr_diff", serverTool.Tool.Name)
+			assert.Equal(t, "Get the diff for a pull request in Bitbucket", serverTool.Tool.Description)
+			assert.NotNil(t, serverTool.Tool.InputSchema)
+			assert.NotNil(t, serverTool.Handler)
+		})
 	})
 
 	t.Run("should register all tools", func(t *testing.T) {
@@ -159,7 +170,7 @@ func TestBitbucketController(t *testing.T) {
 
 		tools := controller.NewTools()
 
-		require.Len(t, tools, 9) // 9 tools: create, read, update, approve, merge, list, update, create task, get diffstat
+		require.Len(t, tools, 10) // 10 tools: create, read, update, approve, merge, list, update, create task, get diffstat, get diff
 		toolNames := make([]string, len(tools))
 		for i, tool := range tools {
 			toolNames[i] = tool.Tool.Name
@@ -173,6 +184,7 @@ func TestBitbucketController(t *testing.T) {
 		assert.Contains(t, toolNames, "bitbucket_update_pr_task")
 		assert.Contains(t, toolNames, "bitbucket_create_pr_task")
 		assert.Contains(t, toolNames, "bitbucket_get_pr_diffstat")
+		assert.Contains(t, toolNames, "bitbucket_get_pr_diff")
 	})
 
 	t.Run("handlers", func(t *testing.T) {
@@ -2879,6 +2891,132 @@ func TestBitbucketController(t *testing.T) {
 
 				// Assert
 				require.NoError(t, err)
+				t.Run("bitbucket_get_pr_diff", func(t *testing.T) {
+					t.Run("happy path: returns diff and summary", func(t *testing.T) {
+						deps := makeMockDeps(t)
+						mockService := mocks.GetMock[*MockbitbucketService](t, deps.BitbucketService)
+						controller := NewBitbucketController(deps)
+						ctx := t.Context()
+
+						// Arrange: randomized test data
+						prID := int(faker.RandomUnixTime()) % 1000000
+						repoOwner := "workspace-" + faker.Username()
+						repoName := "repo-" + faker.Word()
+						accountName := "account-" + faker.Username()
+						expectedDiff := "diff --git a/file1.go b/file1.go\nindex 123..456 789\n--- a/file1.go\n+++ b/file1.go\n@@ ..."
+
+						mockService.EXPECT().
+							GetPRDiff(ctx, mock.MatchedBy(func(params app.BitbucketGetPRDiffParams) bool {
+								return params.PullRequestID == prID &&
+									params.RepoOwner == repoOwner &&
+									params.RepoName == repoName &&
+									params.AccountName == accountName
+							})).
+							Return(expectedDiff, nil)
+
+						request := mcp.CallToolRequest{
+							Params: mcp.CallToolParams{
+								Name: "bitbucket_get_pr_diff",
+								Arguments: map[string]interface{}{
+									"pr_id":      prID,
+									"repo_owner": repoOwner,
+									"repo_name":  repoName,
+									"account":    accountName,
+								},
+							},
+						}
+						serverTool := controller.newGetPRDiffServerTool()
+						handler := serverTool.Handler
+
+						// Act
+						result, err := handler(ctx, request)
+
+						// Assert
+						require.NoError(t, err)
+						require.NotNil(t, result)
+						assert.False(t, result.IsError)
+						require.Len(t, result.Content, 2)
+
+						summary, ok := result.Content[0].(mcp.TextContent)
+						require.True(t, ok)
+						assert.Contains(t, summary.Text, "Diff for PR #")
+						assert.Contains(t, summary.Text, repoName)
+
+						diffContent, ok := result.Content[1].(mcp.TextContent)
+						require.True(t, ok)
+						assert.Contains(t, diffContent.Text, "diff --git")
+					})
+
+					t.Run("missing required parameter: pr_id", func(t *testing.T) {
+						deps := makeMockDeps(t)
+						controller := NewBitbucketController(deps)
+						ctx := t.Context()
+						repoOwner := "workspace-" + faker.Username()
+						repoName := "repo-" + faker.Word()
+						accountName := "account-" + faker.Username()
+
+						request := mcp.CallToolRequest{
+							Params: mcp.CallToolParams{
+								Name: "bitbucket_get_pr_diff",
+								Arguments: map[string]interface{}{
+									// "pr_id" is missing
+									"repo_owner": repoOwner,
+									"repo_name":  repoName,
+									"account":    accountName,
+								},
+							},
+						}
+						serverTool := controller.newGetPRDiffServerTool()
+						handler := serverTool.Handler
+
+						result, err := handler(ctx, request)
+
+						require.NoError(t, err)
+						require.NotNil(t, result)
+						assert.True(t, result.IsError)
+						require.Len(t, result.Content, 1)
+						content, ok := result.Content[0].(mcp.TextContent)
+						require.True(t, ok)
+						assert.Contains(t, content.Text, "Missing or invalid pr_id")
+					})
+
+					t.Run("service error is returned", func(t *testing.T) {
+						deps := makeMockDeps(t)
+						mockService := mocks.GetMock[*MockbitbucketService](t, deps.BitbucketService)
+						controller := NewBitbucketController(deps)
+						ctx := t.Context()
+
+						prID := int(faker.RandomUnixTime()) % 1000000
+						repoOwner := "workspace-" + faker.Username()
+						repoName := "repo-" + faker.Word()
+						accountName := "account-" + faker.Username()
+						expectedErr := errors.New("bitbucket service failure: " + faker.Sentence())
+
+						mockService.EXPECT().
+							GetPRDiff(ctx, mock.Anything).
+							Return("", expectedErr)
+
+						request := mcp.CallToolRequest{
+							Params: mcp.CallToolParams{
+								Name: "bitbucket_get_pr_diff",
+								Arguments: map[string]interface{}{
+									"pr_id":      prID,
+									"repo_owner": repoOwner,
+									"repo_name":  repoName,
+									"account":    accountName,
+								},
+							},
+						}
+						serverTool := controller.newGetPRDiffServerTool()
+						handler := serverTool.Handler
+
+						result, err := handler(ctx, request)
+
+						require.Error(t, err)
+						assert.Contains(t, err.Error(), expectedErr.Error())
+						assert.Nil(t, result)
+					})
+				})
 				require.NotNil(t, result)
 				assert.False(t, result.IsError)
 

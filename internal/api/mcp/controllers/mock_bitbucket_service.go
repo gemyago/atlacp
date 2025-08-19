@@ -329,24 +329,22 @@ func (_c *MockbitbucketService_GetFileContent_Call) RunAndReturn(run func(contex
 }
 
 // GetPRDiff provides a mock function with given fields: ctx, params
-func (_m *MockbitbucketService) GetPRDiff(ctx context.Context, params app.BitbucketGetPRDiffParams) (*bitbucket.Diff, error) {
+func (_m *MockbitbucketService) GetPRDiff(ctx context.Context, params app.BitbucketGetPRDiffParams) (string, error) {
 	ret := _m.Called(ctx, params)
 
 	if len(ret) == 0 {
 		panic("no return value specified for GetPRDiff")
 	}
 
-	var r0 *bitbucket.Diff
+	var r0 string
 	var r1 error
-	if rf, ok := ret.Get(0).(func(context.Context, app.BitbucketGetPRDiffParams) (*bitbucket.Diff, error)); ok {
+	if rf, ok := ret.Get(0).(func(context.Context, app.BitbucketGetPRDiffParams) (string, error)); ok {
 		return rf(ctx, params)
 	}
-	if rf, ok := ret.Get(0).(func(context.Context, app.BitbucketGetPRDiffParams) *bitbucket.Diff); ok {
+	if rf, ok := ret.Get(0).(func(context.Context, app.BitbucketGetPRDiffParams) string); ok {
 		r0 = rf(ctx, params)
 	} else {
-		if ret.Get(0) != nil {
-			r0 = ret.Get(0).(*bitbucket.Diff)
-		}
+		r0 = ret.Get(0).(string)
 	}
 
 	if rf, ok := ret.Get(1).(func(context.Context, app.BitbucketGetPRDiffParams) error); ok {
@@ -377,12 +375,12 @@ func (_c *MockbitbucketService_GetPRDiff_Call) Run(run func(ctx context.Context,
 	return _c
 }
 
-func (_c *MockbitbucketService_GetPRDiff_Call) Return(_a0 *bitbucket.Diff, _a1 error) *MockbitbucketService_GetPRDiff_Call {
+func (_c *MockbitbucketService_GetPRDiff_Call) Return(_a0 string, _a1 error) *MockbitbucketService_GetPRDiff_Call {
 	_c.Call.Return(_a0, _a1)
 	return _c
 }
 
-func (_c *MockbitbucketService_GetPRDiff_Call) RunAndReturn(run func(context.Context, app.BitbucketGetPRDiffParams) (*bitbucket.Diff, error)) *MockbitbucketService_GetPRDiff_Call {
+func (_c *MockbitbucketService_GetPRDiff_Call) RunAndReturn(run func(context.Context, app.BitbucketGetPRDiffParams) (string, error)) *MockbitbucketService_GetPRDiff_Call {
 	_c.Call.Return(run)
 	return _c
 }

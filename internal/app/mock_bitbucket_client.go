@@ -393,24 +393,22 @@ func (_c *MockbitbucketClient_GetPR_Call) RunAndReturn(run func(context.Context,
 }
 
 // GetPRDiff provides a mock function with given fields: ctx, tokenProvider, params
-func (_m *MockbitbucketClient) GetPRDiff(ctx context.Context, tokenProvider bitbucket.TokenProvider, params bitbucket.GetPRDiffParams) (*bitbucket.Diff, error) {
+func (_m *MockbitbucketClient) GetPRDiff(ctx context.Context, tokenProvider bitbucket.TokenProvider, params bitbucket.GetPRDiffParams) (string, error) {
 	ret := _m.Called(ctx, tokenProvider, params)
 
 	if len(ret) == 0 {
 		panic("no return value specified for GetPRDiff")
 	}
 
-	var r0 *bitbucket.Diff
+	var r0 string
 	var r1 error
-	if rf, ok := ret.Get(0).(func(context.Context, bitbucket.TokenProvider, bitbucket.GetPRDiffParams) (*bitbucket.Diff, error)); ok {
+	if rf, ok := ret.Get(0).(func(context.Context, bitbucket.TokenProvider, bitbucket.GetPRDiffParams) (string, error)); ok {
 		return rf(ctx, tokenProvider, params)
 	}
-	if rf, ok := ret.Get(0).(func(context.Context, bitbucket.TokenProvider, bitbucket.GetPRDiffParams) *bitbucket.Diff); ok {
+	if rf, ok := ret.Get(0).(func(context.Context, bitbucket.TokenProvider, bitbucket.GetPRDiffParams) string); ok {
 		r0 = rf(ctx, tokenProvider, params)
 	} else {
-		if ret.Get(0) != nil {
-			r0 = ret.Get(0).(*bitbucket.Diff)
-		}
+		r0 = ret.Get(0).(string)
 	}
 
 	if rf, ok := ret.Get(1).(func(context.Context, bitbucket.TokenProvider, bitbucket.GetPRDiffParams) error); ok {
@@ -442,12 +440,12 @@ func (_c *MockbitbucketClient_GetPRDiff_Call) Run(run func(ctx context.Context, 
 	return _c
 }
 
-func (_c *MockbitbucketClient_GetPRDiff_Call) Return(_a0 *bitbucket.Diff, _a1 error) *MockbitbucketClient_GetPRDiff_Call {
+func (_c *MockbitbucketClient_GetPRDiff_Call) Return(_a0 string, _a1 error) *MockbitbucketClient_GetPRDiff_Call {
 	_c.Call.Return(_a0, _a1)
 	return _c
 }
 
-func (_c *MockbitbucketClient_GetPRDiff_Call) RunAndReturn(run func(context.Context, bitbucket.TokenProvider, bitbucket.GetPRDiffParams) (*bitbucket.Diff, error)) *MockbitbucketClient_GetPRDiff_Call {
+func (_c *MockbitbucketClient_GetPRDiff_Call) RunAndReturn(run func(context.Context, bitbucket.TokenProvider, bitbucket.GetPRDiffParams) (string, error)) *MockbitbucketClient_GetPRDiff_Call {
 	_c.Call.Return(run)
 	return _c
 }
