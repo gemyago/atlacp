@@ -851,6 +851,7 @@ func (bc *BitbucketController) NewTools() []server.ServerTool {
 		bc.newCreatePRTaskServerTool(),
 		bc.newGetPRDiffstatServerTool(),
 		bc.newGetPRDiffServerTool(),
+		bc.newGetFileContentServerTool(),
 	}
 }
 
@@ -1004,6 +1005,82 @@ func (bc *BitbucketController) newGetPRDiffServerTool() server.ServerTool {
 		}, nil
 	}
 
+	return server.ServerTool{
+		Tool:    tool,
+		Handler: handler,
+	}
+}
+
+// newGetFileContentServerTool returns a server tool for getting file content from a Bitbucket repository.
+func (bc *BitbucketController) newGetFileContentServerTool() server.ServerTool {
+	tool := mcp.NewTool(
+		"bitbucket_get_file_content",
+		mcp.WithDescription("Get the content of a file in a Bitbucket repository"),
+		mcp.WithString("repo_owner",
+			mcp.Description("Repository owner (username/workspace)"),
+			mcp.Required(),
+		),
+		mcp.WithString("repo_name",
+			mcp.Description("Repository name (slug)"),
+			mcp.Required(),
+		),
+		mcp.WithString("file_path",
+			mcp.Description("Path to the file in the repository"),
+			mcp.Required(),
+		),
+		mcp.WithString("ref",
+			mcp.Description("Branch, tag, or commit (optional, defaults to main branch)"),
+		),
+	)
+	handler := func(ctx context.Context, request mcp.CallToolRequest) (*mcp.CallToolResult, error) {
+		bc.logger.Debug("Received bitbucket_get_file_content request", "params", request.Params)
+
+		repoOwner, err := request.RequireString("repo_owner")
+		if err != nil {
+			return mcp.NewToolResultErrorFromErr("Missing or invalid repo_owner parameter", err), nil
+		}
+		repoName, err := request.RequireString("repo_name")
+		if err != nil {
+			return mcp.NewToolResultErrorFromErr("Missing or invalid repo_name parameter", err), nil
+		}
+		filePath, err := request.RequireString("file_path")
+		if err != nil {
+			return mcp.NewToolResultErrorFromErr("Missing or invalid file_path parameter", err), nil
+		}
+		ref := request.GetString("ref", "")
+		account := request.GetString("account", "")
+
+		params := app.BitbucketGetFileContentParams{
+			AccountName: account,
+			RepoOwner:   repoOwner,
+			RepoName:    repoName,
+			Commit:      ref,
+			Path:        filePath,
+		}
+
+		result, err := bc.bitbucketService.GetFileContent(ctx, params)
+		if err != nil {
+			return nil, fmt.Errorf("failed to get file content: %w", err)
+		}
+
+		// Marshal result to JSON
+		resultJSON, err := json.MarshalIndent(result, "", "  ")
+		if err != nil {
+			return nil, fmt.Errorf("failed to marshal file content to JSON: %w", err)
+		}
+
+		summaryText := fmt.Sprintf("File content for %s at %s/%s", filePath, repoOwner, repoName)
+
+		return &mcp.CallToolResult{
+			Content: []mcp.Content{
+				mcp.TextContent{
+					Type: "text",
+					Text: summaryText,
+				},
+				mcp.NewTextContent(string(resultJSON)),
+			},
+		}, nil
+	}
 	return server.ServerTool{
 		Tool:    tool,
 		Handler: handler,
