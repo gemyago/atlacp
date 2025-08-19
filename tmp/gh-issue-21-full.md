@@ -381,7 +381,7 @@ Please read referenced files to understand the problem:
     - [x] 2.3 Implement new service method in `internal/app/bitbucket.go` for GetPRDiffstat
     - [x] 2.4 Implement new service method in `internal/app/bitbucket.go` for GetPRDiff ✓
     - [x] 2.5 Implement new service method in `internal/app/bitbucket.go` for GetFileContent
-    - [ ] 2.6 Implement new service method in `internal/app/bitbucket.go` for AddPRComment
+    - [x] 2.6 Implement new service method in `internal/app/bitbucket.go` for AddPRComment
     - [ ] 2.7 Implement new service method in `internal/app/bitbucket.go` for RequestPRChanges
 
 - [ ] 3.0 Extend BitbucketController with New MCP Tools

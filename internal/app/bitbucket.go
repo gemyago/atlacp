@@ -712,3 +712,47 @@ func (s *BitbucketService) GetFileContent(
 		},
 	}, nil
 }
+
+type BitbucketAddPRCommentParams struct {
+	AccountName   string
+	RepoOwner     string
+	RepoName      string
+	PullRequestID int
+	Content       string
+	FilePath      string
+	LineFrom      int
+	LineTo        int
+}
+
+// AddPRComment adds a comment to a pull request (general or inline).
+func (s *BitbucketService) AddPRComment(
+	ctx context.Context,
+	params BitbucketAddPRCommentParams,
+) (int64, string, error) {
+	// Validate required parameters
+	if params.RepoOwner == "" {
+		return 0, "", errors.New("repository owner is required")
+	}
+	if params.RepoName == "" {
+		return 0, "", errors.New("repository name is required")
+	}
+	if params.PullRequestID <= 0 {
+		return 0, "", errors.New("pull request ID must be positive")
+	}
+	if params.Content == "" {
+		return 0, "", errors.New("comment content is required")
+	}
+
+	tokenProvider := s.authFactory.getTokenProvider(ctx, params.AccountName)
+	clientParams := bitbucket.AddPRCommentParams{
+		Workspace:   params.RepoOwner,
+		RepoSlug:    params.RepoName,
+		PullReqID:   params.PullRequestID,
+		CommentText: params.Content,
+		FilePath:    params.FilePath,
+		LineFrom:    params.LineFrom,
+		LineTo:      params.LineTo,
+		Account:     params.AccountName,
+	}
+	return s.client.AddPRComment(ctx, tokenProvider, clientParams)
+}

@@ -2338,6 +2338,118 @@ func TestBitbucketService(t *testing.T) {
 			assert.Equal(t, expectedResult, result)
 		})
 	})
+	t.Run("AddPRComment", func(t *testing.T) {
+		t.Run("successfully adds a general comment to a pull request", func(t *testing.T) {
+			// Arrange
+			deps := makeMockDeps(t)
+			mockClient := mocks.GetMock[*MockbitbucketClient](t, deps.Client)
+			mockAuth := mocks.GetMock[*MockbitbucketAuthFactory](t, deps.AuthFactory)
+			service := NewBitbucketService(deps)
+
+			accountName := "account-" + faker.Username()
+			repoOwner := "owner-" + faker.Username()
+			repoName := "repo-" + faker.Username()
+			prID := int(100 + faker.RandomUnixTime()%900)
+			commentText := "This is a test comment"
+			expectedCommentID := int64(12345)
+			expectedStatus := "success"
+			token := "token-" + faker.UUIDHyphenated()
+			tokenProvider := newStaticTokenProvider(token)
+
+			// Mock the auth factory to return our token provider
+			mockAuth.EXPECT().
+				getTokenProvider(mock.Anything, accountName).
+				Return(tokenProvider)
+
+			// Mock the client to return expected comment ID and status
+			mockClient.EXPECT().
+				AddPRComment(
+					mock.Anything,
+					tokenProvider,
+					mock.MatchedBy(func(params bitbucket.AddPRCommentParams) bool {
+						assert.Equal(t, repoOwner, params.Workspace)
+						assert.Equal(t, repoName, params.RepoSlug)
+						assert.Equal(t, prID, params.PullReqID)
+						assert.Equal(t, commentText, params.CommentText)
+						assert.Empty(t, params.FilePath)
+						return true
+					}),
+				).
+				Return(expectedCommentID, expectedStatus, nil)
+
+			// Act
+			commentID, status, err := service.AddPRComment(t.Context(), BitbucketAddPRCommentParams{
+				AccountName:   accountName,
+				RepoOwner:     repoOwner,
+				RepoName:      repoName,
+				PullRequestID: prID,
+				Content:       commentText,
+			})
+
+			// Assert
+			require.NoError(t, err)
+			assert.Equal(t, expectedCommentID, commentID)
+			assert.Equal(t, expectedStatus, status)
+		})
+		t.Run("fails when required parameters are missing", func(t *testing.T) {
+			deps := makeMockDeps(t)
+			service := NewBitbucketService(deps)
+
+			testCases := []struct {
+				name   string
+				params BitbucketAddPRCommentParams
+				errMsg string
+			}{
+				{
+					name: "missing repository owner",
+					params: BitbucketAddPRCommentParams{
+						RepoName:      "repo-" + faker.Username(),
+						PullRequestID: 123,
+						Content:       "Some comment",
+					},
+					errMsg: "repository owner is required",
+				},
+				{
+					name: "missing repository name",
+					params: BitbucketAddPRCommentParams{
+						RepoOwner:     "owner-" + faker.Username(),
+						PullRequestID: 123,
+						Content:       "Some comment",
+					},
+					errMsg: "repository name is required",
+				},
+				{
+					name: "invalid pull request ID",
+					params: BitbucketAddPRCommentParams{
+						RepoOwner:     "owner-" + faker.Username(),
+						RepoName:      "repo-" + faker.Username(),
+						PullRequestID: 0,
+						Content:       "Some comment",
+					},
+					errMsg: "pull request ID must be positive",
+				},
+				{
+					name: "missing comment content",
+					params: BitbucketAddPRCommentParams{
+						RepoOwner:     "owner-" + faker.Username(),
+						RepoName:      "repo-" + faker.Username(),
+						PullRequestID: 123,
+					},
+					errMsg: "comment content is required",
+				},
+			}
+
+			for _, tc := range testCases {
+				t.Run(tc.name, func(t *testing.T) {
+					commentID, status, err := service.AddPRComment(t.Context(), tc.params)
+					assert.Zero(t, commentID)
+					assert.Empty(t, status)
+					require.Error(t, err)
+					assert.Contains(t, err.Error(), tc.errMsg)
+				})
+			}
+		})
+	})
 }
 
 // Helper for creating random tasks.
