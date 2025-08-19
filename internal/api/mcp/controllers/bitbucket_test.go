@@ -140,6 +140,17 @@ func TestBitbucketController(t *testing.T) {
 			assert.NotNil(t, serverTool.Tool.InputSchema)
 			assert.NotNil(t, serverTool.Handler)
 		})
+		t.Run("should define GetPRDiffstat tool correctly", func(t *testing.T) {
+			deps := makeMockDeps(t)
+			controller := NewBitbucketController(deps)
+
+			serverTool := controller.newGetPRDiffstatServerTool()
+
+			assert.Equal(t, "bitbucket_get_pr_diffstat", serverTool.Tool.Name)
+			assert.Equal(t, "Get the diffstat for a pull request in Bitbucket", serverTool.Tool.Description)
+			assert.NotNil(t, serverTool.Tool.InputSchema)
+			assert.NotNil(t, serverTool.Handler)
+		})
 	})
 
 	t.Run("should register all tools", func(t *testing.T) {
@@ -148,7 +159,7 @@ func TestBitbucketController(t *testing.T) {
 
 		tools := controller.NewTools()
 
-		require.Len(t, tools, 8) // 8 tools: create, read, update, approve, merge, list, update, create task
+		require.Len(t, tools, 9) // 9 tools: create, read, update, approve, merge, list, update, create task, get diffstat
 		toolNames := make([]string, len(tools))
 		for i, tool := range tools {
 			toolNames[i] = tool.Tool.Name
@@ -161,6 +172,7 @@ func TestBitbucketController(t *testing.T) {
 		assert.Contains(t, toolNames, "bitbucket_list_pr_tasks")
 		assert.Contains(t, toolNames, "bitbucket_update_pr_task")
 		assert.Contains(t, toolNames, "bitbucket_create_pr_task")
+		assert.Contains(t, toolNames, "bitbucket_get_pr_diffstat")
 	})
 
 	t.Run("handlers", func(t *testing.T) {
@@ -2877,6 +2889,287 @@ func TestBitbucketController(t *testing.T) {
 				assert.Contains(t, content.Text, taskContent)
 				assert.Contains(t, content.Text, fmt.Sprintf("on PR #%d", prID))
 			})
+		})
+	})
+
+	t.Run("bitbucket_get_pr_diffstat", func(t *testing.T) {
+		t.Run("happy path: returns diffstat and summary", func(t *testing.T) {
+			deps := makeMockDeps(t)
+			mockService := mocks.GetMock[*MockbitbucketService](t, deps.BitbucketService)
+			controller := NewBitbucketController(deps)
+			ctx := t.Context()
+
+			// Arrange: randomized test data
+			prID := int(faker.RandomUnixTime()) % 1000000
+			repoOwner := "workspace-" + faker.Username()
+			repoName := "repo-" + faker.Word()
+			accountName := "account-" + faker.Username()
+			file1 := faker.Word() + ".go"
+			file2 := faker.Word() + ".go"
+
+			expectedDiffstat := &app.PaginatedDiffStat{
+				Size: 2,
+				Values: []bitbucket.DiffStat{
+					{
+						Status:       "modified",
+						LinesAdded:   10,
+						LinesRemoved: 2,
+						Old:          file1,
+						New:          file1,
+					},
+					{
+						Status:       "added",
+						LinesAdded:   42,
+						LinesRemoved: 0,
+						Old:          "",
+						New:          file2,
+					},
+				},
+			}
+
+			mockService.EXPECT().
+				GetPRDiffStat(ctx, mock.MatchedBy(func(params app.BitbucketGetPRDiffStatParams) bool {
+					return params.PullRequestID == prID &&
+						params.RepoOwner == repoOwner &&
+						params.RepoName == repoName &&
+						params.AccountName == accountName
+				})).
+				Return(expectedDiffstat, nil)
+
+			request := mcp.CallToolRequest{
+				Params: mcp.CallToolParams{
+					Name: "bitbucket_get_pr_diffstat",
+					Arguments: map[string]interface{}{
+						"pr_id":      prID,
+						"repo_owner": repoOwner,
+						"repo_name":  repoName,
+						"account":    accountName,
+					},
+				},
+			}
+			serverTool := controller.newGetPRDiffstatServerTool()
+			handler := serverTool.Handler
+
+			// Act
+			result, err := handler(ctx, request)
+
+			// Assert
+			require.NoError(t, err)
+			require.NotNil(t, result)
+			assert.False(t, result.IsError)
+			require.Len(t, result.Content, 2)
+
+			summary, ok := result.Content[0].(mcp.TextContent)
+			require.True(t, ok)
+			assert.Contains(t, summary.Text, "Diffstat for PR #")
+			assert.Contains(t, summary.Text, "2 files changed")
+
+			jsonContent, ok := result.Content[1].(mcp.TextContent)
+			require.True(t, ok)
+			var parsed app.PaginatedDiffStat
+			err = json.Unmarshal([]byte(jsonContent.Text), &parsed)
+			require.NoError(t, err)
+			assert.Equal(t, *expectedDiffstat, parsed)
+		})
+
+		t.Run("missing required parameter: pr_id", func(t *testing.T) {
+			deps := makeMockDeps(t)
+			controller := NewBitbucketController(deps)
+			ctx := t.Context()
+			repoOwner := "workspace-" + faker.Username()
+			repoName := "repo-" + faker.Word()
+			accountName := "account-" + faker.Username()
+
+			request := mcp.CallToolRequest{
+				Params: mcp.CallToolParams{
+					Name: "bitbucket_get_pr_diffstat",
+					Arguments: map[string]interface{}{
+						// "pr_id" is missing
+						"repo_owner": repoOwner,
+						"repo_name":  repoName,
+						"account":    accountName,
+					},
+				},
+			}
+			serverTool := controller.newGetPRDiffstatServerTool()
+			handler := serverTool.Handler
+
+			result, err := handler(ctx, request)
+
+			require.NoError(t, err)
+			require.NotNil(t, result)
+			assert.True(t, result.IsError)
+			require.Len(t, result.Content, 1)
+			content, ok := result.Content[0].(mcp.TextContent)
+			require.True(t, ok)
+			assert.Contains(t, content.Text, "Missing or invalid pr_id")
+		})
+
+		t.Run("service error is returned", func(t *testing.T) {
+			deps := makeMockDeps(t)
+			mockService := mocks.GetMock[*MockbitbucketService](t, deps.BitbucketService)
+			controller := NewBitbucketController(deps)
+			ctx := t.Context()
+
+			prID := int(faker.RandomUnixTime()) % 1000000
+			repoOwner := "workspace-" + faker.Username()
+			repoName := "repo-" + faker.Word()
+			accountName := "account-" + faker.Username()
+			expectedErr := errors.New("bitbucket service failure: " + faker.Sentence())
+
+			mockService.EXPECT().
+				GetPRDiffStat(ctx, mock.Anything).
+				Return(nil, expectedErr)
+
+			request := mcp.CallToolRequest{
+				Params: mcp.CallToolParams{
+					Name: "bitbucket_get_pr_diffstat",
+					Arguments: map[string]interface{}{
+						"pr_id":      prID,
+						"repo_owner": repoOwner,
+						"repo_name":  repoName,
+						"account":    accountName,
+					},
+				},
+			}
+			serverTool := controller.newGetPRDiffstatServerTool()
+			handler := serverTool.Handler
+
+			result, err := handler(ctx, request)
+
+			require.Error(t, err)
+			assert.Contains(t, err.Error(), expectedErr.Error())
+			assert.Nil(t, result)
+		})
+
+		t.Run("returns empty diffstat (zero files changed)", func(t *testing.T) {
+			deps := makeMockDeps(t)
+			mockService := mocks.GetMock[*MockbitbucketService](t, deps.BitbucketService)
+			controller := NewBitbucketController(deps)
+			ctx := t.Context()
+
+			prID := int(faker.RandomUnixTime()) % 1000000
+			repoOwner := "workspace-" + faker.Username()
+			repoName := "repo-" + faker.Word()
+			accountName := "account-" + faker.Username()
+
+			emptyDiffstat := &app.PaginatedDiffStat{
+				Size:   0,
+				Values: []bitbucket.DiffStat{},
+			}
+
+			mockService.EXPECT().
+				GetPRDiffStat(ctx, mock.Anything).
+				Return(emptyDiffstat, nil)
+
+			request := mcp.CallToolRequest{
+				Params: mcp.CallToolParams{
+					Name: "bitbucket_get_pr_diffstat",
+					Arguments: map[string]interface{}{
+						"pr_id":      prID,
+						"repo_owner": repoOwner,
+						"repo_name":  repoName,
+						"account":    accountName,
+					},
+				},
+			}
+			serverTool := controller.newGetPRDiffstatServerTool()
+			handler := serverTool.Handler
+
+			result, err := handler(ctx, request)
+
+			require.NoError(t, err)
+			require.NotNil(t, result)
+			assert.False(t, result.IsError)
+			require.Len(t, result.Content, 2)
+
+			summary, ok := result.Content[0].(mcp.TextContent)
+			require.True(t, ok)
+			assert.Contains(t, summary.Text, "Diffstat for PR #")
+			assert.Contains(t, summary.Text, "0 files changed")
+
+			jsonContent, ok := result.Content[1].(mcp.TextContent)
+			require.True(t, ok)
+			var parsed app.PaginatedDiffStat
+			err = json.Unmarshal([]byte(jsonContent.Text), &parsed)
+			require.NoError(t, err)
+			assert.Equal(t, *emptyDiffstat, parsed)
+		})
+
+		t.Run("handles optional file_paths parameter", func(t *testing.T) {
+			deps := makeMockDeps(t)
+			mockService := mocks.GetMock[*MockbitbucketService](t, deps.BitbucketService)
+			controller := NewBitbucketController(deps)
+			ctx := t.Context()
+
+			prID := int(faker.RandomUnixTime()) % 1000000
+			repoOwner := "workspace-" + faker.Username()
+			repoName := "repo-" + faker.Word()
+			accountName := "account-" + faker.Username()
+			filePaths := []string{faker.Word() + ".go", faker.Word() + ".py"}
+
+			expectedDiffstat := &app.PaginatedDiffStat{
+				Size: 2,
+				Values: []bitbucket.DiffStat{
+					{
+						Status:       "modified",
+						LinesAdded:   10,
+						LinesRemoved: 2,
+						Old:          filePaths[0],
+						New:          filePaths[0],
+					},
+					{
+						Status:       "added",
+						LinesAdded:   42,
+						LinesRemoved: 0,
+						Old:          "",
+						New:          filePaths[1],
+					},
+				},
+			}
+
+			mockService.EXPECT().
+				GetPRDiffStat(ctx, mock.MatchedBy(func(params app.BitbucketGetPRDiffStatParams) bool {
+					return params.PullRequestID == prID &&
+						params.RepoOwner == repoOwner &&
+						params.RepoName == repoName &&
+						params.AccountName == accountName
+				})).
+				Return(expectedDiffstat, nil)
+
+			request := mcp.CallToolRequest{
+				Params: mcp.CallToolParams{
+					Name: "bitbucket_get_pr_diffstat",
+					Arguments: map[string]interface{}{
+						"pr_id":      prID,
+						"repo_owner": repoOwner,
+						"repo_name":  repoName,
+						"account":    accountName,
+						"file_paths": filePaths,
+					},
+				},
+			}
+			serverTool := controller.newGetPRDiffstatServerTool()
+			handler := serverTool.Handler
+
+			result, err := handler(ctx, request)
+
+			require.NoError(t, err)
+			require.NotNil(t, result)
+			assert.False(t, result.IsError)
+			require.Len(t, result.Content, 2)
+
+			summary, ok := result.Content[0].(mcp.TextContent)
+			require.True(t, ok)
+			assert.Contains(t, summary.Text, "Diffstat for PR #")
+			assert.Contains(t, summary.Text, "2 files changed")
+
+			jsonContent, ok := result.Content[1].(mcp.TextContent)
+			require.True(t, ok)
+			var parsed app.PaginatedDiffStat
+			err = json.Unmarshal([]byte(jsonContent.Text), &parsed)
+			require.NoError(t, err)
+			assert.Equal(t, *expectedDiffstat, parsed)
 		})
 	})
 }
