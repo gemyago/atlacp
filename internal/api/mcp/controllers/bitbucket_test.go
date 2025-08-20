@@ -2467,6 +2467,37 @@ func TestBitbucketController(t *testing.T) {
 				assert.Contains(t, content.Text, "RESOLVED")
 			})
 
+			t.Run("should handle invalid state parameter in UpdatePRTask", func(t *testing.T) {
+				deps := makeMockDeps(t)
+				controller := NewBitbucketController(deps)
+				ctx := t.Context()
+
+				request := mcp.CallToolRequest{
+					Params: mcp.CallToolParams{
+						Name: "bitbucket_update_pr_task",
+						Arguments: map[string]interface{}{
+							"pr_id":      123,
+							"task_id":    456,
+							"repo_owner": "workspace-abc",
+							"repo_name":  "repo-xyz",
+							"account":    "account-1",
+							"state":      "INVALID_STATE",
+						},
+					},
+				}
+
+				serverTool := controller.newUpdatePRTaskServerTool()
+				handler := serverTool.Handler
+
+				result, err := handler(ctx, request)
+				require.NoError(t, err)
+				require.NotNil(t, result)
+				assert.True(t, result.IsError)
+				content, ok := result.Content[0].(mcp.TextContent)
+				require.True(t, ok, "Error content should be text content")
+				assert.Contains(t, content.Text, "State must be either RESOLVED or UNRESOLVED")
+			})
+
 			t.Run("should handle service error in UpdatePRTask", func(t *testing.T) {
 				// Arrange
 				deps := makeMockDeps(t)
@@ -2914,6 +2945,69 @@ func TestBitbucketController(t *testing.T) {
 				assert.Contains(t, content.Text, "Created task")
 				assert.Contains(t, content.Text, taskContent)
 				assert.Contains(t, content.Text, fmt.Sprintf("on PR #%d", prID))
+			})
+
+			t.Run("should handle invalid state parameter in CreatePRTask", func(t *testing.T) {
+				deps := makeMockDeps(t)
+				controller := NewBitbucketController(deps)
+				ctx := t.Context()
+
+				request := mcp.CallToolRequest{
+					Params: mcp.CallToolParams{
+						Name: "bitbucket_create_pr_task",
+						Arguments: map[string]interface{}{
+							"pr_id":      123,
+							"content":    "Task: Review code formatting",
+							"repo_owner": "workspace-abc",
+							"repo_name":  "repo-xyz",
+							"account":    "account-1",
+							"state":      "INVALID_STATE",
+						},
+					},
+				}
+
+				serverTool := controller.newCreatePRTaskServerTool()
+				handler := serverTool.Handler
+
+				result, err := handler(ctx, request)
+				require.NoError(t, err)
+				require.NotNil(t, result)
+				assert.True(t, result.IsError)
+				content, ok := result.Content[0].(mcp.TextContent)
+				require.True(t, ok, "Error content should be text content")
+				assert.Contains(t, content.Text, "State must be either RESOLVED or UNRESOLVED")
+			})
+
+			t.Run("should handle invalid comment_id parameter in CreatePRTask", func(t *testing.T) {
+				deps := makeMockDeps(t)
+				controller := NewBitbucketController(deps)
+				ctx := t.Context()
+
+				request := mcp.CallToolRequest{
+					Params: mcp.CallToolParams{
+						Name: "bitbucket_create_pr_task",
+						Arguments: map[string]interface{}{
+							"pr_id":      123,
+							"content":    "Task: Review code formatting",
+							"repo_owner": "workspace-abc",
+							"repo_name":  "repo-xyz",
+							"account":    "account-1",
+							"state":      "UNRESOLVED",
+							"comment_id": "not-an-integer",
+						},
+					},
+				}
+
+				serverTool := controller.newCreatePRTaskServerTool()
+				handler := serverTool.Handler
+
+				result, err := handler(ctx, request)
+				require.NoError(t, err)
+				require.NotNil(t, result)
+				assert.True(t, result.IsError)
+				content, ok := result.Content[0].(mcp.TextContent)
+				require.True(t, ok, "Error content should be text content")
+				assert.Contains(t, content.Text, "Invalid comment_id")
 			})
 		})
 	})
