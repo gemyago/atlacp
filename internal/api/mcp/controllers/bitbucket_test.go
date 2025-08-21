@@ -2876,11 +2876,12 @@ func TestBitbucketController(t *testing.T) {
 				ctx := t.Context()
 
 				// Create test data with randomized values
-				prID := 123
-				taskContent := "Task: Review code formatting"
-				repoOwner := "workspace-abc"
-				repoName := "repo-xyz"
-				account := "account-1"
+				// Use randomized data for all test values per testing best practices
+				prID := int(faker.RandomUnixTime()) % 1000000
+				taskContent := "Task: " + faker.Sentence()
+				repoOwner := "workspace-" + faker.Username()
+				repoName := "repo-" + faker.Word()
+				account := "account-" + faker.Username()
 				state := "UNRESOLVED"
 
 				// Create expected task response with proper structure
@@ -2893,7 +2894,7 @@ func TestBitbucketController(t *testing.T) {
 								Raw: taskContent,
 							},
 							Creator: &bitbucket.Account{
-								DisplayName: "Test User",
+								DisplayName: "User-" + faker.Name(),
 							},
 						},
 					},
@@ -3019,10 +3020,11 @@ func TestBitbucketController(t *testing.T) {
 			controller := NewBitbucketController(deps)
 			ctx := t.Context()
 
-			prID := 123
-			repoOwner := "workspace-abc"
-			repoName := "repo-xyz"
-			account := "account-1"
+			// Use randomized data for all test values per testing best practices
+			prID := int(faker.RandomUnixTime()) % 1000000
+			repoOwner := "workspace-" + faker.Username()
+			repoName := "repo-" + faker.Word()
+			account := "account-" + faker.Username()
 
 			expectedParams := app.BitbucketRequestPRChangesParams{
 				PullRequestID: prID,
@@ -3032,7 +3034,7 @@ func TestBitbucketController(t *testing.T) {
 			}
 
 			expectedStatus := "changes requested"
-			expectedTimestamp := time.Date(2024, 1, 1, 12, 0, 0, 0, time.UTC)
+			expectedTimestamp := time.Now()
 
 			mockService.EXPECT().
 				RequestPRChanges(mock.Anything, mock.MatchedBy(func(params app.BitbucketRequestPRChangesParams) bool {
@@ -3082,14 +3084,15 @@ func TestBitbucketController(t *testing.T) {
 			ctx := t.Context()
 
 			// Test data
-			prID := 123
-			repoOwner := "workspace-abc"
-			repoName := "repo-xyz"
-			account := "account-1"
-			commentText := "Looks good to me!"
-			filePath := "main.go"
-			lineFrom := 10
-			lineTo := 12
+			// Use randomized data for all test values per testing best practices
+			prID := int(faker.RandomUnixTime()) % 1000000
+			repoOwner := "workspace-" + faker.Username()
+			repoName := "repo-" + faker.Word()
+			account := "account-" + faker.Username()
+			commentText := faker.Sentence()
+			filePath := faker.Word() + ".go"
+			lineFrom := 10 + rand.IntN(10)
+			lineTo := lineFrom + rand.IntN(5)
 
 			expectedParams := app.BitbucketAddPRCommentParams{
 				PullRequestID: prID,
