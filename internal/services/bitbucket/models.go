@@ -1,6 +1,8 @@
 package bitbucket
 
-import "time"
+import (
+	"time"
+)
 
 // Link represents a link to a resource related to an object.
 type Link struct {
@@ -76,18 +78,50 @@ type PaginatedTasks struct {
 	Values   []PullRequestCommentTask `json:"values"`
 }
 
+// DiffStatPath handles Bitbucket's "old"/"new" fields which may be a string or object.
+// CommitFile matches the Bitbucket OpenAPI "commit_file" definition.
+type CommitFile struct {
+	Type        string  `json:"type"`
+	Path        string  `json:"path,omitempty"`
+	Commit      *Commit `json:"commit,omitempty"`
+	Attributes  string  `json:"attributes,omitempty"`
+	EscapedPath string  `json:"escaped_path,omitempty"`
+}
+
+// Commit matches the Bitbucket OpenAPI "commit" definition.
+type Commit struct {
+	Hash         string         `json:"hash,omitempty"`
+	Date         string         `json:"date,omitempty"`
+	Author       interface{}    `json:"author,omitempty"`    // Could be expanded if needed
+	Committer    interface{}    `json:"committer,omitempty"` // Could be expanded if needed
+	Message      string         `json:"message,omitempty"`
+	Summary      *CommitSummary `json:"summary,omitempty"`
+	Parents      []*Commit      `json:"parents,omitempty"`
+	Repository   interface{}    `json:"repository,omitempty"`   // Could be expanded if needed
+	Participants interface{}    `json:"participants,omitempty"` // Could be expanded if needed
+}
+
+// CommitSummary matches the summary object in the commit schema.
+type CommitSummary struct {
+	Raw    string `json:"raw,omitempty"`
+	Markup string `json:"markup,omitempty"`
+	HTML   string `json:"html,omitempty"`
+}
+
+// UnmarshalJSON supports both string and object with "path" field.
+
 // DiffStat represents a summary of changes made to a file between two commits.
 type DiffStat struct {
-	Type         string     `json:"type,omitempty"`
-	Status       string     `json:"status,omitempty"`
-	LinesAdded   int        `json:"lines_added,omitempty"`
-	LinesRemoved int        `json:"lines_removed,omitempty"`
-	Old          string     `json:"old,omitempty"`
-	New          string     `json:"new,omitempty"`
-	Path         string     `json:"path,omitempty"`
-	EscapedPath  string     `json:"escaped_path,omitempty"`
-	Hunks        []DiffHunk `json:"hunks,omitempty"` // Detailed hunk information for the diff
-	Links        *Links     `json:"links,omitempty"`
+	Type         string      `json:"type,omitempty"`
+	Status       string      `json:"status,omitempty"`
+	LinesAdded   int         `json:"lines_added,omitempty"`
+	LinesRemoved int         `json:"lines_removed,omitempty"`
+	Old          *CommitFile `json:"old,omitempty"`
+	New          *CommitFile `json:"new,omitempty"`
+	Path         string      `json:"path,omitempty"`
+	EscapedPath  string      `json:"escaped_path,omitempty"`
+	Hunks        []DiffHunk  `json:"hunks,omitempty"` // Detailed hunk information for the diff
+	Links        *Links      `json:"links,omitempty"`
 }
 
 // FileContent represents the content of a file at a specific commit.

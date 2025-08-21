@@ -2080,8 +2080,8 @@ func TestBitbucketService(t *testing.T) {
 						Status:       "modified",
 						LinesAdded:   10,
 						LinesRemoved: 2,
-						Old:          "foo.go",
-						New:          "foo.go",
+						Old:          &bitbucket.CommitFile{Path: "foo.go"},
+						New:          &bitbucket.CommitFile{Path: "foo.go"},
 					},
 				},
 			}
