@@ -3166,7 +3166,7 @@ func TestBitbucketController(t *testing.T) {
 			repoOwner := "workspace-" + faker.Username()
 			repoName := "repo-" + faker.Word()
 			filePath := faker.Word() + ".go"
-			ref := "main"
+			commit := "main"
 			accountName := "account-" + faker.Username()
 			expectedContent := "package main\n\nfunc main() {}\n"
 
@@ -3176,7 +3176,7 @@ func TestBitbucketController(t *testing.T) {
 					return params.RepoOwner == repoOwner &&
 						params.RepoName == repoName &&
 						params.Path == filePath &&
-						params.Commit == ref &&
+						params.Commit == commit &&
 						params.AccountName == accountName
 				})).
 				Return(&bitbucket.FileContentResult{
@@ -3196,7 +3196,7 @@ func TestBitbucketController(t *testing.T) {
 						"repo_owner": repoOwner,
 						"repo_name":  repoName,
 						"path":       filePath,
-						"ref":        ref,
+						"commit":     commit,
 						"account":    accountName,
 					},
 				},
@@ -3235,7 +3235,7 @@ func TestBitbucketController(t *testing.T) {
 			repoOwner := "workspace-" + faker.Username()
 			repoName := "repo-" + faker.Word()
 			filePath := faker.Word() + ".go"
-			ref := "main"
+			commit := "main"
 			accountName := "account-" + faker.Username()
 			expectedErr := errors.New("bitbucket service failure: " + faker.Sentence())
 
@@ -3250,7 +3250,7 @@ func TestBitbucketController(t *testing.T) {
 						"repo_owner": repoOwner,
 						"repo_name":  repoName,
 						"path":       filePath,
-						"ref":        ref,
+						"commit":     commit,
 						"account":    accountName,
 					},
 				},
@@ -3281,7 +3281,7 @@ func TestBitbucketController(t *testing.T) {
 					Arguments: map[string]interface{}{
 						"repo_name": "repo-" + faker.Word(),
 						"path":      faker.Word() + ".go",
-						"ref":       "main",
+						"commit":    "main",
 						"account":   "account-" + faker.Username(),
 					},
 				},
