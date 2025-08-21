@@ -272,6 +272,74 @@ This test verifies that a Pull Request can be created in draft mode and that its
 
 Update a report as per [instruction](#test-results-reporting).
 
+## Test 5: Bitbucket PR Review Tools End-to-End
+
+This test verifies the end-to-end functionality of the Bitbucket PR review tools, including retrieving diffstat, fetching diffs, accessing file content, adding comments, and requesting changes on a pull request.
+
+### Steps
+
+1. **Setup test environment**
+   - Create a new working branch from main: `feature/pr-review-tools-test-{timestamp}`
+   - Update the test file `integration-tests/bitbucket/test-files/integration-test-file.txt` with new content (e.g., current time)
+   - Commit and push the changes
+   - Note the commit hash
+
+2. **Create a Pull Request**
+   - Use the `mcp.bitbucket_create_pr` tool with the following parameters:
+     - title: "PR Review Tools Test {timestamp}"
+     - source_branch: "feature/pr-review-tools-test-{timestamp}"
+     - target_branch: "main"
+     - repo_owner: your workspace name
+     - repo_name: your repository name
+     - description: "This is an automated PR review tools test (Test 5)"
+   - Extract and save the PR ID for subsequent steps
+
+3. **Retrieve PR diffstat**
+   - Use the `mcp.bitbucket_get_pr_diffstat` tool with the PR ID from the previous step
+   - Verify that the diffstat includes the test file and reflects the expected changes (e.g., lines added/modified)
+
+4. **Fetch diffs for changed files**
+   - Use the `mcp.bitbucket_get_pr_diff` tool with the PR ID
+   - Verify that the diff output includes the changes made to the test file
+   - Note the file path(s) and line numbers of the changes for use in later steps
+
+5. **Fetch full file content for a file in the PR**
+   - Use the `mcp.bitbucket_get_file_content` tool with:
+     - pr_id: the PR ID
+     - file_path: path to the modified test file
+   - Verify that the file content matches what was committed in the branch
+
+6. **Add a general comment to the PR**
+   - Use the `mcp.bitbucket_add_pr_comment` tool with:
+     - pr_id: the PR ID
+     - content: "General comment: PR review tools integration test {timestamp}"
+   - Verify that the comment appears in the PR's comment list
+
+7. **Add an inline comment to a specific line in the PR**
+   - Use the `mcp.bitbucket_add_pr_comment` tool with:
+     - pr_id: the PR ID
+     - file_path: path to the modified test file
+     - line: a line number that was changed in this PR (from step 4)
+     - content: "Inline comment: Please review this change {timestamp}"
+   - Verify that the inline comment appears at the correct location in the PR
+
+8. **Request changes on the PR**
+   - Use the `mcp.bitbucket_request_pr_changes` tool with:
+     - pr_id: the PR ID
+     - content: "Requesting changes: Please address the review comments {timestamp}"
+   - Verify that the PR status reflects that changes have been requested
+
+9. **Clean up**
+   - Approve the PR using the `mcp.bitbucket_approve_pr` tool
+   - Merge the PR using the `mcp.bitbucket_merge_pr` tool with:
+     - merge_strategy: "squash"
+     - close_source_branch: "true"
+   - Make sure the main branch is checked out again
+   - Pull the latest changes
+   - Delete the working branch
+
+Update a report as per [instruction](#test-results-reporting).
+
 ## Test Results Reporting
 
 Follow the protocol below when performing the test:

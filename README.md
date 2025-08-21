@@ -9,14 +9,19 @@ An MCP (Model Context Protocol) interface for Atlassian products (Jira and Bitbu
 
 ### Supported tools
 
-- `bitbucket_create_pr` - create a pull request
-- `bitbucket_read_pr` - read a pull request
-- `bitbucket_update_pr` - update a pull request
+- `bitbucket_add_pr_comment` - add a comment to a pull request
 - `bitbucket_approve_pr` - approve a pull request
-- `bitbucket_merge_pr` - merge a pull request
-- `bitbucket_list_pr_tasks` - list tasks on a pull request
-- `bitbucket_update_pr_task` - update a task on a pull request
+- `bitbucket_create_pr` - create a pull request
 - `bitbucket_create_pr_task` - create a task on a pull request
+- `bitbucket_get_file_content` - get the content of a file in a pull request
+- `bitbucket_get_pr_diff` - get the diff of a pull request
+- `bitbucket_get_pr_diffstat` - get the diffstat of a pull request
+- `bitbucket_list_pr_tasks` - list tasks on a pull request
+- `bitbucket_merge_pr` - merge a pull request
+- `bitbucket_read_pr` - read a pull request
+- `bitbucket_request_pr_changes` - request changes on a pull request
+- `bitbucket_update_pr` - update a pull request
+- `bitbucket_update_pr_task` - update a task on a pull request
 
 ### Supported transports
 
