@@ -10,7 +10,7 @@ import (
 	"github.com/gemyago/atlacp/internal/services/http/middleware"
 )
 
-// RequestPRChangesParams contains parameters for requesting changes (removing approval) on a pull request.
+// RequestPRChangesParams contains parameters for requesting changes on a pull request.
 type RequestPRChangesParams struct {
 	Workspace string // repo_owner
 	RepoSlug  string // repo_name
@@ -18,9 +18,9 @@ type RequestPRChangesParams struct {
 	Account   string // optional, for future use
 }
 
-// RequestPRChanges removes approval from a specific pull request (requests changes).
-// DELETE /repositories/{workspace}/{repo_slug}/pullrequests/{pull_request_id}/approve
-// Returns status and timestamp of approval removal.
+// RequestPRChanges requests changes on a specific pull request.
+// POST /repositories/{workspace}/{repo_slug}/pullrequests/{pull_request_id}/request-changes
+// Returns status and timestamp of the request.
 func (c *Client) RequestPRChanges(
 	ctx context.Context,
 	tokenProvider TokenProvider,
@@ -33,23 +33,23 @@ func (c *Client) RequestPRChanges(
 	ctxWithAuth := middleware.WithAuthTokenV2(ctx, token)
 
 	// Build the URL
-	path := fmt.Sprintf("/repositories/%s/%s/pullrequests/%d/approve",
+	path := fmt.Sprintf("/repositories/%s/%s/pullrequests/%d/request-changes",
 		url.PathEscape(params.Workspace),
 		url.PathEscape(params.RepoSlug),
 		params.PullReqID,
 	)
 
-	// The Bitbucket API returns the removed participant object.
+	// The Bitbucket API returns the participant object with the new state.
 	var participant Participant
 	err = httpservices.SendRequest(ctxWithAuth, c.httpClient, httpservices.SendRequestParams[interface{}, Participant]{
-		Method: "DELETE",
+		Method: "POST",
 		URL:    c.baseURL + path,
 		Target: &participant,
 	})
 	if err != nil {
-		return "", time.Time{}, fmt.Errorf("request changes (remove approval) failed: %w", err)
+		return "", time.Time{}, fmt.Errorf("request changes failed: %w", err)
 	}
 
-	// There is no explicit timestamp in the Participant struct, so use current time.
-	return "approval_removed", time.Now().UTC(), nil
+	// Return the participant state and current timestamp
+	return participant.State, time.Now().UTC(), nil
 }

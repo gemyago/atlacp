@@ -17,7 +17,7 @@ import (
 )
 
 func TestClient_RequestPRChanges(t *testing.T) {
-	t.Run("success removes approval", func(t *testing.T) {
+	t.Run("success requests changes", func(t *testing.T) {
 		workspace := faker.Username()
 		repoSlug := faker.Username()
 		pullReqID := int(faker.RandomUnixTime()) % 10000
@@ -36,8 +36,8 @@ func TestClient_RequestPRChanges(t *testing.T) {
 		}
 
 		server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-			assert.Equal(t, "DELETE", r.Method)
-			expectedPath := fmt.Sprintf("/repositories/%s/%s/pullrequests/%d/approve", workspace, repoSlug, pullReqID)
+			assert.Equal(t, "POST", r.Method)
+			expectedPath := fmt.Sprintf("/repositories/%s/%s/pullrequests/%d/request-changes", workspace, repoSlug, pullReqID)
 			assert.Equal(t, expectedPath, r.URL.Path)
 			assert.Equal(t, "Bearer "+mockTokenProvider.TokenValue, r.Header.Get("Authorization"))
 
@@ -56,10 +56,10 @@ func TestClient_RequestPRChanges(t *testing.T) {
 			PullReqID: pullReqID,
 		}
 
-		status, removedAt, err := client.RequestPRChanges(t.Context(), mockTokenProvider, params)
+		status, requestedAt, err := client.RequestPRChanges(t.Context(), mockTokenProvider, params)
 		require.NoError(t, err)
-		assert.Equal(t, "approval_removed", status)
-		assert.WithinDuration(t, time.Now().UTC(), removedAt, time.Second)
+		assert.Equal(t, "changes_requested", status)
+		assert.WithinDuration(t, time.Now().UTC(), requestedAt, time.Second)
 	})
 
 	t.Run("handles API error", func(t *testing.T) {
@@ -88,11 +88,11 @@ func TestClient_RequestPRChanges(t *testing.T) {
 			PullReqID: pullReqID,
 		}
 
-		status, removedAt, err := client.RequestPRChanges(t.Context(), mockTokenProvider, params)
+		status, requestedAt, err := client.RequestPRChanges(t.Context(), mockTokenProvider, params)
 		require.Error(t, err)
 		assert.Equal(t, "", status)
-		assert.True(t, removedAt.IsZero())
-		assert.Contains(t, err.Error(), "request changes (remove approval) failed")
+		assert.True(t, requestedAt.IsZero())
+		assert.Contains(t, err.Error(), "request changes failed")
 	})
 
 	t.Run("handles token provider error", func(t *testing.T) {
@@ -114,10 +114,10 @@ func TestClient_RequestPRChanges(t *testing.T) {
 			PullReqID: pullReqID,
 		}
 
-		status, removedAt, err := client.RequestPRChanges(t.Context(), mockTokenProvider, params)
+		status, requestedAt, err := client.RequestPRChanges(t.Context(), mockTokenProvider, params)
 		require.Error(t, err)
 		assert.Equal(t, "", status)
-		assert.True(t, removedAt.IsZero())
+		assert.True(t, requestedAt.IsZero())
 		assert.Contains(t, err.Error(), "failed to get token")
 	})
 }

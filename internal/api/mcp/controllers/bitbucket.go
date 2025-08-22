@@ -1176,12 +1176,12 @@ func (bc *BitbucketController) newAddPRCommentServerTool() server.ServerTool {
 	}
 }
 
-// newRequestPRChangesServerTool returns a server tool for requesting PR changes (removing approval).
+// newRequestPRChangesServerTool returns a server tool for requesting changes on a pull request.
 
 func (bc *BitbucketController) newRequestPRChangesServerTool() server.ServerTool {
 	tool := mcp.NewTool(
 		"bitbucket_request_pr_changes",
-		mcp.WithDescription("Request changes by removing approval from a pull request in Bitbucket"),
+		mcp.WithDescription("Request changes on a pull request in Bitbucket"),
 		mcp.WithNumber("pr_id",
 			mcp.Description("Pull request ID"),
 			mcp.Required(),

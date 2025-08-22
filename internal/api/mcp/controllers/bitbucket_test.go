@@ -3034,7 +3034,7 @@ func TestBitbucketController(t *testing.T) {
 				AccountName:   account,
 			}
 
-			expectedStatus := "changes requested"
+			expectedStatus := "changes_requested"
 			expectedTimestamp := time.Now()
 
 			mockService.EXPECT().
