@@ -25,4 +25,7 @@ POST /repositories/{workspace}/{repo_slug}/pullrequests/{pull_request_id}/tasks
 Client method: CreatePullRequestTask(ctx, tokenProvider, CreatePullRequestTaskParams)
 
 PUT /repositories/{workspace}/{repo_slug}/pullrequests/{pull_request_id}/tasks/{task_id}
-Client method: UpdateTask(ctx, tokenProvider, UpdateTaskParams) 
+Client method: UpdateTask(ctx, tokenProvider, UpdateTaskParams)
+
+GET /repositories/{workspace}/{repo_slug}/pullrequests/{pull_request_id}/comments
+Client method: ListPRComments(ctx, tokenProvider, ListPRCommentsParams) 

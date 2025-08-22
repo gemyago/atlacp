@@ -167,3 +167,43 @@ type PRCommentRequest struct {
 
 // PRChangeRequest represents the payload for requesting changes on a pull request.
 // Bitbucket's API does not require a payload for this operation.
+
+// PRComment represents a comment on a Bitbucket pull request.
+// Supports both general PR comments and inline code comments.
+type PRComment struct {
+	ID      int64 `json:"id"`
+	Content struct {
+		Raw string `json:"raw"`
+	} `json:"content"`
+	Author    *Account  `json:"user"`
+	CreatedOn time.Time `json:"created_on"`
+	UpdatedOn time.Time `json:"updated_on"`
+
+	// For inline comments
+	Inline *InlineContext `json:"inline,omitempty"`
+
+	// For threaded comments
+	Parent *struct {
+		ID int64 `json:"id"`
+	} `json:"parent,omitempty"`
+}
+
+// InlineContext represents the file and line context for inline comments.
+type InlineContext struct {
+	Path string `json:"path"`
+	From int    `json:"from,omitempty"`
+	To   int    `json:"to,omitempty"`
+}
+
+// ListPRCommentsParams represents the parameters for listing PR comments.
+type ListPRCommentsParams struct {
+	Workspace string `json:"workspace"`
+	RepoSlug  string `json:"repo_slug"`
+	PRID      int64  `json:"pr_id"`
+}
+
+// ListPRCommentsResponse represents the response for listing PR comments.
+// This matches the Bitbucket API response structure directly.
+type ListPRCommentsResponse struct {
+	Values []PRComment `json:"values"`
+}
