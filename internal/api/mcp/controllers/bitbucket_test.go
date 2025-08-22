@@ -181,8 +181,9 @@ func TestBitbucketController(t *testing.T) {
 
 		tools := controller.NewTools()
 
-		// 11 tools: create, read, update, approve, merge, list, update, create task, get diffstat, get diff, get file content
-		require.Len(t, tools, 13)
+		// 14 tools: create, read, update, approve, merge, list, update, create task,
+		// get diffstat, get diff, get file content, add comment, request changes, list comments
+		require.Len(t, tools, 14)
 		toolNames := make([]string, len(tools))
 		for i, tool := range tools {
 			toolNames[i] = tool.Tool.Name

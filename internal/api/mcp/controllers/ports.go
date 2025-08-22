@@ -24,6 +24,10 @@ type bitbucketService interface {
 	GetFileContent(ctx context.Context, params app.BitbucketGetFileContentParams) (*bitbucket.FileContentResult, error)
 	AddPRComment(ctx context.Context, params app.BitbucketAddPRCommentParams) (int64, string, error)
 	RequestPRChanges(ctx context.Context, params app.BitbucketRequestPRChangesParams) (string, time.Time, error)
+	ListPRComments(
+		ctx context.Context,
+		params app.BitbucketListPRCommentsParams,
+	) (*bitbucket.ListPRCommentsResponse, error)
 }
 
 // Ensure that app.BitbucketService implements bitbucketService.

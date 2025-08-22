@@ -444,6 +444,65 @@ func (_c *MockbitbucketService_GetPRDiffStat_Call) RunAndReturn(run func(context
 	return _c
 }
 
+// ListPRComments provides a mock function with given fields: ctx, params
+func (_m *MockbitbucketService) ListPRComments(ctx context.Context, params app.BitbucketListPRCommentsParams) (*bitbucket.ListPRCommentsResponse, error) {
+	ret := _m.Called(ctx, params)
+
+	if len(ret) == 0 {
+		panic("no return value specified for ListPRComments")
+	}
+
+	var r0 *bitbucket.ListPRCommentsResponse
+	var r1 error
+	if rf, ok := ret.Get(0).(func(context.Context, app.BitbucketListPRCommentsParams) (*bitbucket.ListPRCommentsResponse, error)); ok {
+		return rf(ctx, params)
+	}
+	if rf, ok := ret.Get(0).(func(context.Context, app.BitbucketListPRCommentsParams) *bitbucket.ListPRCommentsResponse); ok {
+		r0 = rf(ctx, params)
+	} else {
+		if ret.Get(0) != nil {
+			r0 = ret.Get(0).(*bitbucket.ListPRCommentsResponse)
+		}
+	}
+
+	if rf, ok := ret.Get(1).(func(context.Context, app.BitbucketListPRCommentsParams) error); ok {
+		r1 = rf(ctx, params)
+	} else {
+		r1 = ret.Error(1)
+	}
+
+	return r0, r1
+}
+
+// MockbitbucketService_ListPRComments_Call is a *mock.Call that shadows Run/Return methods with type explicit version for method 'ListPRComments'
+type MockbitbucketService_ListPRComments_Call struct {
+	*mock.Call
+}
+
+// ListPRComments is a helper method to define mock.On call
+//   - ctx context.Context
+//   - params app.BitbucketListPRCommentsParams
+func (_e *MockbitbucketService_Expecter) ListPRComments(ctx interface{}, params interface{}) *MockbitbucketService_ListPRComments_Call {
+	return &MockbitbucketService_ListPRComments_Call{Call: _e.mock.On("ListPRComments", ctx, params)}
+}
+
+func (_c *MockbitbucketService_ListPRComments_Call) Run(run func(ctx context.Context, params app.BitbucketListPRCommentsParams)) *MockbitbucketService_ListPRComments_Call {
+	_c.Call.Run(func(args mock.Arguments) {
+		run(args[0].(context.Context), args[1].(app.BitbucketListPRCommentsParams))
+	})
+	return _c
+}
+
+func (_c *MockbitbucketService_ListPRComments_Call) Return(_a0 *bitbucket.ListPRCommentsResponse, _a1 error) *MockbitbucketService_ListPRComments_Call {
+	_c.Call.Return(_a0, _a1)
+	return _c
+}
+
+func (_c *MockbitbucketService_ListPRComments_Call) RunAndReturn(run func(context.Context, app.BitbucketListPRCommentsParams) (*bitbucket.ListPRCommentsResponse, error)) *MockbitbucketService_ListPRComments_Call {
+	_c.Call.Return(run)
+	return _c
+}
+
 // ListTasks provides a mock function with given fields: ctx, params
 func (_m *MockbitbucketService) ListTasks(ctx context.Context, params app.BitbucketListTasksParams) (*bitbucket.PaginatedTasks, error) {
 	ret := _m.Called(ctx, params)
