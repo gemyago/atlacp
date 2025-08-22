@@ -334,7 +334,10 @@ This test verifies the end-to-end functionality of the Bitbucket PR review tools
    - Use the `mcp.bitbucket_request_pr_changes` tool with:
      - pr_id: the PR ID
      - content: "Requesting changes: Please address the review comments {timestamp}"
-   - Verify that the PR status reflects that changes have been requested
+   - Verify that the PR status reflects that changes have been requested by reading the PR details again:
+     - Use the `mcp.bitbucket_read_pr` tool to fetch PR details.
+     - Validate that the `participants` array includes a participant with `"state": "changes_requested"` and `"approved": false`.
+     - Confirm the PR remains in the "OPEN" state.
 
 10. **Clean up**
     - Approve the PR using the `mcp.bitbucket_approve_pr` tool
