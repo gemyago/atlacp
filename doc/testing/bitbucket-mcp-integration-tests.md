@@ -325,7 +325,10 @@ This test verifies the end-to-end functionality of the Bitbucket PR review tools
      - file_path: path to the modified test file
      - line: a line number that was changed in this PR (choose a variety: first line, middle line, last line)
      - content: "Inline comment on {file} line {line}: Please review this change {timestamp}"
-   - Verify that each inline comment appears at the correct location in the PR
+   - Verify that each inline comment appears at the correct location in the PR by using the `mcp.bitbucket_list_pr_comments` tool:
+     - Use the tool to list all comments for the PR.
+     - Check that each inline comment is present with the correct file path and line number (see the `inline.path` and `inline.to` fields in the response).
+     - Confirm the comment text matches what was posted.
 
 9. **Request changes on the PR**
    - Use the `mcp.bitbucket_request_pr_changes` tool with:
