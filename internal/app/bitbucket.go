@@ -243,6 +243,21 @@ type BitbucketCreateTaskParams struct {
 	State string `json:"state,omitempty"`
 }
 
+// BitbucketListPRCommentsParams contains parameters for listing comments on a pull request.
+type BitbucketListPRCommentsParams struct {
+	// Account name to use for authentication (optional, uses default if empty)
+	AccountName string `json:"account_name,omitempty"`
+
+	// Repository owner (username/workspace)
+	RepoOwner string `json:"repo_owner"`
+
+	// Repository name (slug)
+	RepoName string `json:"repo_name"`
+
+	// Pull request ID
+	PullRequestID int `json:"pull_request_id"`
+}
+
 // CreatePR creates a new pull request.
 func (s *BitbucketService) CreatePR(
 	ctx context.Context,
@@ -813,4 +828,35 @@ func (s *BitbucketService) AddPRComment(
 		Account:     params.AccountName,
 	}
 	return s.client.AddPRComment(ctx, tokenProvider, clientParams)
+}
+
+// ListPRComments retrieves all comments for a specific pull request.
+func (s *BitbucketService) ListPRComments(
+	ctx context.Context,
+	params BitbucketListPRCommentsParams,
+) (*bitbucket.ListPRCommentsResponse, error) {
+	s.logger.InfoContext(ctx, "Listing pull request comments",
+		slog.String("repo", params.RepoOwner+"/"+params.RepoName),
+		slog.Int("pr_id", params.PullRequestID))
+
+	// Validate required parameters
+	if params.RepoOwner == "" {
+		return nil, errors.New("repository owner is required")
+	}
+	if params.RepoName == "" {
+		return nil, errors.New("repository name is required")
+	}
+	if params.PullRequestID <= 0 {
+		return nil, errors.New("pull request ID must be positive")
+	}
+
+	// Get token provider from auth factory
+	tokenProvider := s.authFactory.getTokenProvider(ctx, params.AccountName)
+
+	// Call the client to list PR comments
+	return s.client.ListPRComments(ctx, tokenProvider, bitbucket.ListPRCommentsParams{
+		Workspace: params.RepoOwner,
+		RepoSlug:  params.RepoName,
+		PRID:      int64(params.PullRequestID),
+	})
 }

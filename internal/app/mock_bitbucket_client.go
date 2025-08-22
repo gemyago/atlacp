@@ -545,6 +545,66 @@ func (_c *MockbitbucketClient_GetPRDiffStat_Call) RunAndReturn(run func(context.
 	return _c
 }
 
+// ListPRComments provides a mock function with given fields: ctx, tokenProvider, params
+func (_m *MockbitbucketClient) ListPRComments(ctx context.Context, tokenProvider bitbucket.TokenProvider, params bitbucket.ListPRCommentsParams) (*bitbucket.ListPRCommentsResponse, error) {
+	ret := _m.Called(ctx, tokenProvider, params)
+
+	if len(ret) == 0 {
+		panic("no return value specified for ListPRComments")
+	}
+
+	var r0 *bitbucket.ListPRCommentsResponse
+	var r1 error
+	if rf, ok := ret.Get(0).(func(context.Context, bitbucket.TokenProvider, bitbucket.ListPRCommentsParams) (*bitbucket.ListPRCommentsResponse, error)); ok {
+		return rf(ctx, tokenProvider, params)
+	}
+	if rf, ok := ret.Get(0).(func(context.Context, bitbucket.TokenProvider, bitbucket.ListPRCommentsParams) *bitbucket.ListPRCommentsResponse); ok {
+		r0 = rf(ctx, tokenProvider, params)
+	} else {
+		if ret.Get(0) != nil {
+			r0 = ret.Get(0).(*bitbucket.ListPRCommentsResponse)
+		}
+	}
+
+	if rf, ok := ret.Get(1).(func(context.Context, bitbucket.TokenProvider, bitbucket.ListPRCommentsParams) error); ok {
+		r1 = rf(ctx, tokenProvider, params)
+	} else {
+		r1 = ret.Error(1)
+	}
+
+	return r0, r1
+}
+
+// MockbitbucketClient_ListPRComments_Call is a *mock.Call that shadows Run/Return methods with type explicit version for method 'ListPRComments'
+type MockbitbucketClient_ListPRComments_Call struct {
+	*mock.Call
+}
+
+// ListPRComments is a helper method to define mock.On call
+//   - ctx context.Context
+//   - tokenProvider bitbucket.TokenProvider
+//   - params bitbucket.ListPRCommentsParams
+func (_e *MockbitbucketClient_Expecter) ListPRComments(ctx interface{}, tokenProvider interface{}, params interface{}) *MockbitbucketClient_ListPRComments_Call {
+	return &MockbitbucketClient_ListPRComments_Call{Call: _e.mock.On("ListPRComments", ctx, tokenProvider, params)}
+}
+
+func (_c *MockbitbucketClient_ListPRComments_Call) Run(run func(ctx context.Context, tokenProvider bitbucket.TokenProvider, params bitbucket.ListPRCommentsParams)) *MockbitbucketClient_ListPRComments_Call {
+	_c.Call.Run(func(args mock.Arguments) {
+		run(args[0].(context.Context), args[1].(bitbucket.TokenProvider), args[2].(bitbucket.ListPRCommentsParams))
+	})
+	return _c
+}
+
+func (_c *MockbitbucketClient_ListPRComments_Call) Return(_a0 *bitbucket.ListPRCommentsResponse, _a1 error) *MockbitbucketClient_ListPRComments_Call {
+	_c.Call.Return(_a0, _a1)
+	return _c
+}
+
+func (_c *MockbitbucketClient_ListPRComments_Call) RunAndReturn(run func(context.Context, bitbucket.TokenProvider, bitbucket.ListPRCommentsParams) (*bitbucket.ListPRCommentsResponse, error)) *MockbitbucketClient_ListPRComments_Call {
+	_c.Call.Return(run)
+	return _c
+}
+
 // ListPullRequestTasks provides a mock function with given fields: ctx, tokenProvider, params
 func (_m *MockbitbucketClient) ListPullRequestTasks(ctx context.Context, tokenProvider bitbucket.TokenProvider, params bitbucket.ListPullRequestTasksParams) (*bitbucket.PaginatedTasks, error) {
 	ret := _m.Called(ctx, tokenProvider, params)

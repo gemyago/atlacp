@@ -2537,6 +2537,108 @@ func TestBitbucketService(t *testing.T) {
 			}
 		})
 	})
+
+	t.Run("ListPRComments", func(t *testing.T) {
+		t.Run("successfully lists PR comments with default account", func(t *testing.T) {
+			// Arrange
+			deps := makeMockDeps(t)
+			mockClient := mocks.GetMock[*MockbitbucketClient](t, deps.Client)
+			mockAuth := mocks.GetMock[*MockbitbucketAuthFactory](t, deps.AuthFactory)
+			service := NewBitbucketService(deps)
+
+			// Create test data
+			repoOwner := "owner-" + faker.Username()
+			repoName := "repo-" + faker.Username()
+			prID := int64(123)
+			token := "token-" + faker.UUIDHyphenated()
+			tokenProvider := newStaticTokenProvider(token)
+
+			// Create expected response
+			expectedComments := &bitbucket.ListPRCommentsResponse{
+				Values: []bitbucket.PRComment{
+					{
+						ID: 1,
+						Content: struct {
+							Raw string `json:"raw"`
+						}{Raw: "Test comment"},
+						Author:    &bitbucket.Account{DisplayName: faker.Name()},
+						CreatedOn: time.Now(),
+						UpdatedOn: time.Now(),
+					},
+				},
+			}
+
+			// Mock the auth factory to return our token provider
+			mockAuth.EXPECT().
+				getTokenProvider(mock.Anything, "").
+				Return(tokenProvider)
+
+			// Mock the client to return expected comments
+			mockClient.EXPECT().
+				ListPRComments(mock.Anything, tokenProvider, bitbucket.ListPRCommentsParams{
+					Workspace: repoOwner,
+					RepoSlug:  repoName,
+					PRID:      prID,
+				}).
+				Return(expectedComments, nil)
+
+			// Act
+			result, err := service.ListPRComments(t.Context(), BitbucketListPRCommentsParams{
+				RepoOwner:     repoOwner,
+				RepoName:      repoName,
+				PullRequestID: int(prID),
+			})
+
+			// Assert
+			require.NoError(t, err)
+			assert.Equal(t, expectedComments, result)
+		})
+
+		t.Run("validates required parameters", func(t *testing.T) {
+			deps := makeMockDeps(t)
+			service := NewBitbucketService(deps)
+
+			testCases := []struct {
+				name   string
+				params BitbucketListPRCommentsParams
+				errMsg string
+			}{
+				{
+					name: "missing repository owner",
+					params: BitbucketListPRCommentsParams{
+						RepoName:      "repo",
+						PullRequestID: 123,
+					},
+					errMsg: "repository owner is required",
+				},
+				{
+					name: "missing repository name",
+					params: BitbucketListPRCommentsParams{
+						RepoOwner:     "owner",
+						PullRequestID: 123,
+					},
+					errMsg: "repository name is required",
+				},
+				{
+					name: "invalid pull request ID",
+					params: BitbucketListPRCommentsParams{
+						RepoOwner:     "owner",
+						RepoName:      "repo",
+						PullRequestID: 0,
+					},
+					errMsg: "pull request ID must be positive",
+				},
+			}
+			for _, tc := range testCases {
+				t.Run(tc.name, func(t *testing.T) {
+					result, err := service.ListPRComments(t.Context(), tc.params)
+					assert.Nil(t, result)
+					require.Error(t, err)
+					assert.Contains(t, err.Error(), tc.errMsg)
+				})
+			}
+		})
+	})
 }
 
 // Helper for creating random tasks.

@@ -124,6 +124,13 @@ type bitbucketClient interface {
 		tokenProvider bitbucket.TokenProvider,
 		params bitbucket.RequestPRChangesParams,
 	) (string, time.Time, error)
+
+	// ListPRComments retrieves all comments for a specific pull request.
+	ListPRComments(
+		ctx context.Context,
+		tokenProvider bitbucket.TokenProvider,
+		params bitbucket.ListPRCommentsParams,
+	) (*bitbucket.ListPRCommentsResponse, error)
 }
 
 // Error types for account-related operations.
