@@ -274,7 +274,7 @@ Update a report as per [instruction](#test-results-reporting).
 
 ## Test 5: Bitbucket PR Review Tools End-to-End
 
-This test verifies the end-to-end functionality of the Bitbucket PR review tools, including retrieving diffstat, fetching diffs, accessing file content, adding comments (general and inline), and requesting changes on a pull request. This test now uses multiple files and multiline content to ensure robust coverage of review scenarios.
+This test verifies the end-to-end functionality of the Bitbucket PR review tools, including retrieving diffstat, fetching diffs, accessing file content, adding comments (general, inline, and pending), verifying pending status, and requesting changes on a pull request. This test now uses multiple files and multiline content to ensure robust coverage of review scenarios.
 
 ### Steps
 
@@ -313,28 +313,45 @@ This test verifies the end-to-end functionality of the Bitbucket PR review tools
      - file_path: path to the modified test file
    - Verify that the file content matches what was committed in the branch
 
-6. **Add a general comment to the PR**
-   - Use the `mcp.bitbucket_add_pr_comment` tool with:
-     - pr_id: the PR ID
-     - content: "General comment: PR review tools integration test {timestamp}"
-   - Verify that the comment appears in the PR's comment list
+6. **Add general and pending comments to the PR**
+   - Use the `mcp.bitbucket_add_pr_comment` tool to add:
+     - A regular general comment with:
+       - pr_id: the PR ID
+       - content: "General comment: PR review tools integration test {timestamp}"
+     - At least one **pending** general comment with:
+       - pr_id: the PR ID
+       - content: "Pending general comment: PR review tools integration test {timestamp}"
+       - pending: true
+   - Verify that both comments appear in the PR's comment list.
 
-7. **Add multiple inline comments to specific lines in the PR**
-   - For each test file, add at least one inline comment using the `mcp.bitbucket_add_pr_comment` tool with:
+7. **Add multiple inline and pending inline comments to specific lines in the PR**
+   - For each test file, add at least one regular inline comment using the `mcp.bitbucket_add_pr_comment` tool with:
      - pr_id: the PR ID
      - file_path: path to the modified test file
      - line: a line number that was changed in this PR (choose a variety: first line, middle line, last line)
      - content: "Inline comment on {file} line {line}: Please review this change {timestamp}"
-   - Verify that each inline comment appears at the correct location in the PR by using the `mcp.bitbucket_list_pr_comments` tool:
-     - Use the tool to list all comments for the PR.
-     - Check that each inline comment is present with the correct file path and line number (see the `inline.path` and `inline.to` fields in the response).
-     - Confirm the comment text matches what was posted.
+   - For at least one test file, add at least one **pending** inline comment with:
+     - pr_id: the PR ID
+     - file_path: path to the modified test file
+     - line: a line number that was changed in this PR
+     - content: "Pending inline comment on {file} line {line}: Please review this change {timestamp}"
+     - pending: true
+   - Verify that all inline comments (regular and pending) appear at the correct location in the PR.
 
-9. **Request changes on the PR**
+8. **List and verify comments' pending status**
+   - Use the `mcp.bitbucket_list_pr_comments` tool to list all comments for the PR.
+   - For each comment, verify:
+     - The `pending` flag is correctly set (true for pending comments, false for regular comments).
+     - The comment text, file path, and line number (for inline comments) match what was posted.
+   - Ensure that both general and inline comments include a mix of pending and non-pending statuses as expected.
+
+9. **Request changes on the PR and verify pending status transition**
    - Use the `mcp.bitbucket_request_pr_changes` tool with:
      - pr_id: the PR ID
      - content: "Requesting changes: Please address the review comments {timestamp}"
-   - Verify that the PR status reflects that changes have been requested by reading the PR details again:
+   - After requesting changes, use the `mcp.bitbucket_list_pr_comments` tool again to list all comments.
+   - Verify that **all comments** (general and inline) now have `pending: false` (i.e., all pending comments have transitioned to non-pending).
+   - Additionally, verify the PR status reflects that changes have been requested by reading the PR details:
      - Use the `mcp.bitbucket_read_pr` tool to fetch PR details.
      - Validate that the `participants` array includes a participant with `"state": "changes_requested"` and `"approved": false`.
      - Confirm the PR remains in the "OPEN" state.
