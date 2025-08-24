@@ -1636,7 +1636,7 @@ func TestBitbucketController(t *testing.T) {
 				controller := NewBitbucketController(deps)
 				ctx := t.Context()
 
-				// Create test data with randomized values using faker
+				// Create test data with randomized values
 				prID := int(faker.RandomUnixTime()) % 1000000
 				accountName := "account-" + faker.Username()
 				repoOwner := "workspace-" + faker.Username()
@@ -1941,7 +1941,6 @@ func TestBitbucketController(t *testing.T) {
 							params.CloseSourceBranch == expectedParams.CloseSourceBranch
 					})).
 					Return(expectedPR, nil)
-
 				// Create the request
 				request := mcp.CallToolRequest{
 					Params: mcp.CallToolParams{
@@ -3422,7 +3421,6 @@ func TestBitbucketController(t *testing.T) {
 			}
 			serverTool4 := controller4.newGetPRDiffServerTool()
 			handler4 := serverTool4.Handler
-
 			result4, err4 := handler4(ctx4, request4)
 
 			require.Error(t, err4)
