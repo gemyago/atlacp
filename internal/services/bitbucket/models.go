@@ -60,6 +60,7 @@ type Comment struct {
 	UpdatedOn time.Time    `json:"updated_on,omitempty"`
 	Content   *TaskContent `json:"content,omitempty"`
 	User      *Account     `json:"user,omitempty"`
+	Pending   bool         `json:"pending,omitempty"`
 }
 
 // PullRequestCommentTask represents a task related to a comment on a pull request.
@@ -178,6 +179,7 @@ type PRComment struct {
 	Author    *Account  `json:"user"`
 	CreatedOn time.Time `json:"created_on"`
 	UpdatedOn time.Time `json:"updated_on"`
+	Pending   bool      `json:"pending,omitempty"`
 
 	// For inline comments
 	Inline *InlineContext `json:"inline,omitempty"`

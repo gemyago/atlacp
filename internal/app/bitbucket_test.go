@@ -2390,6 +2390,57 @@ func TestBitbucketService(t *testing.T) {
 			assert.Equal(t, expectedCommentID, commentID)
 			assert.Equal(t, expectedStatus, status)
 		})
+		t.Run("successfully adds a pending PR comment", func(t *testing.T) {
+			// Arrange
+			deps := makeMockDeps(t)
+			mockClient := mocks.GetMock[*MockbitbucketClient](t, deps.Client)
+			mockAuth := mocks.GetMock[*MockbitbucketAuthFactory](t, deps.AuthFactory)
+			service := NewBitbucketService(deps)
+
+			// Create test data
+			repoOwner := "owner-" + faker.Username()
+			repoName := "repo-" + faker.Username()
+			pullRequestID := int(faker.RandomUnixTime()) % 10000
+			commentText := faker.Sentence()
+			expectedCommentID := faker.RandomUnixTime()
+			expectedStatus := "success"
+
+			token := "token-" + faker.UUIDHyphenated()
+			tokenProvider := newStaticTokenProvider(token)
+
+			// Mock the auth factory to return our token provider
+			mockAuth.EXPECT().
+				getTokenProvider(mock.Anything, "").
+				Return(tokenProvider)
+
+			// Mock the client to return expected comment ID and status
+			mockClient.EXPECT().
+				AddPRComment(mock.Anything, mock.Anything, mock.MatchedBy(func(params bitbucket.AddPRCommentParams) bool {
+					// Verify the parameters
+					assert.Equal(t, repoOwner, params.Workspace)
+					assert.Equal(t, repoName, params.RepoSlug)
+					assert.Equal(t, pullRequestID, params.PullReqID)
+					assert.Equal(t, commentText, params.CommentText)
+					assert.True(t, params.Pending)
+					return true
+				})).
+				Return(expectedCommentID, expectedStatus, nil)
+
+			// Act
+			commentID, status, err := service.AddPRComment(t.Context(), BitbucketAddPRCommentParams{
+				RepoOwner:     repoOwner,
+				RepoName:      repoName,
+				PullRequestID: pullRequestID,
+				Content:       commentText,
+				Pending:       true,
+			})
+
+			// Assert
+			require.NoError(t, err)
+			assert.Equal(t, expectedCommentID, commentID)
+			assert.Equal(t, expectedStatus, status)
+		})
+
 		t.Run("fails when required parameters are missing", func(t *testing.T) {
 			deps := makeMockDeps(t)
 			service := NewBitbucketService(deps)
@@ -2449,6 +2500,7 @@ func TestBitbucketService(t *testing.T) {
 			}
 		})
 	})
+
 	// --- RequestPRChanges ---
 	t.Run("RequestPRChanges", func(t *testing.T) {
 		t.Run("successfully requests PR changes with default account", func(t *testing.T) {

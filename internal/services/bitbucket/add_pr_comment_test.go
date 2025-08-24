@@ -52,12 +52,12 @@ func TestClient_AddPRComment(t *testing.T) {
 			err := json.NewDecoder(r.Body).Decode(&payload)
 			assert.NoError(t, err)
 			contentMap, ok := payload["content"].(map[string]interface{})
-			if !assert.True(t, ok, "payload[\"content\"] is not a map[string]interface{}") {
+			if !assert.True(t, ok, "payload[\"content\"] is not a map[string]interface{}\"") {
 				return
 			}
 			assert.Equal(t, commentText, contentMap["raw"])
 			inline, ok := payload["inline"].(map[string]interface{})
-			if !assert.True(t, ok, "payload[\"inline\"] is not a map[string]interface{}") {
+			if !assert.True(t, ok, "payload[\"inline\"] is not a map[string]interface{}\"") {
 				return
 			}
 			assert.Equal(t, filePath, inline["path"])
@@ -121,7 +121,7 @@ func TestClient_AddPRComment(t *testing.T) {
 			err := json.NewDecoder(r.Body).Decode(&payload)
 			assert.NoError(t, err)
 			contentMap, ok := payload["content"].(map[string]interface{})
-			if !assert.True(t, ok, "payload[\"content\"] is not a map[string]interface{}") {
+			if !assert.True(t, ok, "payload content is not a map") {
 				return
 			}
 			assert.Equal(t, commentText, contentMap["raw"])
@@ -141,6 +141,61 @@ func TestClient_AddPRComment(t *testing.T) {
 			RepoSlug:    repoSlug,
 			PullReqID:   pullReqID,
 			CommentText: commentText,
+		}
+
+		commentID, status, err := client.AddPRComment(t.Context(), mockTokenProvider, params)
+		require.NoError(t, err)
+		assert.Equal(t, expectedCommentID, commentID)
+		assert.Equal(t, expectedStatus, status)
+	})
+
+	t.Run("success with pending comment", func(t *testing.T) {
+		workspace := faker.Username()
+		repoSlug := faker.Username()
+		pullReqID := int(faker.RandomUnixTime()) % 10000
+		commentText := faker.Sentence()
+
+		mockTokenProvider := &MockTokenProvider{
+			TokenType:  "Bearer",
+			TokenValue: faker.UUIDHyphenated(),
+		}
+
+		expectedCommentID := faker.RandomUnixTime()
+		expectedStatus := addPRCommentStatusSuccess
+		expectedContent := &TaskContent{Raw: commentText}
+		expectedComment := Comment{
+			ID:        expectedCommentID,
+			CreatedOn: time.Now(),
+			UpdatedOn: time.Now(),
+			Content:   expectedContent,
+			User:      &Account{DisplayName: faker.Name()},
+			Pending:   true,
+		}
+
+		server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+			assert.Equal(t, "POST", r.Method)
+			var payload map[string]interface{}
+			err := json.NewDecoder(r.Body).Decode(&payload)
+			assert.NoError(t, err)
+			pending, ok := payload["pending"].(bool)
+			assert.True(t, ok)
+			assert.True(t, pending)
+
+			w.Header().Set("Content-Type", "application/json")
+			w.WriteHeader(http.StatusCreated)
+			_ = json.NewEncoder(w).Encode(expectedComment)
+		}))
+		defer server.Close()
+
+		deps := makeMockDepsWithTestName(t, server.URL)
+		client := NewClient(deps)
+
+		params := AddPRCommentParams{
+			Workspace:   workspace,
+			RepoSlug:    repoSlug,
+			PullReqID:   pullReqID,
+			CommentText: commentText,
+			Pending:     true,
 		}
 
 		commentID, status, err := client.AddPRComment(t.Context(), mockTokenProvider, params)
