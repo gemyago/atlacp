@@ -2098,6 +2098,55 @@ func TestBitbucketController(t *testing.T) {
 				assert.Contains(t, content.Text, "RESOLVED")
 				assert.Contains(t, content.Text, "UNRESOLVED")
 			})
+			t.Run("should handle zero tasks in ListPRTasks", func(t *testing.T) {
+				deps := makeMockDeps(t)
+				mockService := mocks.GetMock[*MockbitbucketService](t, deps.BitbucketService)
+				controller := NewBitbucketController(deps)
+				ctx := t.Context()
+
+				prID := int(faker.RandomUnixTime()) % 1000000
+				repoOwner := "workspace-" + faker.Username()
+				repoName := "repo-" + faker.Word()
+				accountName := "account-" + faker.Username()
+
+				emptyTasks := &bitbucket.PaginatedTasks{
+					Size:    0,
+					Page:    1,
+					PageLen: 10,
+					Values:  []bitbucket.PullRequestCommentTask{},
+				}
+
+				mockService.EXPECT().
+					ListTasks(ctx, mock.MatchedBy(func(params app.BitbucketListTasksParams) bool {
+						return params.PullRequestID == prID &&
+							params.AccountName == accountName &&
+							params.RepoOwner == repoOwner &&
+							params.RepoName == repoName
+					})).
+					Return(emptyTasks, nil)
+
+				request := mcp.CallToolRequest{
+					Params: mcp.CallToolParams{
+						Name: "bitbucket_list_pr_tasks",
+						Arguments: map[string]interface{}{
+							"pr_id":      prID,
+							"repo_owner": repoOwner,
+							"repo_name":  repoName,
+							"account":    accountName,
+						},
+					},
+				}
+
+				serverTool := controller.newListPRTasksServerTool()
+				result, err := serverTool.Handler(ctx, request)
+
+				require.NoError(t, err)
+				require.NotNil(t, result)
+				assert.False(t, result.IsError)
+				content, ok := result.Content[0].(mcp.TextContent)
+				require.True(t, ok, "Result content should be text content")
+				assert.Contains(t, content.Text, "No tasks found for this pull request")
+			})
 
 			t.Run("should handle missing pr_id parameter in ListPRTasks", func(t *testing.T) {
 				// Arrange
@@ -2579,6 +2628,66 @@ func TestBitbucketController(t *testing.T) {
 				content, ok := result.Content[0].(mcp.TextContent)
 				require.True(t, ok, "Error content should be text content")
 				assert.Contains(t, content.Text, "Missing or invalid pr_id parameter")
+			})
+
+			t.Run("should handle missing repo_owner parameter in UpdatePRTask", func(t *testing.T) {
+				deps := makeMockDeps(t)
+				controller := NewBitbucketController(deps)
+				ctx := t.Context()
+
+				request := mcp.CallToolRequest{
+					Params: mcp.CallToolParams{
+						Name: "bitbucket_update_pr_task",
+						Arguments: map[string]interface{}{
+							"pr_id":   int(faker.RandomUnixTime()) % 1000000,
+							"task_id": int(faker.RandomUnixTime()) % 1000000,
+							// Missing repo_owner
+							"repo_name": "repo-" + faker.Word(),
+							"content":   "New content",
+						},
+					},
+				}
+
+				serverTool := controller.newUpdatePRTaskServerTool()
+				handler := serverTool.Handler
+
+				result, err := handler(ctx, request)
+				require.NoError(t, err)
+				require.NotNil(t, result)
+				assert.True(t, result.IsError)
+				content, ok := result.Content[0].(mcp.TextContent)
+				require.True(t, ok, "Error content should be text content")
+				assert.Contains(t, content.Text, "Missing or invalid repo_owner parameter")
+			})
+
+			t.Run("should handle missing repo_name parameter in UpdatePRTask", func(t *testing.T) {
+				deps := makeMockDeps(t)
+				controller := NewBitbucketController(deps)
+				ctx := t.Context()
+
+				request := mcp.CallToolRequest{
+					Params: mcp.CallToolParams{
+						Name: "bitbucket_update_pr_task",
+						Arguments: map[string]interface{}{
+							"pr_id":      int(faker.RandomUnixTime()) % 1000000,
+							"task_id":    int(faker.RandomUnixTime()) % 1000000,
+							"repo_owner": "workspace-" + faker.Username(),
+							// Missing repo_name
+							"content": "New content",
+						},
+					},
+				}
+
+				serverTool := controller.newUpdatePRTaskServerTool()
+				handler := serverTool.Handler
+
+				result, err := handler(ctx, request)
+				require.NoError(t, err)
+				require.NotNil(t, result)
+				assert.True(t, result.IsError)
+				content, ok := result.Content[0].(mcp.TextContent)
+				require.True(t, ok, "Error content should be text content")
+				assert.Contains(t, content.Text, "Missing or invalid repo_name parameter")
 			})
 
 			t.Run("should handle missing task_id parameter in UpdatePRTask", func(t *testing.T) {
@@ -3707,6 +3816,181 @@ func TestBitbucketController(t *testing.T) {
 			err = json.Unmarshal([]byte(jsonContent.Text), &parsed)
 			require.NoError(t, err)
 			assert.Equal(t, *expectedDiffstat, parsed)
+		})
+	})
+
+	t.Run("bitbucket_list_pr_comments", func(t *testing.T) {
+		t.Run("should handle ListPRComments call successfully", func(t *testing.T) {
+			deps := makeMockDeps(t)
+			mockService := mocks.GetMock[*MockbitbucketService](t, deps.BitbucketService)
+			controller := NewBitbucketController(deps)
+			ctx := t.Context()
+
+			prID := int(faker.RandomUnixTime()) % 1000000
+			repoOwner := "workspace-" + faker.Username()
+			repoName := "repo-" + faker.Word()
+			accountName := "account-" + faker.Username()
+
+			expectedParams := app.BitbucketListPRCommentsParams{
+				PullRequestID: prID,
+				RepoOwner:     repoOwner,
+				RepoName:      repoName,
+				AccountName:   accountName,
+			}
+
+			expectedComments := []bitbucket.PRComment{
+				{
+					ID: 1,
+					Content: struct {
+						Raw string "json:\"raw\""
+					}{Raw: "First comment"},
+					Author: &bitbucket.Account{DisplayName: "User1"},
+				},
+				{
+					ID: 2,
+					Content: struct {
+						Raw string "json:\"raw\""
+					}{Raw: "Second comment"},
+					Author: &bitbucket.Account{DisplayName: "User2"},
+				},
+			}
+
+			mockService.EXPECT().
+				ListPRComments(ctx, mock.MatchedBy(func(params app.BitbucketListPRCommentsParams) bool {
+					return params.PullRequestID == expectedParams.PullRequestID &&
+						params.RepoOwner == expectedParams.RepoOwner &&
+						params.RepoName == expectedParams.RepoName &&
+						params.AccountName == expectedParams.AccountName
+				})).
+				Return(&bitbucket.ListPRCommentsResponse{Values: expectedComments}, nil)
+
+			request := mcp.CallToolRequest{
+				Params: mcp.CallToolParams{
+					Name: "bitbucket_list_pr_comments",
+					Arguments: map[string]interface{}{
+						"pr_id":      prID,
+						"repo_owner": repoOwner,
+						"repo_name":  repoName,
+						"account":    accountName,
+					},
+				},
+			}
+
+			serverTool := controller.newListPRCommentsServerTool()
+			handler := serverTool.Handler
+
+			result, err := handler(ctx, request)
+			require.NoError(t, err)
+			require.NotNil(t, result)
+			assert.False(t, result.IsError)
+			content, ok := result.Content[0].(mcp.TextContent)
+			require.True(t, ok, "Result content should be text content")
+			assert.Contains(t, content.Text, fmt.Sprintf("Found 2 comments on pull request #%d", prID))
+		})
+
+		t.Run("should handle no comments found", func(t *testing.T) {
+			deps := makeMockDeps(t)
+			mockService := mocks.GetMock[*MockbitbucketService](t, deps.BitbucketService)
+			controller := NewBitbucketController(deps)
+			ctx := t.Context()
+
+			prID := int(faker.RandomUnixTime()) % 1000000
+			repoOwner := "workspace-" + faker.Username()
+			repoName := "repo-" + faker.Word()
+			accountName := "account-" + faker.Username()
+
+			mockService.EXPECT().
+				ListPRComments(ctx, mock.Anything).
+				Return(&bitbucket.ListPRCommentsResponse{Values: []bitbucket.PRComment{}}, nil)
+
+			request := mcp.CallToolRequest{
+				Params: mcp.CallToolParams{
+					Name: "bitbucket_list_pr_comments",
+					Arguments: map[string]interface{}{
+						"pr_id":      prID,
+						"repo_owner": repoOwner,
+						"repo_name":  repoName,
+						"account":    accountName,
+					},
+				},
+			}
+
+			serverTool := controller.newListPRCommentsServerTool()
+			handler := serverTool.Handler
+
+			result, err := handler(ctx, request)
+			require.NoError(t, err)
+			require.NotNil(t, result)
+			assert.False(t, result.IsError)
+			content, ok := result.Content[0].(mcp.TextContent)
+			require.True(t, ok, "Result content should be text content")
+			assert.Contains(t, content.Text, fmt.Sprintf("Found 0 comments on pull request #%d", prID))
+		})
+
+		t.Run("should handle service error in ListPRComments", func(t *testing.T) {
+			deps := makeMockDeps(t)
+			mockService := mocks.GetMock[*MockbitbucketService](t, deps.BitbucketService)
+			controller := NewBitbucketController(deps)
+			ctx := t.Context()
+
+			prID := int(faker.RandomUnixTime()) % 1000000
+			repoOwner := "workspace-" + faker.Username()
+			repoName := "repo-" + faker.Word()
+			accountName := "account-" + faker.Username()
+			expectedErr := errors.New("bitbucket service failure: " + faker.Sentence())
+
+			mockService.EXPECT().
+				ListPRComments(ctx, mock.Anything).
+				Return(nil, expectedErr)
+
+			request := mcp.CallToolRequest{
+				Params: mcp.CallToolParams{
+					Name: "bitbucket_list_pr_comments",
+					Arguments: map[string]interface{}{
+						"pr_id":      prID,
+						"repo_owner": repoOwner,
+						"repo_name":  repoName,
+						"account":    accountName,
+					},
+				},
+			}
+
+			serverTool := controller.newListPRCommentsServerTool()
+			handler := serverTool.Handler
+
+			result, err := handler(ctx, request)
+			require.Error(t, err)
+			assert.Contains(t, err.Error(), expectedErr.Error())
+			assert.Nil(t, result)
+		})
+
+		t.Run("should handle missing required parameters", func(t *testing.T) {
+			deps := makeMockDeps(t)
+			controller := NewBitbucketController(deps)
+			ctx := t.Context()
+
+			// Missing pr_id
+			request := mcp.CallToolRequest{
+				Params: mcp.CallToolParams{
+					Name: "bitbucket_list_pr_comments",
+					Arguments: map[string]interface{}{
+						"repo_owner": "workspace-" + faker.Username(),
+						"repo_name":  "repo-" + faker.Word(),
+						"account":    "account-" + faker.Username(),
+					},
+				},
+			}
+
+			serverTool := controller.newListPRCommentsServerTool()
+			handler := serverTool.Handler
+
+			result, err := handler(ctx, request)
+			require.NoError(t, err)
+			require.NotNil(t, result)
+			assert.True(t, result.IsError)
+			content, ok := result.Content[0].(mcp.TextContent)
+			require.True(t, ok, "Error content should be text content")
+			assert.Contains(t, content.Text, "Missing or invalid pr_id parameter")
 		})
 	})
 }
