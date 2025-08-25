@@ -346,12 +346,8 @@ This test verifies the end-to-end functionality of the Bitbucket PR review tools
    - Ensure that both general and inline comments include a mix of pending and non-pending statuses as expected.
 
 9. **Request changes on the PR and verify pending status transition**
-   - Use the `mcp.bitbucket_request_pr_changes` tool with:
-     - pr_id: the PR ID
-     - content: "Requesting changes: Please address the review comments {timestamp}"
-   - After requesting changes, use the `mcp.bitbucket_list_pr_comments` tool again to list all comments.
-   - Verify that **all comments** (general and inline) now have `pending: false` (i.e., all pending comments have transitioned to non-pending).
-   - Additionally, verify the PR status reflects that changes have been requested by reading the PR details:
+   - Use the `mcp.bitbucket_request_pr_changes` tool
+   - verify the PR status reflects that changes have been requested by reading the PR details:
      - Use the `mcp.bitbucket_read_pr` tool to fetch PR details.
      - Validate that the `participants` array includes a participant with `"state": "changes_requested"` and `"approved": false`.
      - Confirm the PR remains in the "OPEN" state.
