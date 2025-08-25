@@ -3,6 +3,7 @@ package app
 import (
 	"errors"
 	"testing"
+	"time"
 
 	"github.com/gemyago/atlacp/internal/diag"
 	"github.com/gemyago/atlacp/internal/services/bitbucket"
@@ -2053,6 +2054,638 @@ func TestBitbucketService(t *testing.T) {
 					result, err := service.CreateTask(t.Context(), tc.params)
 					require.Error(t, err)
 					assert.Nil(t, result)
+					assert.Contains(t, err.Error(), tc.errMsg)
+				})
+			}
+		})
+	})
+	t.Run("GetPRDiffStat", func(t *testing.T) {
+		t.Run("successfully retrieves diffstat for a pull request", func(t *testing.T) {
+			// Arrange
+			deps := makeMockDeps(t)
+			mockClient := mocks.GetMock[*MockbitbucketClient](t, deps.Client)
+			mockAuth := mocks.GetMock[*MockbitbucketAuthFactory](t, deps.AuthFactory)
+			service := NewBitbucketService(deps)
+
+			accountName := "account-" + faker.Username()
+			repoOwner := "owner-" + faker.Username()
+			repoName := "repo-" + faker.Username()
+			prID := int(100 + faker.RandomUnixTime()%900)
+			expectedDiffstat := &PaginatedDiffStat{
+				Size:    1,
+				Page:    1,
+				PageLen: 1,
+				Values: []bitbucket.DiffStat{
+					{
+						Status:       "modified",
+						LinesAdded:   10,
+						LinesRemoved: 2,
+						Old:          &bitbucket.CommitFile{Path: "foo.go"},
+						New:          &bitbucket.CommitFile{Path: "foo.go"},
+					},
+				},
+			}
+			token := "token-" + faker.UUIDHyphenated()
+			tokenProvider := newStaticTokenProvider(token)
+
+			// Mock the auth factory to return our token provider
+			mockAuth.EXPECT().
+				getTokenProvider(mock.Anything, accountName).
+				Return(tokenProvider)
+
+			// Mock the client to return expected diffstat
+			mockClient.EXPECT().
+				GetPRDiffStat(
+					mock.Anything,
+					mock.Anything,
+					mock.MatchedBy(func(params bitbucket.GetPRDiffStatParams) bool {
+						assert.Equal(t, repoOwner, params.RepoOwner)
+						assert.Equal(t, repoName, params.RepoName)
+						assert.Equal(t, prID, params.PRID)
+						return true
+					}),
+				).
+				Return(&struct {
+					Size    int                  `json:"size,omitempty"`
+					Page    int                  `json:"page,omitempty"`
+					PageLen int                  `json:"pagelen,omitempty"`
+					Values  []bitbucket.DiffStat `json:"values"`
+				}{
+					Size:    expectedDiffstat.Size,
+					Page:    expectedDiffstat.Page,
+					PageLen: expectedDiffstat.PageLen,
+					Values:  expectedDiffstat.Values,
+				}, nil)
+
+			// Act
+			result, err := service.GetPRDiffStat(t.Context(), BitbucketGetPRDiffStatParams{
+				AccountName:   accountName,
+				RepoOwner:     repoOwner,
+				RepoName:      repoName,
+				PullRequestID: prID,
+			})
+
+			// Assert
+			require.NoError(t, err)
+			assert.Equal(t, expectedDiffstat, result)
+		})
+	})
+	t.Run("GetPRDiff", func(t *testing.T) {
+		t.Run("successfully retrieves diff for a pull request", func(t *testing.T) {
+			// Arrange
+			deps := makeMockDeps(t)
+			mockClient := mocks.GetMock[*MockbitbucketClient](t, deps.Client)
+			mockAuth := mocks.GetMock[*MockbitbucketAuthFactory](t, deps.AuthFactory)
+			service := NewBitbucketService(deps)
+
+			accountName := "account-" + faker.Username()
+			repoOwner := "owner-" + faker.Username()
+			repoName := "repo-" + faker.Username()
+			prID := int(100 + faker.RandomUnixTime()%900)
+			expectedDiff := "diff --git a/foo.go b/foo.go\nindex 123..456 100644\n--- a/foo.go\n+++ b/foo.go\n@@ ..."
+			token := "token-" + faker.UUIDHyphenated()
+			tokenProvider := newStaticTokenProvider(token)
+
+			// Mock the auth factory to return our token provider
+			mockAuth.EXPECT().
+				getTokenProvider(mock.Anything, accountName).
+				Return(tokenProvider)
+
+			// Mock the client to return expected diff
+			mockClient.EXPECT().
+				GetPRDiff(
+					mock.Anything,
+					mock.Anything,
+					mock.MatchedBy(func(params bitbucket.GetPRDiffParams) bool {
+						assert.Equal(t, repoOwner, params.RepoOwner)
+						assert.Equal(t, repoName, params.RepoName)
+						assert.Equal(t, prID, params.PRID)
+						return true
+					}),
+				).
+				Return(expectedDiff, nil)
+
+			// Act
+			result, err := service.GetPRDiff(t.Context(), BitbucketGetPRDiffParams{
+				AccountName:   accountName,
+				RepoOwner:     repoOwner,
+				RepoName:      repoName,
+				PullRequestID: prID,
+			})
+
+			// Assert
+			require.NoError(t, err)
+			assert.Equal(t, expectedDiff, result)
+		})
+	})
+	t.Run("GetPRDiff", func(t *testing.T) {
+		t.Run("fails when required parameters are missing", func(t *testing.T) {
+			deps := makeMockDeps(t)
+			service := NewBitbucketService(deps)
+
+			testCases := []struct {
+				name   string
+				params BitbucketGetPRDiffParams
+				errMsg string
+			}{
+				{
+					name: "missing repo owner",
+					params: BitbucketGetPRDiffParams{
+						RepoName:      "repo",
+						PullRequestID: 123,
+					},
+					errMsg: "repository owner is required",
+				},
+				{
+					name: "missing repo name",
+					params: BitbucketGetPRDiffParams{
+						RepoOwner:     "owner",
+						PullRequestID: 123,
+					},
+					errMsg: "repository name is required",
+				},
+				{
+					name: "invalid pull request ID",
+					params: BitbucketGetPRDiffParams{
+						RepoOwner:     "owner",
+						RepoName:      "repo",
+						PullRequestID: 0,
+					},
+					errMsg: "pull request ID must be positive",
+				},
+			}
+
+			for _, tc := range testCases {
+				t.Run(tc.name, func(t *testing.T) {
+					result, err := service.GetPRDiff(t.Context(), tc.params)
+					assert.Empty(t, result)
+					require.Error(t, err)
+					assert.Contains(t, err.Error(), tc.errMsg)
+				})
+			}
+		})
+
+		t.Run("passes file paths and context lines to client", func(t *testing.T) {
+			deps := makeMockDeps(t)
+			mockClient := mocks.GetMock[*MockbitbucketClient](t, deps.Client)
+			mockAuth := mocks.GetMock[*MockbitbucketAuthFactory](t, deps.AuthFactory)
+			service := NewBitbucketService(deps)
+
+			accountName := "account-" + faker.Username()
+			repoOwner := "owner-" + faker.Username()
+			repoName := "repo-" + faker.Username()
+			prID := int(100 + faker.RandomUnixTime()%900)
+			filePaths := []string{"foo.go", "bar.go"}
+			contextLines := lo.ToPtr(7)
+			expectedDiff := "diff --git ..."
+			token := "token-" + faker.UUIDHyphenated()
+			tokenProvider := newStaticTokenProvider(token)
+
+			mockAuth.EXPECT().
+				getTokenProvider(mock.Anything, accountName).
+				Return(tokenProvider)
+
+			mockClient.EXPECT().
+				GetPRDiff(
+					mock.Anything,
+					mock.Anything,
+					mock.MatchedBy(func(params bitbucket.GetPRDiffParams) bool {
+						assert.Equal(t, repoOwner, params.RepoOwner)
+						assert.Equal(t, repoName, params.RepoName)
+						assert.Equal(t, prID, params.PRID)
+						assert.Equal(t, filePaths, params.FilePaths)
+						assert.Equal(t, contextLines, params.Context)
+						return true
+					}),
+				).
+				Return(expectedDiff, nil)
+
+			result, err := service.GetPRDiff(t.Context(), BitbucketGetPRDiffParams{
+				AccountName:   accountName,
+				RepoOwner:     repoOwner,
+				RepoName:      repoName,
+				PullRequestID: prID,
+				FilePaths:     filePaths,
+				ContextLines:  contextLines,
+			})
+
+			require.NoError(t, err)
+			assert.Equal(t, expectedDiff, result)
+		})
+	})
+	t.Run("GetFileContent", func(t *testing.T) {
+		t.Run("successfully retrieves file content", func(t *testing.T) {
+			// Arrange
+			deps := makeMockDeps(t)
+			mockClient := mocks.GetMock[*MockbitbucketClient](t, deps.Client)
+			mockAuth := mocks.GetMock[*MockbitbucketAuthFactory](t, deps.AuthFactory)
+			service := NewBitbucketService(deps)
+
+			accountName := "account-" + faker.Username()
+			repoOwner := "owner-" + faker.Username()
+			repoName := "repo-" + faker.Username()
+			commitHash := faker.UUIDHyphenated()
+			filePath := "src/" + faker.Word() + ".go"
+			expectedContent := "package main\n\nfunc main() {}\n"
+			expectedMeta := bitbucket.FileContentMeta{
+				Size:     29,
+				Type:     "file",
+				Encoding: "utf-8",
+			}
+			expectedResult := &bitbucket.FileContentResult{
+				Content: expectedContent,
+				Meta:    expectedMeta,
+			}
+			token := "token-" + faker.UUIDHyphenated()
+			tokenProvider := newStaticTokenProvider(token)
+
+			// Mock the auth factory to return our token provider
+			mockAuth.EXPECT().
+				getTokenProvider(mock.Anything, accountName).
+				Return(tokenProvider)
+
+			// Mock the client to return expected file content
+			mockClient.EXPECT().
+				GetFileContent(
+					mock.Anything,
+					mock.Anything,
+					mock.MatchedBy(func(params bitbucket.GetFileContentParams) bool {
+						assert.Equal(t, repoOwner, params.RepoOwner)
+						assert.Equal(t, repoName, params.RepoName)
+						assert.Equal(t, commitHash, params.CommitHash)
+						assert.Equal(t, filePath, params.FilePath)
+						return true
+					}),
+				).
+				Return(&bitbucket.FileContent{
+					Path:    filePath,
+					Commit:  commitHash,
+					Content: expectedContent,
+				}, nil)
+
+			// Act
+			result, err := service.GetFileContent(t.Context(), BitbucketGetFileContentParams{
+				AccountName: accountName,
+				RepoOwner:   repoOwner,
+				RepoName:    repoName,
+				Commit:      commitHash,
+				Path:        filePath,
+			})
+
+			// Assert
+			require.NoError(t, err)
+			assert.Equal(t, expectedResult, result)
+		})
+	})
+	t.Run("AddPRComment", func(t *testing.T) {
+		t.Run("successfully adds a general comment to a pull request", func(t *testing.T) {
+			// Arrange
+			deps := makeMockDeps(t)
+			mockClient := mocks.GetMock[*MockbitbucketClient](t, deps.Client)
+			mockAuth := mocks.GetMock[*MockbitbucketAuthFactory](t, deps.AuthFactory)
+			service := NewBitbucketService(deps)
+
+			accountName := "account-" + faker.Username()
+			repoOwner := "owner-" + faker.Username()
+			repoName := "repo-" + faker.Username()
+			prID := int(100 + faker.RandomUnixTime()%900)
+			commentText := "This is a test comment"
+			expectedCommentID := int64(12345)
+			expectedStatus := "success"
+			token := "token-" + faker.UUIDHyphenated()
+			tokenProvider := newStaticTokenProvider(token)
+
+			// Mock the auth factory to return our token provider
+			mockAuth.EXPECT().
+				getTokenProvider(mock.Anything, accountName).
+				Return(tokenProvider)
+
+			// Mock the client to return expected comment ID and status
+			mockClient.EXPECT().
+				AddPRComment(
+					mock.Anything,
+					tokenProvider,
+					mock.MatchedBy(func(params bitbucket.AddPRCommentParams) bool {
+						assert.Equal(t, repoOwner, params.Workspace)
+						assert.Equal(t, repoName, params.RepoSlug)
+						assert.Equal(t, prID, params.PullReqID)
+						assert.Equal(t, commentText, params.CommentText)
+						assert.Empty(t, params.FilePath)
+						return true
+					}),
+				).
+				Return(expectedCommentID, expectedStatus, nil)
+
+			// Act
+			commentID, status, err := service.AddPRComment(t.Context(), BitbucketAddPRCommentParams{
+				AccountName:   accountName,
+				RepoOwner:     repoOwner,
+				RepoName:      repoName,
+				PullRequestID: prID,
+				Content:       commentText,
+			})
+
+			// Assert
+			require.NoError(t, err)
+			assert.Equal(t, expectedCommentID, commentID)
+			assert.Equal(t, expectedStatus, status)
+		})
+		t.Run("successfully adds a pending PR comment", func(t *testing.T) {
+			// Arrange
+			deps := makeMockDeps(t)
+			mockClient := mocks.GetMock[*MockbitbucketClient](t, deps.Client)
+			mockAuth := mocks.GetMock[*MockbitbucketAuthFactory](t, deps.AuthFactory)
+			service := NewBitbucketService(deps)
+
+			// Create test data
+			repoOwner := "owner-" + faker.Username()
+			repoName := "repo-" + faker.Username()
+			pullRequestID := int(faker.RandomUnixTime()) % 10000
+			commentText := faker.Sentence()
+			expectedCommentID := faker.RandomUnixTime()
+			expectedStatus := "success"
+
+			token := "token-" + faker.UUIDHyphenated()
+			tokenProvider := newStaticTokenProvider(token)
+
+			// Mock the auth factory to return our token provider
+			mockAuth.EXPECT().
+				getTokenProvider(mock.Anything, "").
+				Return(tokenProvider)
+
+			// Mock the client to return expected comment ID and status
+			mockClient.EXPECT().
+				AddPRComment(mock.Anything, mock.Anything, mock.MatchedBy(func(params bitbucket.AddPRCommentParams) bool {
+					// Verify the parameters
+					assert.Equal(t, repoOwner, params.Workspace)
+					assert.Equal(t, repoName, params.RepoSlug)
+					assert.Equal(t, pullRequestID, params.PullReqID)
+					assert.Equal(t, commentText, params.CommentText)
+					assert.True(t, params.Pending)
+					return true
+				})).
+				Return(expectedCommentID, expectedStatus, nil)
+
+			// Act
+			commentID, status, err := service.AddPRComment(t.Context(), BitbucketAddPRCommentParams{
+				RepoOwner:     repoOwner,
+				RepoName:      repoName,
+				PullRequestID: pullRequestID,
+				Content:       commentText,
+				Pending:       true,
+			})
+
+			// Assert
+			require.NoError(t, err)
+			assert.Equal(t, expectedCommentID, commentID)
+			assert.Equal(t, expectedStatus, status)
+		})
+
+		t.Run("fails when required parameters are missing", func(t *testing.T) {
+			deps := makeMockDeps(t)
+			service := NewBitbucketService(deps)
+
+			testCases := []struct {
+				name   string
+				params BitbucketAddPRCommentParams
+				errMsg string
+			}{
+				{
+					name: "missing repository owner",
+					params: BitbucketAddPRCommentParams{
+						RepoName:      "repo-" + faker.Username(),
+						PullRequestID: 123,
+						Content:       "Some comment",
+					},
+					errMsg: "repository owner is required",
+				},
+				{
+					name: "missing repository name",
+					params: BitbucketAddPRCommentParams{
+						RepoOwner:     "owner-" + faker.Username(),
+						PullRequestID: 123,
+						Content:       "Some comment",
+					},
+					errMsg: "repository name is required",
+				},
+				{
+					name: "invalid pull request ID",
+					params: BitbucketAddPRCommentParams{
+						RepoOwner:     "owner-" + faker.Username(),
+						RepoName:      "repo-" + faker.Username(),
+						PullRequestID: 0,
+						Content:       "Some comment",
+					},
+					errMsg: "pull request ID must be positive",
+				},
+				{
+					name: "missing comment content",
+					params: BitbucketAddPRCommentParams{
+						RepoOwner:     "owner-" + faker.Username(),
+						RepoName:      "repo-" + faker.Username(),
+						PullRequestID: 123,
+					},
+					errMsg: "comment content is required",
+				},
+			}
+
+			for _, tc := range testCases {
+				t.Run(tc.name, func(t *testing.T) {
+					commentID, status, err := service.AddPRComment(t.Context(), tc.params)
+					assert.Zero(t, commentID)
+					assert.Empty(t, status)
+					require.Error(t, err)
+					assert.Contains(t, err.Error(), tc.errMsg)
+				})
+			}
+		})
+	})
+
+	// --- RequestPRChanges ---
+	t.Run("RequestPRChanges", func(t *testing.T) {
+		t.Run("successfully requests PR changes with default account", func(t *testing.T) {
+			deps := makeMockDeps(t)
+			mockClient := mocks.GetMock[*MockbitbucketClient](t, deps.Client)
+			mockAuth := mocks.GetMock[*MockbitbucketAuthFactory](t, deps.AuthFactory)
+			service := NewBitbucketService(deps)
+
+			repoOwner := "owner-" + faker.Username()
+			repoName := "repo-" + faker.Username()
+			prID := int(100 + faker.RandomUnixTime()%900)
+			token := "token-" + faker.UUIDHyphenated()
+			tokenProvider := newStaticTokenProvider(token)
+			expectedStatus := "changes_requested"
+			expectedTimestamp := time.Now()
+
+			mockAuth.EXPECT().
+				getTokenProvider(mock.Anything, "").
+				Return(tokenProvider)
+
+			mockClient.EXPECT().
+				RequestPRChanges(
+					mock.Anything,
+					tokenProvider,
+					mock.MatchedBy(func(params bitbucket.RequestPRChangesParams) bool {
+						assert.Equal(t, repoOwner, params.Workspace)
+						assert.Equal(t, repoName, params.RepoSlug)
+						assert.Equal(t, prID, params.PullReqID)
+						return true
+					}),
+				).
+				Return(expectedStatus, expectedTimestamp, nil)
+
+			status, ts, err := service.RequestPRChanges(t.Context(), BitbucketRequestPRChangesParams{
+				RepoOwner:     repoOwner,
+				RepoName:      repoName,
+				PullRequestID: prID,
+			})
+
+			require.NoError(t, err)
+			assert.Equal(t, expectedStatus, status)
+			assert.Equal(t, expectedTimestamp, ts)
+		})
+
+		t.Run("fails when required parameters are missing", func(t *testing.T) {
+			service := NewBitbucketService(makeMockDeps(t))
+			testCases := []struct {
+				name   string
+				params BitbucketRequestPRChangesParams
+				errMsg string
+			}{
+				{
+					name: "missing repository owner",
+					params: BitbucketRequestPRChangesParams{
+						RepoName:      "repo",
+						PullRequestID: 123,
+					},
+					errMsg: "repository owner is required",
+				},
+				{
+					name: "missing repository name",
+					params: BitbucketRequestPRChangesParams{
+						RepoOwner:     "owner",
+						PullRequestID: 123,
+					},
+					errMsg: "repository name is required",
+				},
+				{
+					name: "invalid pull request ID",
+					params: BitbucketRequestPRChangesParams{
+						RepoOwner:     "owner",
+						RepoName:      "repo",
+						PullRequestID: 0,
+					},
+					errMsg: "pull request ID must be positive",
+				},
+			}
+			for _, tc := range testCases {
+				t.Run(tc.name, func(t *testing.T) {
+					status, ts, err := service.RequestPRChanges(t.Context(), tc.params)
+					assert.Empty(t, status)
+					assert.Empty(t, ts)
+					require.Error(t, err)
+					assert.Contains(t, err.Error(), tc.errMsg)
+				})
+			}
+		})
+	})
+
+	t.Run("ListPRComments", func(t *testing.T) {
+		t.Run("successfully lists PR comments with default account", func(t *testing.T) {
+			// Arrange
+			deps := makeMockDeps(t)
+			mockClient := mocks.GetMock[*MockbitbucketClient](t, deps.Client)
+			mockAuth := mocks.GetMock[*MockbitbucketAuthFactory](t, deps.AuthFactory)
+			service := NewBitbucketService(deps)
+
+			// Create test data
+			repoOwner := "owner-" + faker.Username()
+			repoName := "repo-" + faker.Username()
+			prID := int64(123)
+			token := "token-" + faker.UUIDHyphenated()
+			tokenProvider := newStaticTokenProvider(token)
+
+			// Create expected response
+			expectedComments := &bitbucket.ListPRCommentsResponse{
+				Values: []bitbucket.PRComment{
+					{
+						ID: 1,
+						Content: struct {
+							Raw string `json:"raw"`
+						}{Raw: "Test comment"},
+						Author:    &bitbucket.Account{DisplayName: faker.Name()},
+						CreatedOn: time.Now(),
+						UpdatedOn: time.Now(),
+					},
+				},
+			}
+
+			// Mock the auth factory to return our token provider
+			mockAuth.EXPECT().
+				getTokenProvider(mock.Anything, "").
+				Return(tokenProvider)
+
+			// Mock the client to return expected comments
+			mockClient.EXPECT().
+				ListPRComments(mock.Anything, tokenProvider, bitbucket.ListPRCommentsParams{
+					Workspace: repoOwner,
+					RepoSlug:  repoName,
+					PRID:      prID,
+				}).
+				Return(expectedComments, nil)
+
+			// Act
+			result, err := service.ListPRComments(t.Context(), BitbucketListPRCommentsParams{
+				RepoOwner:     repoOwner,
+				RepoName:      repoName,
+				PullRequestID: int(prID),
+			})
+
+			// Assert
+			require.NoError(t, err)
+			assert.Equal(t, expectedComments, result)
+		})
+
+		t.Run("validates required parameters", func(t *testing.T) {
+			deps := makeMockDeps(t)
+			service := NewBitbucketService(deps)
+
+			testCases := []struct {
+				name   string
+				params BitbucketListPRCommentsParams
+				errMsg string
+			}{
+				{
+					name: "missing repository owner",
+					params: BitbucketListPRCommentsParams{
+						RepoName:      "repo",
+						PullRequestID: 123,
+					},
+					errMsg: "repository owner is required",
+				},
+				{
+					name: "missing repository name",
+					params: BitbucketListPRCommentsParams{
+						RepoOwner:     "owner",
+						PullRequestID: 123,
+					},
+					errMsg: "repository name is required",
+				},
+				{
+					name: "invalid pull request ID",
+					params: BitbucketListPRCommentsParams{
+						RepoOwner:     "owner",
+						RepoName:      "repo",
+						PullRequestID: 0,
+					},
+					errMsg: "pull request ID must be positive",
+				},
+			}
+			for _, tc := range testCases {
+				t.Run(tc.name, func(t *testing.T) {
+					result, err := service.ListPRComments(t.Context(), tc.params)
+					assert.Nil(t, result)
+					require.Error(t, err)
 					assert.Contains(t, err.Error(), tc.errMsg)
 				})
 			}

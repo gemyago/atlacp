@@ -12,5 +12,8 @@ test.log
 .kilocode/mcp.json
 .continue/mcpServers/
 
+# Ignore Gemini configs for now
+.gemini
+
 # Ignore some examples
 quick-start/atlassian-accounts.json

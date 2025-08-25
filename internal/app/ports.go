@@ -3,6 +3,7 @@ package app
 import (
 	"context"
 	"errors"
+	"time"
 
 	"github.com/gemyago/atlacp/internal/services/bitbucket"
 	"github.com/gemyago/atlacp/internal/services/http/middleware"
@@ -84,6 +85,52 @@ type bitbucketClient interface {
 		tokenProvider bitbucket.TokenProvider,
 		params bitbucket.CreatePullRequestTaskParams,
 	) (*bitbucket.PullRequestCommentTask, error)
+	// GetPRDiffStat retrieves the diffstat for a pull request.
+	GetPRDiffStat(
+		ctx context.Context,
+		tokenProvider bitbucket.TokenProvider,
+		params bitbucket.GetPRDiffStatParams,
+	) (*struct {
+		Size    int                  `json:"size,omitempty"`
+		Page    int                  `json:"page,omitempty"`
+		PageLen int                  `json:"pagelen,omitempty"`
+		Values  []bitbucket.DiffStat `json:"values"`
+	}, error)
+
+	// GetPRDiff retrieves the diff for a pull request.
+	GetPRDiff(
+		ctx context.Context,
+		tokenProvider bitbucket.TokenProvider,
+		params bitbucket.GetPRDiffParams,
+	) (string, error)
+
+	// GetFileContent retrieves the content of a file at a specific commit.
+	GetFileContent(
+		ctx context.Context,
+		tokenProvider bitbucket.TokenProvider,
+		params bitbucket.GetFileContentParams,
+	) (*bitbucket.FileContent, error)
+
+	// AddPRComment adds a comment to a Bitbucket pull request.
+	AddPRComment(
+		ctx context.Context,
+		tokenProvider bitbucket.TokenProvider,
+		params bitbucket.AddPRCommentParams,
+	) (int64, string, error)
+
+	// RequestPRChanges removes approval from a specific pull request (requests changes).
+	RequestPRChanges(
+		ctx context.Context,
+		tokenProvider bitbucket.TokenProvider,
+		params bitbucket.RequestPRChangesParams,
+	) (string, time.Time, error)
+
+	// ListPRComments retrieves all comments for a specific pull request.
+	ListPRComments(
+		ctx context.Context,
+		tokenProvider bitbucket.TokenProvider,
+		params bitbucket.ListPRCommentsParams,
+	) (*bitbucket.ListPRCommentsResponse, error)
 }
 
 // Error types for account-related operations.

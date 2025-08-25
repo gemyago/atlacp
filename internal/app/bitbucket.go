@@ -5,6 +5,7 @@ import (
 	"errors"
 	"fmt"
 	"log/slog"
+	"time"
 
 	"github.com/gemyago/atlacp/internal/services/bitbucket"
 	"go.uber.org/dig"
@@ -131,6 +132,20 @@ type BitbucketApprovePRParams struct {
 	PullRequestID int `json:"pull_request_id"`
 }
 
+type BitbucketRequestPRChangesParams struct {
+	// Account name to use for authentication (optional, uses default if empty)
+	AccountName string `json:"account_name,omitempty"`
+
+	// Repository owner (username/workspace)
+	RepoOwner string `json:"repo_owner"`
+
+	// Repository name (slug)
+	RepoName string `json:"repo_name"`
+
+	// Pull request ID
+	PullRequestID int `json:"pull_request_id"`
+}
+
 // BitbucketMergePRParams contains parameters for merging a pull request.
 type BitbucketMergePRParams struct {
 	// Account name to use for authentication (optional, uses default if empty)
@@ -226,6 +241,21 @@ type BitbucketCreateTaskParams struct {
 	// Task state: "RESOLVED" or "UNRESOLVED" (optional)
 	// If not provided, defaults to "UNRESOLVED"
 	State string `json:"state,omitempty"`
+}
+
+// BitbucketListPRCommentsParams contains parameters for listing comments on a pull request.
+type BitbucketListPRCommentsParams struct {
+	// Account name to use for authentication (optional, uses default if empty)
+	AccountName string `json:"account_name,omitempty"`
+
+	// Repository owner (username/workspace)
+	RepoOwner string `json:"repo_owner"`
+
+	// Repository name (slug)
+	RepoName string `json:"repo_name"`
+
+	// Pull request ID
+	PullRequestID int `json:"pull_request_id"`
 }
 
 // CreatePR creates a new pull request.
@@ -405,6 +435,42 @@ func (s *BitbucketService) ApprovePR(
 	}
 
 	return participant, nil
+}
+
+// RequestPRChanges requests changes on a pull request.
+func (s *BitbucketService) RequestPRChanges(
+	ctx context.Context,
+	params BitbucketRequestPRChangesParams,
+) (string, time.Time, error) {
+	s.logger.InfoContext(ctx, "Requesting changes on pull request",
+		slog.String("repo", params.RepoOwner+"/"+params.RepoName),
+		slog.Int("pr_id", params.PullRequestID),
+	)
+
+	// Validate required parameters
+	if params.RepoOwner == "" {
+		return "", time.Time{}, errors.New("repository owner is required")
+	}
+	if params.RepoName == "" {
+		return "", time.Time{}, errors.New("repository name is required")
+	}
+	if params.PullRequestID <= 0 {
+		return "", time.Time{}, errors.New("pull request ID must be positive")
+	}
+
+	// Get token provider from auth factory
+	tokenProvider := s.authFactory.getTokenProvider(ctx, params.AccountName)
+
+	// Call the client to request PR changes
+	status, ts, err := s.client.RequestPRChanges(ctx, tokenProvider, bitbucket.RequestPRChangesParams{
+		Workspace: params.RepoOwner,
+		RepoSlug:  params.RepoName,
+		PullReqID: params.PullRequestID,
+	})
+	if err != nil {
+		return "", time.Time{}, err
+	}
+	return status, ts, nil
 }
 
 // MergePR merges a pull request.
@@ -603,4 +669,196 @@ func (s *BitbucketService) CreateTask(
 	}
 
 	return task, nil
+}
+
+type PaginatedDiffStat struct {
+	Size    int                  `json:"size,omitempty"`
+	Page    int                  `json:"page,omitempty"`
+	PageLen int                  `json:"pagelen,omitempty"`
+	Values  []bitbucket.DiffStat `json:"values"`
+}
+
+type BitbucketGetPRDiffStatParams struct {
+	AccountName   string
+	RepoOwner     string
+	RepoName      string
+	PullRequestID int
+}
+
+func (s *BitbucketService) GetPRDiffStat(
+	ctx context.Context,
+	params BitbucketGetPRDiffStatParams,
+) (*PaginatedDiffStat, error) {
+	tokenProvider := s.authFactory.getTokenProvider(ctx, params.AccountName)
+	clientResult, err := s.client.GetPRDiffStat(
+		ctx,
+		tokenProvider,
+		bitbucket.GetPRDiffStatParams{
+			RepoOwner: params.RepoOwner,
+			RepoName:  params.RepoName,
+			PRID:      params.PullRequestID,
+		},
+	)
+	if err != nil {
+		return nil, err
+	}
+	return &PaginatedDiffStat{
+		Size:    clientResult.Size,
+		Page:    clientResult.Page,
+		PageLen: clientResult.PageLen,
+		Values:  clientResult.Values,
+	}, nil
+}
+
+type BitbucketGetPRDiffParams struct {
+	AccountName   string
+	RepoOwner     string
+	RepoName      string
+	PullRequestID int
+	FilePaths     []string
+	ContextLines  *int
+}
+
+func (s *BitbucketService) GetPRDiff(
+	ctx context.Context,
+	params BitbucketGetPRDiffParams,
+) (string, error) {
+	// Validate required parameters
+	if params.RepoOwner == "" {
+		return "", errors.New("repository owner is required")
+	}
+	if params.RepoName == "" {
+		return "", errors.New("repository name is required")
+	}
+	if params.PullRequestID <= 0 {
+		return "", errors.New("pull request ID must be positive")
+	}
+
+	tokenProvider := s.authFactory.getTokenProvider(ctx, params.AccountName)
+	clientParams := bitbucket.GetPRDiffParams{
+		RepoOwner: params.RepoOwner,
+		RepoName:  params.RepoName,
+		PRID:      params.PullRequestID,
+		FilePaths: params.FilePaths,
+		Context:   params.ContextLines,
+	}
+	diffResult, err := s.client.GetPRDiff(ctx, tokenProvider, clientParams)
+	if err != nil {
+		return "", err
+	}
+	if diffResult == "" {
+		return "", nil
+	}
+	return diffResult, nil
+}
+
+type BitbucketGetFileContentParams struct {
+	AccountName string
+	RepoOwner   string
+	RepoName    string
+	Commit      string
+	Path        string
+}
+
+func (s *BitbucketService) GetFileContent(
+	ctx context.Context,
+	params BitbucketGetFileContentParams,
+) (*bitbucket.FileContentResult, error) {
+	tokenProvider := s.authFactory.getTokenProvider(ctx, params.AccountName)
+	clientParams := bitbucket.GetFileContentParams{
+		RepoOwner:  params.RepoOwner,
+		RepoName:   params.RepoName,
+		CommitHash: params.Commit,
+		FilePath:   params.Path,
+	}
+	fileContent, err := s.client.GetFileContent(ctx, tokenProvider, clientParams)
+	if err != nil {
+		return nil, err
+	}
+	// Minimal stub: meta fields are hardcoded for now
+	return &bitbucket.FileContentResult{
+		Content: fileContent.Content,
+		Meta: bitbucket.FileContentMeta{
+			Size:     len(fileContent.Content),
+			Type:     "file",
+			Encoding: "utf-8",
+		},
+	}, nil
+}
+
+type BitbucketAddPRCommentParams struct {
+	AccountName   string
+	RepoOwner     string
+	RepoName      string
+	PullRequestID int
+	Content       string
+	FilePath      string
+	LineFrom      int
+	LineTo        int
+	Pending       bool
+}
+
+// AddPRComment adds a comment to a pull request (general or inline).
+func (s *BitbucketService) AddPRComment(
+	ctx context.Context,
+	params BitbucketAddPRCommentParams,
+) (int64, string, error) {
+	// Validate required parameters
+	if params.RepoOwner == "" {
+		return 0, "", errors.New("repository owner is required")
+	}
+	if params.RepoName == "" {
+		return 0, "", errors.New("repository name is required")
+	}
+	if params.PullRequestID <= 0 {
+		return 0, "", errors.New("pull request ID must be positive")
+	}
+	if params.Content == "" {
+		return 0, "", errors.New("comment content is required")
+	}
+
+	tokenProvider := s.authFactory.getTokenProvider(ctx, params.AccountName)
+	clientParams := bitbucket.AddPRCommentParams{
+		Workspace:   params.RepoOwner,
+		RepoSlug:    params.RepoName,
+		PullReqID:   params.PullRequestID,
+		CommentText: params.Content,
+		FilePath:    params.FilePath,
+		LineFrom:    params.LineFrom,
+		LineTo:      params.LineTo,
+		Account:     params.AccountName,
+		Pending:     params.Pending,
+	}
+	return s.client.AddPRComment(ctx, tokenProvider, clientParams)
+}
+
+// ListPRComments retrieves all comments for a specific pull request.
+func (s *BitbucketService) ListPRComments(
+	ctx context.Context,
+	params BitbucketListPRCommentsParams,
+) (*bitbucket.ListPRCommentsResponse, error) {
+	s.logger.InfoContext(ctx, "Listing pull request comments",
+		slog.String("repo", params.RepoOwner+"/"+params.RepoName),
+		slog.Int("pr_id", params.PullRequestID))
+
+	// Validate required parameters
+	if params.RepoOwner == "" {
+		return nil, errors.New("repository owner is required")
+	}
+	if params.RepoName == "" {
+		return nil, errors.New("repository name is required")
+	}
+	if params.PullRequestID <= 0 {
+		return nil, errors.New("pull request ID must be positive")
+	}
+
+	// Get token provider from auth factory
+	tokenProvider := s.authFactory.getTokenProvider(ctx, params.AccountName)
+
+	// Call the client to list PR comments
+	return s.client.ListPRComments(ctx, tokenProvider, bitbucket.ListPRCommentsParams{
+		Workspace: params.RepoOwner,
+		RepoSlug:  params.RepoName,
+		PRID:      int64(params.PullRequestID),
+	})
 }

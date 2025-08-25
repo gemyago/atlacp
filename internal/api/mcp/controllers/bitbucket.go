@@ -23,22 +23,6 @@ const (
 	TaskStateUnresolved = "UNRESOLVED"
 )
 
-// bitbucketService defines the operations required by the BitbucketController.
-// This interface matches the methods from app.BitbucketService that are used by the controller.
-type bitbucketService interface {
-	CreatePR(ctx context.Context, params app.BitbucketCreatePRParams) (*bitbucket.PullRequest, error)
-	ReadPR(ctx context.Context, params app.BitbucketReadPRParams) (*bitbucket.PullRequest, error)
-	UpdatePR(ctx context.Context, params app.BitbucketUpdatePRParams) (*bitbucket.PullRequest, error)
-	ApprovePR(ctx context.Context, params app.BitbucketApprovePRParams) (*bitbucket.Participant, error)
-	MergePR(ctx context.Context, params app.BitbucketMergePRParams) (*bitbucket.PullRequest, error)
-	ListTasks(ctx context.Context, params app.BitbucketListTasksParams) (*bitbucket.PaginatedTasks, error)
-	UpdateTask(ctx context.Context, params app.BitbucketUpdateTaskParams) (*bitbucket.PullRequestCommentTask, error)
-	CreateTask(ctx context.Context, params app.BitbucketCreateTaskParams) (*bitbucket.PullRequestCommentTask, error)
-}
-
-// Ensure that app.BitbucketService implements bitbucketService.
-var _ bitbucketService = (*app.BitbucketService)(nil)
-
 // BitbucketControllerDeps contains dependencies for the Bitbucket MCP controller.
 type BitbucketControllerDeps struct {
 	dig.In
@@ -865,5 +849,483 @@ func (bc *BitbucketController) NewTools() []server.ServerTool {
 		bc.newListPRTasksServerTool(),
 		bc.newUpdatePRTaskServerTool(),
 		bc.newCreatePRTaskServerTool(),
+		bc.newGetPRDiffstatServerTool(),
+		bc.newGetPRDiffServerTool(),
+		bc.newAddPRCommentServerTool(),
+		bc.newGetFileContentServerTool(),
+		bc.newRequestPRChangesServerTool(),
+		bc.newListPRCommentsServerTool(),
+	}
+}
+
+// newGetPRDiffstatServerTool returns a server tool for getting PR diffstat.
+func (bc *BitbucketController) newGetPRDiffstatServerTool() server.ServerTool {
+	tool := mcp.NewTool(
+		"bitbucket_get_pr_diffstat",
+		mcp.WithDescription("Get the diffstat for a pull request in Bitbucket"),
+		mcp.WithNumber("pr_id",
+			mcp.Description("Pull request ID"),
+			mcp.Required(),
+		),
+		mcp.WithString("repo_owner",
+			mcp.Description("Repository owner (username/workspace)"),
+			mcp.Required(),
+		),
+		mcp.WithString("repo_name",
+			mcp.Description("Repository name (slug)"),
+			mcp.Required(),
+		),
+		mcp.WithString("account",
+			mcp.Description("Atlassian account name to use (optional, uses default if not specified)"),
+		),
+	)
+
+	handler := func(ctx context.Context, request mcp.CallToolRequest) (*mcp.CallToolResult, error) {
+		bc.logger.Debug("Received bitbucket_get_pr_diffstat request", "params", request.Params)
+
+		// Extract required parameters
+		prID, err := request.RequireInt("pr_id")
+		if err != nil {
+			return mcp.NewToolResultErrorFromErr("Missing or invalid pr_id parameter", err), nil
+		}
+		repoOwner, err := request.RequireString("repo_owner")
+		if err != nil {
+			return mcp.NewToolResultErrorFromErr("Missing or invalid repo_owner parameter", err), nil
+		}
+		repoName, err := request.RequireString("repo_name")
+		if err != nil {
+			return mcp.NewToolResultErrorFromErr("Missing or invalid repo_name parameter", err), nil
+		}
+		account := request.GetString("account", "")
+
+		// Build params for service layer
+		params := app.BitbucketGetPRDiffStatParams{
+			PullRequestID: prID,
+			RepoOwner:     repoOwner,
+			RepoName:      repoName,
+			AccountName:   account,
+		}
+
+		// Call the service
+		result, err := bc.bitbucketService.GetPRDiffStat(ctx, params)
+		if err != nil {
+			return nil, fmt.Errorf("failed to get diffstat: %w", err)
+		}
+
+		// Marshal result to JSON
+		resultJSON, err := json.MarshalIndent(result, "", "  ")
+		if err != nil {
+			return nil, fmt.Errorf("failed to marshal diffstat to JSON: %w", err)
+		}
+
+		// Create summary text
+		summaryText := fmt.Sprintf("Diffstat for PR #%d: %d files changed", prID, result.Size)
+
+		return &mcp.CallToolResult{
+			Content: []mcp.Content{
+				mcp.TextContent{
+					Type: "text",
+					Text: summaryText,
+				},
+				mcp.NewTextContent(string(resultJSON)),
+			},
+		}, nil
+	}
+
+	return server.ServerTool{
+		Tool:    tool,
+		Handler: handler,
+	}
+}
+
+/*
+ * newGetPRDiffServerTool returns a server tool for getting PR diff.
+ */
+func (bc *BitbucketController) newGetPRDiffServerTool() server.ServerTool {
+	tool := mcp.NewTool(
+		"bitbucket_get_pr_diff",
+		mcp.WithDescription("Get the diff for a pull request in Bitbucket"),
+		mcp.WithNumber("pr_id",
+			mcp.Description("Pull request ID"),
+			mcp.Required(),
+		),
+		mcp.WithString("repo_owner",
+			mcp.Description("Repository owner (username/workspace)"),
+			mcp.Required(),
+		),
+		mcp.WithString("repo_name",
+			mcp.Description("Repository name (slug)"),
+			mcp.Required(),
+		),
+		mcp.WithString("account",
+			mcp.Description("Atlassian account name to use (optional, uses default if not specified)"),
+		),
+	)
+
+	handler := func(ctx context.Context, request mcp.CallToolRequest) (*mcp.CallToolResult, error) {
+		bc.logger.Debug("Received bitbucket_get_pr_diff request", "params", request.Params)
+
+		// Extract required parameters
+		prID, err := request.RequireInt("pr_id")
+		if err != nil {
+			return mcp.NewToolResultErrorFromErr("Missing or invalid pr_id parameter", err), nil
+		}
+		repoOwner, err := request.RequireString("repo_owner")
+		if err != nil {
+			return mcp.NewToolResultErrorFromErr("Missing or invalid repo_owner parameter", err), nil
+		}
+		repoName, err := request.RequireString("repo_name")
+		if err != nil {
+			return mcp.NewToolResultErrorFromErr("Missing or invalid repo_name parameter", err), nil
+		}
+		account := request.GetString("account", "")
+
+		// Build params for service layer
+		params := app.BitbucketGetPRDiffParams{
+			PullRequestID: prID,
+			RepoOwner:     repoOwner,
+			RepoName:      repoName,
+			AccountName:   account,
+		}
+
+		// Call the service
+		diff, err := bc.bitbucketService.GetPRDiff(ctx, params)
+		if err != nil {
+			return nil, fmt.Errorf("failed to get diff: %w", err)
+		}
+
+		// Create summary text
+		summaryText := fmt.Sprintf("Diff for PR #%d in %s/%s", prID, repoOwner, repoName)
+
+		return &mcp.CallToolResult{
+			Content: []mcp.Content{
+				mcp.TextContent{
+					Type: "text",
+					Text: summaryText,
+				},
+				mcp.NewTextContent(diff),
+			},
+		}, nil
+	}
+
+	return server.ServerTool{
+		Tool:    tool,
+		Handler: handler,
+	}
+}
+
+// newGetFileContentServerTool returns a server tool for getting file content from a Bitbucket repository.
+func (bc *BitbucketController) newGetFileContentServerTool() server.ServerTool {
+	tool := mcp.NewTool(
+		"bitbucket_get_file_content",
+		mcp.WithDescription("Get the content of a file in a Bitbucket repository"),
+		mcp.WithString("repo_owner",
+			mcp.Description("Repository owner (username/workspace)"),
+			mcp.Required(),
+		),
+		mcp.WithString("repo_name",
+			mcp.Description("Repository name (slug)"),
+			mcp.Required(),
+		),
+		mcp.WithString("file_path",
+			mcp.Description("Path to the file in the repository"),
+			mcp.Required(),
+		),
+		mcp.WithString("commit",
+			mcp.Description("Commit hash to fetch file content from (optional, defaults to main branch)"),
+		),
+	)
+	handler := func(ctx context.Context, request mcp.CallToolRequest) (*mcp.CallToolResult, error) {
+		bc.logger.Debug("Received bitbucket_get_file_content request", "params", request.Params)
+
+		repoOwner, err := request.RequireString("repo_owner")
+		if err != nil {
+			return mcp.NewToolResultErrorFromErr("Missing or invalid repo_owner parameter", err), nil
+		}
+		repoName, err := request.RequireString("repo_name")
+		if err != nil {
+			return mcp.NewToolResultErrorFromErr("Missing or invalid repo_name parameter", err), nil
+		}
+		filePath := request.GetString("file_path", "")
+		if filePath == "" {
+			filePath = request.GetString("path", "")
+		}
+		if filePath == "" {
+			return mcp.NewToolResultError(
+				"Missing or invalid file_path parameter: required argument \"file_path\" not found",
+			), nil
+		}
+		commit := request.GetString("commit", "")
+		account := request.GetString("account", "")
+
+		params := app.BitbucketGetFileContentParams{
+			AccountName: account,
+			RepoOwner:   repoOwner,
+			RepoName:    repoName,
+			Commit:      commit,
+			Path:        filePath,
+		}
+
+		result, err := bc.bitbucketService.GetFileContent(ctx, params)
+		if err != nil {
+			return nil, fmt.Errorf("failed to get file content: %w", err)
+		}
+
+		// Compose summary
+		summaryText := fmt.Sprintf("File content for %s at %s/%s", filePath, repoOwner, repoName)
+
+		return &mcp.CallToolResult{
+			Content: []mcp.Content{
+				mcp.TextContent{
+					Type: "text",
+					Text: summaryText,
+				},
+				mcp.NewTextContent(result.Content),
+			},
+		}, nil
+	}
+	return server.ServerTool{
+		Tool:    tool,
+		Handler: handler,
+	}
+}
+
+// newAddPRCommentServerTool returns a server tool for adding a comment to a pull request.
+func (bc *BitbucketController) newAddPRCommentServerTool() server.ServerTool {
+	tool := mcp.NewTool(
+		"bitbucket_add_pr_comment",
+		mcp.WithDescription("Add a comment to a pull request in Bitbucket"),
+		mcp.WithNumber("pr_id",
+			mcp.Description("Pull request ID"),
+			mcp.Required(),
+		),
+		mcp.WithString("repo_owner",
+			mcp.Description("Repository owner (username/workspace)"),
+			mcp.Required(),
+		),
+		mcp.WithString("repo_name",
+			mcp.Description("Repository name (slug)"),
+			mcp.Required(),
+		),
+		mcp.WithString("comment_text",
+			mcp.Description("The comment content"),
+			mcp.Required(),
+		),
+		mcp.WithString("file_path",
+			mcp.Description("Path to the file for inline comments (optional)"),
+		),
+		mcp.WithNumber("line_number_from",
+			mcp.Description("Anchor line in the old version of the file (optional)"),
+		),
+		mcp.WithNumber("line_number_to",
+			mcp.Description("Anchor line in the new version of the file (optional)"),
+		),
+		mcp.WithString("account",
+			mcp.Description("Atlassian account name to use (optional, uses default if not specified)"),
+		),
+		mcp.WithBoolean("pending",
+			mcp.Description("Create as a pending comment (optional, defaults to false)"),
+		),
+	)
+	handler := func(ctx context.Context, request mcp.CallToolRequest) (*mcp.CallToolResult, error) {
+		bc.logger.Debug("Received bitbucket_add_pr_comment request", "params", request.Params)
+
+		// Required parameters
+		prID, err := request.RequireInt("pr_id")
+		if err != nil {
+			return mcp.NewToolResultErrorFromErr("Missing or invalid pr_id parameter", err), nil
+		}
+		repoOwner, err := request.RequireString("repo_owner")
+		if err != nil {
+			return mcp.NewToolResultErrorFromErr("Missing or invalid repo_owner parameter", err), nil
+		}
+		repoName, err := request.RequireString("repo_name")
+		if err != nil {
+			return mcp.NewToolResultErrorFromErr("Missing or invalid repo_name parameter", err), nil
+		}
+		account := request.GetString("account", "")
+		commentText, err := request.RequireString("comment_text")
+		if err != nil {
+			return mcp.NewToolResultErrorFromErr("Missing or invalid comment_text parameter", err), nil
+		}
+
+		// Optional parameters
+		filePath := request.GetString("file_path", "")
+		lineFrom := request.GetInt("line_number_from", 0)
+		lineTo := request.GetInt("line_number_to", 0)
+		pending := request.GetBool("pending", false)
+
+		params := app.BitbucketAddPRCommentParams{
+			PullRequestID: prID,
+			RepoOwner:     repoOwner,
+			RepoName:      repoName,
+			AccountName:   account,
+			Content:       commentText,
+			FilePath:      filePath,
+			LineFrom:      lineFrom,
+			LineTo:        lineTo,
+			Pending:       pending,
+		}
+
+		commentID, content, err := bc.bitbucketService.AddPRComment(ctx, params)
+		if err != nil {
+			return nil, fmt.Errorf("failed to add PR comment: %w", err)
+		}
+
+		resultText := fmt.Sprintf("Added comment #%d: %s", commentID, content)
+		return mcp.NewToolResultText(resultText), nil
+	}
+	return server.ServerTool{
+		Tool:    tool,
+		Handler: handler,
+	}
+}
+
+// newRequestPRChangesServerTool returns a server tool for requesting changes on a pull request.
+
+func (bc *BitbucketController) newRequestPRChangesServerTool() server.ServerTool {
+	tool := mcp.NewTool(
+		"bitbucket_request_pr_changes",
+		mcp.WithDescription("Request changes on a pull request in Bitbucket"),
+		mcp.WithNumber("pr_id",
+			mcp.Description("Pull request ID"),
+			mcp.Required(),
+		),
+		mcp.WithString("repo_owner",
+			mcp.Description("Repository owner (username/workspace)"),
+			mcp.Required(),
+		),
+		mcp.WithString("repo_name",
+			mcp.Description("Repository name (slug)"),
+			mcp.Required(),
+		),
+		mcp.WithString("account",
+			mcp.Description("Atlassian account name to use (optional, uses default if not specified)"),
+		),
+	)
+	handler := func(ctx context.Context, request mcp.CallToolRequest) (*mcp.CallToolResult, error) {
+		bc.logger.Debug("Received bitbucket_request_pr_changes request", "params", request.Params)
+
+		prID, err := request.RequireInt("pr_id")
+		if err != nil {
+			return mcp.NewToolResultErrorFromErr("Missing or invalid pr_id parameter", err), nil
+		}
+		repoOwner, err := request.RequireString("repo_owner")
+		if err != nil {
+			return mcp.NewToolResultErrorFromErr("Missing or invalid repo_owner parameter", err), nil
+		}
+		repoName, err := request.RequireString("repo_name")
+		if err != nil {
+			return mcp.NewToolResultErrorFromErr("Missing or invalid repo_name parameter", err), nil
+		}
+		account := request.GetString("account", "")
+
+		params := app.BitbucketRequestPRChangesParams{
+			PullRequestID: prID,
+			RepoOwner:     repoOwner,
+			RepoName:      repoName,
+			AccountName:   account,
+		}
+
+		status, timestamp, err := bc.bitbucketService.RequestPRChanges(ctx, params)
+		if err != nil {
+			return nil, fmt.Errorf("failed to request PR changes: %w", err)
+		}
+
+		return mcp.NewToolResultText(
+			fmt.Sprintf("Requested changes for pull request #%d: %s at %v", prID, status, timestamp),
+		), nil
+	}
+	return server.ServerTool{
+		Tool:    tool,
+		Handler: handler,
+	}
+}
+
+// newListPRCommentsServerTool returns a server tool for listing comments on a pull request.
+func (bc *BitbucketController) newListPRCommentsServerTool() server.ServerTool {
+	tool := mcp.NewTool(
+		"bitbucket_list_pr_comments",
+		mcp.WithDescription("List all comments on a pull request in Bitbucket"),
+		mcp.WithNumber("pr_id",
+			mcp.Description("Pull request ID"),
+			mcp.Required(),
+		),
+		mcp.WithString("repo_owner",
+			mcp.Description("Repository owner (username/workspace)"),
+			mcp.Required(),
+		),
+		mcp.WithString("repo_name",
+			mcp.Description("Repository name (slug)"),
+			mcp.Required(),
+		),
+		mcp.WithString("account",
+			mcp.Description("Atlassian account name to use (optional, uses default if not specified)"),
+		),
+	)
+
+	handler := func(ctx context.Context, request mcp.CallToolRequest) (*mcp.CallToolResult, error) {
+		bc.logger.Debug("Received bitbucket_list_pr_comments request", "params", request.Params)
+
+		// Extract required parameters using RequireXXX methods
+		prID, err := request.RequireInt("pr_id")
+		if err != nil {
+			return mcp.NewToolResultErrorFromErr("Missing or invalid pr_id parameter", err), nil
+		}
+
+		repoOwner, err := request.RequireString("repo_owner")
+		if err != nil {
+			return mcp.NewToolResultErrorFromErr("Missing or invalid repo_owner parameter", err), nil
+		}
+
+		repoName, err := request.RequireString("repo_name")
+		if err != nil {
+			return mcp.NewToolResultErrorFromErr("Missing or invalid repo_name parameter", err), nil
+		}
+
+		// Optional parameters
+		account := request.GetString("account", "")
+
+		// Create parameters for the service layer
+		params := app.BitbucketListPRCommentsParams{
+			PullRequestID: prID,
+			AccountName:   account,
+			RepoOwner:     repoOwner,
+			RepoName:      repoName,
+		}
+
+		// Call the service to list PR comments
+		comments, err := bc.bitbucketService.ListPRComments(ctx, params)
+		if err != nil {
+			return nil, fmt.Errorf("failed to list PR comments: %w", err)
+		}
+
+		// Convert comments to JSON for the resource
+		commentsJSON, err := json.MarshalIndent(comments, "", "  ")
+		if err != nil {
+			return nil, fmt.Errorf("failed to marshal PR comments to JSON: %w", err)
+		}
+
+		// Create a summary text for the comments
+		summaryText := fmt.Sprintf("Found %d comments on pull request #%d", len(comments.Values), prID)
+
+		// Return both a summary text and the full comments data as a resource
+		return &mcp.CallToolResult{
+			Content: []mcp.Content{
+				mcp.TextContent{
+					Type: "text",
+					Text: summaryText,
+				},
+
+				// Sending json as text since some clients (Cursor)
+				// do not support resources (at least not yet)
+				mcp.NewTextContent(string(commentsJSON)),
+			},
+		}, nil
+	}
+
+	return server.ServerTool{
+		Tool:    tool,
+		Handler: handler,
 	}
 }

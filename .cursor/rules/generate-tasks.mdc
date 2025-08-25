@@ -1,43 +1,34 @@
----
-description: 
-globs: 
-alwaysApply: false
----
-# Rule: Generating a Task List from provided requirements
+# Generating a Task List
 
 ## Goal
 
 To guide an AI assistant in creating a detailed, step-by-step task list in Markdown format based on user provided requirements. The task list should guide a junior developer through implementation.
 
-The implementation should follow incremental TDD approach (when applicable):
-1. Stub implementation first
-2. Write test for single specific case
-3. Run test to make sure it is failing
-4. Implement the case
-5. Repeat above until the implementation is ready.
-
 ## Output
 
 - **Format:** Markdown (`.md`)
-- **Location:** `/doc/tasks/`
-- **Filename:** `tasks-[requirements-file-name].md` (e.g., `tasks-prd-user-profile-editing.md`).
+- **Location:** `doc/tasks/` (or any other directory that user specifies)
+- **Filename:** `tasks-[requirements-file-name].md` (e.g., `tasks-prd-user-profile-editing.md`)
 
 ## Process
 
-1.  **Receive Requirements Reference:** The user points the AI to a specific requirements either in chat or specific file.
-2.  **Analyze Requirements:** The AI reads and analyzes the requirements, user stories, and other aspects.
-3.  **Phase 1: Generate Parent Tasks:** Based on the requirements analysis, create the file and generate the main, high-level tasks required to implement the feature. Use your judgement on how many high-level tasks to use. It's likely to be about 5, but can be more if needed. Present these tasks to the user in the specified format (without sub-tasks yet). Inform the user: "I have generated the high-level tasks based on the requirements. Ready to generate the sub-tasks? Respond with 'Go' to proceed."
-4.  **Wait for Confirmation:** Pause and wait for the user to respond with "Go".
-5.  **Phase 2: Generate Sub-Tasks:** Once the user confirms, break down each parent task into smaller, actionable sub-tasks necessary to complete the parent task. Ensure sub-tasks logically follow from the parent task and cover the implementation details implied as stated by requirements.
-6.  **Identify Relevant Files:** Based on the tasks and requirements, identify potential files that will need to be created or modified. List these under the `Relevant Files` section, including corresponding test files if applicable.
-7.  **Generate Final Output:** Combine the parent tasks, sub-tasks, relevant files, and notes into the final Markdown structure.
-8.  **Save Task List:** Save the generated document in the `/doc/tasks/` directory with the filename `tasks-[file-name].md`, where `[file-name]` matches the base name of the input requirements file (e.g., if the input was `prd-user-profile-editing.md`, the output is `tasks-prd-user-profile-editing.md`). If requirements provided in the chat, just come up with some sensible file name.
+1. **Receive Requirements Reference:** The user points the AI to a specific requirements either in chat or file
+2. **Analyze Requirements:** The AI reads and analyzes the functional requirements, user stories, and other sections of the specified requirements. The AI also analyzes all the referenced documents (such as PRDs, best practices, e.t.c)
+3. **Phase 1: Generate Parent Tasks:** Based on the requirements analysis, create the file and generate the main, high-level tasks required to implement the feature. Use your judgement on how many high-level tasks to use. It's likely to be about from 3 to 7 (fewer is better). Present these tasks to the user in the specified format (without sub-tasks yet).
+4. **Wait for Confirmation:** Pause and wait for the user to respond with "Go".
+5. **Phase 2: Generate Sub-Tasks:** Once the user confirms, break down each parent task into smaller, actionable sub-tasks necessary to complete the parent task. Ensure sub-tasks logically follow from the parent task and cover the implementation details implied by the requirements. Make sure each sub-task is atomic and self-contained.
+7. **Important** Do not create tasks to add tests. Tests will be part of each sub-task, however they should not be mentioned in the sub-task. Separate instruction to process task list will be provided that will explicitly mention tests.
+6. **Identify Relevant Files:** Based on the tasks and requirements, identify potential files that will need to be created or modified. List these under the `Relevant Files` section, including corresponding test files if applicable.
+7. **Generate Final Output:** Combine the parent tasks, sub-tasks, relevant files, and notes into the final Markdown structure.
+8. **Save Task List:** Save the generated document in the required directory with the filename `tasks-[requirements-file-name].md`, where `[requirements-file-name]` matches the base name of the input requirements file (e.g., if the input was `prd-user-profile-editing.md`, the output is `tasks-prd-user-profile-editing.md`).
 
 ## Output Format
 
 The generated task list _must_ follow this structure:
 
 ```markdown
+# Process task list based on the requirements
+
 ## Requirements
 
 _include this if user provided file(s)_
@@ -52,111 +43,42 @@ _Implement feature XYZ..._
 
 ## Relevant Files
 
-This section lists example structure for relevant files section
+Example of relevant files:
 
 ### Source Files
-- `internal/app/models/user_profile.go` - Data model representing user profile information
-- `internal/app/services/profile_service.go` - Service layer for profile-related business logic
-- `internal/services/user_repo.go` - Repository layer for user data persistence
-- `internal/api/http/v1controllers/profile_controller.go` - HTTP controller for profile endpoints
-- `internal/api/http/v1routes/profile_routes.go` - Route definitions for profile endpoints
-- `cmd/server/main.go` - Server entry point (if modifications needed)
-- `internal/di/container.go` - Dependency injection container registration
+- `internal/app/bitbucket.go` - Application layer component related to Bitbucket integration
+- `internal/services/bitbucket/create_pr.go` - Service layer component (API client) for creating pull requests
+- `internal/api/mcp/controllers/bitbucket.go` - MCP controller for Bitbucket integration
 
 ### Test Files
-- `internal/app/models/user_profile_test.go` - Unit tests for UserProfile model
-- `internal/app/services/profile_service_test.go` - Unit tests for ProfileService
-- `internal/services/user_repo_test.go` - Unit tests for UserRepository
-- `internal/api/http/v1controllers/profile_controller_test.go` - Unit tests for ProfileController
-- `internal/services/mocks/mock_user_repo.go` - Mock implementations for testing (generated by mockery)
-
-### API Specification Files
-- `internal/api/http/v1routes.yaml` - OpenAPI specification for profile endpoints
-- `internal/api/http/v1routes.go` - Generated route handlers (from apigen)
-
-### Configuration Files
-- `go.mod` - Go module dependencies (if new packages needed)
-- `.mockery.yaml` - Mockery configuration for generating mocks
-- `Makefile` - Build and test commands (if new targets needed)
-
-### Notes
-
-- **Testing Framework:** Use testify for assertions and table-driven tests
-- **Architecture:** Follow clean architecture with layers: HTTP → App → Services
-- **Code Organization:** Follow the existing structure:
-  - `internal/api/http/` - HTTP layer (controllers, routes, middleware)
-  - `internal/app/` - Application layer (business logic, models)
-  - `internal/services/` - Infrastructure layer (repositories, external services)
-- **Naming Conventions:** Use Go conventions (PascalCase for exported, camelCase for unexported)
-- **Testing Commands:**
-  - `make test` - Run all tests with coverage
-  - `go test -v ./internal/path/... --run TestName` - Run specific tests
-  - `gow test -v ./internal/path/... --run TestName` - Watch mode for test development
-- **Mock Generation:** Use `go generate` with mockery for interface mocks
-- **API Generation:** Use apigen to generate HTTP handlers from OpenAPI spec
-- **Dependency Injection:** Use uber/dig for dependency management
-- **Logging:** Use structured logging with slog
-- **Configuration:** Use viper for configuration management
-- **Database:** Follow repository pattern for data access
-- **Error Handling:** Use Go's idiomatic error handling with custom error types
+- `internal/app/bitbucket_test.go` - Unit tests for Bitbucket integration
+- `internal/services/bitbucket/create_pr_test.go` - Unit tests for Bitbucket integration
+- `internal/api/mcp/controllers/bitbucket_test.go` - Unit tests for MCP controller for Bitbucket integration
 
 ## Tasks
 
-**Important**
-If adding new method, a stub implementation for it should always be a first step, and then the test. Not the other way around.
-
 - [ ] 1.0 Parent Task Title
-  - [ ] 1.1 [Sub-task description 1.1 (usually stub logic if needed or failing test)]
-  - [ ] 1.2 [Sub-task description 1.2 (usually failing test depending on 1.1)]
-  - [ ] 1.3 [Sub-task description 1.3 (usually logic implementation and testing)]
+  - [ ] 1.1 [Sub-task description 1.1]
+  - [ ] 1.2 [Sub-task description 1.2]
+  - [ ] 1.3 [Sub-task description 1.3]
   - ..... repeat 1.1...1.3 as needed
-  - [ ] 1.x [Last sub-task] Review and refactor new/updated tests to follow [testing-best-practices.md](mdc:doc/testing-best-practices.md)
 - [ ] 2.0 Parent Task Title (follows same approach as 1.1)
   - [ ] 2.1 [Sub-task description 2.1]
 - [ ] 3.0 Parent Task Title (may not require sub-tasks if purely structural or configuration)
 ```
 
-Last sub-task should always be to review all added/updated tests and refactor them to follow [testing-best-practices.md](mdc:doc/testing-best-practices.md)
-
-## Go-Specific Considerations
-
-### Architecture Patterns
-- **Clean Architecture:** Separate layers (HTTP → App → Services) with clear boundaries
-- **Repository Pattern:** Abstract data access with interfaces
-- **Dependency Injection:** Use uber/dig for managing dependencies
-- **Service Layer:** Business logic separated from HTTP and data layers
-- **Controller Pattern:** HTTP handlers that delegate to services
-
-### Testing Best Practices
-- Use testify/assert and testify/require for test assertions
-- Use testify/suite for test suites when appropriate
-- Mock external dependencies using mockery-generated mocks
-- Test both success and error scenarios
-- Use table-driven tests for multiple test cases
-- Group tests logically with subtests using t.Run()
-- Follow AAA pattern: Arrange, Act, Assert
-
-### Code Quality
-- Follow Go Code Review Comments and Effective Go guidelines
-- Use golangci-lint for code quality checks
-- Leverage Go's type system and interfaces for testability
-- Handle errors explicitly, don't ignore them
-- Use context.Context for cancellation and timeouts
-- Follow Go naming conventions consistently
-- Use go:generate for code generation (mocks, etc.)
-- Write idiomatic Go code with proper error handling
-
-### Development Workflow
-- Use `make lint` and `make test` before committing
-- Use `gow` for watch mode during development
-- Generate mocks with `go generate ./...`
-- Update OpenAPI spec first, then generate handlers
-- Follow TDD cycle: Red → Green → Refactor
-
 ## Interaction Model
 
 The process explicitly requires a pause after generating parent tasks to get user confirmation ("Go") before proceeding to generate the detailed sub-tasks. This ensures the high-level plan aligns with user expectations before diving into details.
 
+
 ## Target Audience
 
-Assume the primary reader of the task list is a **junior developer** who will implement the feature using Go and backend development tools using VSCode/Cursor as a main editor. The developer might not have extensive Go experience, but has strong TypeScript and general programming knowledge, so if you need to explain anything, try to explain using analogies from those languages (if needed).
+Assume the primary reader of the task list is a **junior developer** or LLM model with small context window who will implement the feature.
+
+## Writing Tasks
+
+Sub-tasks should be granular enough to complete in 15-30 minute cycles by junior developer or LLM model with small context window.
+
+**DO NOT** explicitly create tasks for tests. This is out of scope of task list. But mention relevant test files.
+**DO NOT** start any implementation. This is out of scope of this instruction.

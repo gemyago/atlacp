@@ -1,42 +1,163 @@
----
-description: 
-globs: 
-alwaysApply: false
----
-# Task List Management
+# Task List Processing Guide
 
-Guidelines for managing task lists in markdown files to track progress on completing a PRD
+Begin with a concise checklist (3-7 bullets) of what you will do; keep items conceptual, not implementation-level.
 
-## Task Implementation
-- **One sub-task at a time:** 
-  - Do **NOT** start the next sub-task until you ask the user for permission and they say “yes” or "y"
-  - The user may request processing more (or all tasks) without confirmation. In this case follow the **Completion Protocol**.
-- **Completion protocol:**  
-  1. When you finish a **sub-task**, **immediately** mark it as completed by changing `[ ]` to `[x]`.  
-  2. If **all** subtasks underneath a parent task are now `[x]`, also mark the **parent task** as completed.  
-- Stop after each sub-task and wait for the user's go-ahead.
-  - This doesn't apply if user requested to complete multiple tasks at once.
+## Rules
+
+### Forbidden Actions 🚫
+- Do not work on multiple sub-tasks at once.
+- Do not skip writing tests first. Exception: when introducing new data structures.
+- Do not write tests directly for data models and DTOs
+- Do not write tests for interfaces (these define contracts, not implementations).
+- Do not update mock files (prefix `mock_`) manually; use @mockery.mdc to regenerate.
+- Do not implement code before having a failing test.
+
+### Required Actions ✅
+- Before starting, read the current sub-task and any specifically referenced files—ignore unrelated tasks or files.
+- Write exactly one failing test for the current sub-task.
+- Expect failures caused by assertion errors, not compilation errors. If a missing symbol causes a compilation error, create a minimal stub and re-run the test.
+- Write the smallest implementation to make the test pass.
+- Run the test to confirm it passes.
+- Immediately update the task list upon completion.
+- Follow ./doc/testing-best-practices.md when writing tests.
+
+## Strict Workflow
+
+When `@process-task-list.mdc X.Y` is provided:
+
+1. **Focus: Read Sub-task**
+   - Read sub-task X.Y and related referenced files. Do not explore unrelated files.
+   - Understand sub-task requirements.
+
+2. **Write Failing Test**
+   - Write a test specifically for sub-task X.Y using the Given/When/Then format.
+   - Avoid static variables shared across tests; use local helpers or nest them.
+   - Generate random data with faker (github.com/go-faker/faker/v4).
+   - Use mockery and @mockery.mdc for mocks.
+   - Assert on entire structs (e.g. `assert.Equal(t, expectedUser, actualUser)`), not individual fields when feasible.
+   - If compilation fails due to missing symbols, add minimal stubs per ERROR HANDLING.
+   - Run test: `go test -v ./<package path> --run <test name>`
+
+3. **Verify Failure**
+   - Confirm the test fails for the intended reason.
+   - If there’s a compilation error, add a stub and rerun.
+
+4. **Minimal Implementation**
+   - Write only the code needed for the test to pass.
+   - Use TODOs for future unimplemented logic.
+   - Avoid implementing unrelated features.
+
+5. **Verify Success**
+   - Run the test again to confirm it now passes.
+
+6. **Update Task List & Pause**
+   - Mark sub-task X.Y complete `[x]` in the task list.
+   - If files were created/modified, update the "Relevant Files" section.
+   - Confirm by saying: "Sub-task X.Y complete. Should I continue with X.Z?"
+   - Pause for further user instruction.
+
+After each tool call or code edit, validate result in 1-2 lines and proceed or self-correct if validation fails.
+
+**Specific Rules for Data Models, DTOs and Interfaces**
+If task involves defining data models, DTOs or interfaces, do not write tests for them directly, instead validate if codebase compiles and no linting errors are present:
+- `go build <path/to/package>`
+- `make lint`
+**Ensure** that codebase compiles and no linting errors are present. This is mandatory.
+
+**Specific Rules for Mocks**
+If tasks affects mocks (e.g files with `mock_` prefix), use mockery to regenerate them by just running `mockery` from project root without args.
+
+If new mocks need to be created for new interfaces, add them to .mockery.yaml and run `mockery` from project root without args.
+
+## Task List Updates – Required
+
+- After each sub-task, update the task list. This is mandatory.
+- How:
+  1. Update the checkbox in the task list: `- [ ] X.Y Description` → `- [x] X.Y Description`
+  2. Update the "Relevant Files" section if needed.
+  3. Save the task list file before stopping.
+
+- Example:
+  ```markdown
+  ## Tasks
+  - [x] 1.1 Add publisher to protocol ✓
+  - [ ] 1.2 Add documentation comment
+  ```
+
+- Completion Checklist:
+  - [ ] Failing test written and now passes
+  - [ ] Code implemented
+  - [ ] Task list updated
+  - [ ] Relevant Files updated (if applicable)
+  - [ ] Ready for user confirmation
+
+- If you forget: user will remind you, and you must update before proceeding.
+
+## Advanced: Micro-Stepping for Complex Sub-Tasks
+
+- If a sub-task covers multiple scenarios (e.g., error handling, input validation), create an internal micro-step todo list:
+  ```
+  Internal Todo for Sub-task X.Y:
+  - [ ] X.Y.a Happy path: [desc]
+  - [ ] X.Y.b Edge case: [desc]
+  ...
+  ```
+- For each scenario:
+  - Write a failing test, run/verify, implement minimal code, rerun/verify, then mark as complete.
+- Keep this list internally or in a temp file (e.g., `.cursor/tmp/X.Y.micro.md`).
+- Only mark the main sub-task complete when all micro-steps are done.
+
+## Context Management
+
+- Only load the current sub-task and specifically referenced files.
+- Do not load the entire codebase.
+- Keep imports minimal and copy patterns from similar files if helpful.
+
+## File Reading Strategy
+
+1. Read the relevant sub-task
+2. Only read files directly mentioned (not the whole project)
+3. Reference similar files for patterns
+4. Skip large unrelated files unless crucial
+
+## Error Handling
+
+- If a test fails to compile:
+  - Add a minimal stub, rerun, verify assertion error.
+- If a test passes instantly:
+  - Strengthen the test so it accurately verifies new behavior.
+- If multiple tests fail:
+  - Fix compilation errors first, then focus only on the current sub-task’s test.
 
 ## Task List Maintenance
 
-1. **Update the task list as you work:**
-   - Mark tasks and subtasks as completed (`[x]`) per the protocol above.
-   - Add new tasks as they emerge.
+- Mark tasks as `[x]` when done.
+- Update "Relevant Files" when files are changed/added.
+- Only mark parent tasks as complete when all sub-tasks are done.
 
-2. **Maintain the “Relevant Files” section:**
-   - List every file created or modified.
-   - Give each file a one-line description of its purpose.
+## Example Interaction
 
-## AI Instructions
+```
+User: @process-task-list-v2.mdc 1.1
 
-When working with task lists, the AI must:
+AI:
+1. Reading 1.1: "Add logic to publish document"
+2. Writing failing test
+3. Running test—fails as expected
+4. Minimal implementation for publishing
+5. Running test—passes
+6. Updating task list, marking 1.1 as [x]
 
-1. Regularly update the task list file after finishing any significant work.
-2. Follow the completion protocol:
-   - Mark each finished **sub-task** `[x]`.
-   - Mark the **parent task** `[x]` once **all** its subtasks are `[x]`.
-3. Add newly discovered tasks.
-4. Keep “Relevant Files” accurate and up to date.
-5. Before starting work, check which sub-task is next.
-6. Run all tests and make sure all green (e.g `make test` to run all or `go test <path to package> --run <test filter>` to run specific tests)
-7. After implementing a sub-task, update the file and then pause for user approval.
+Sub-task 1.1 complete. Should I continue with 1.2?
+```
+
+## Recovery Strategies
+
+- If stuck: reread the sub-task, find similar prior implementations, or ask the user for clarification.
+- If blocked by test failures or CI, report the issue and request direction before proceeding.
+- If context limits are reached, focus narrowly on the current sub-task with minimal external references.
+
+Set reasoning_effort = medium based on the task complexity; make tool calls terse, final output fuller.
+
+**Summary:**
+Tackle one sub-task at a time: read, test, fail, implement, pass, update list, confirm. Keep interactions focused and precise.
