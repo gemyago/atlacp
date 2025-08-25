@@ -73,7 +73,7 @@
 				
 				<option value="file8">github.com/gemyago/atlacp/internal/api/http/server/server.go (92.0%)</option>
 				
-				<option value="file9">github.com/gemyago/atlacp/internal/api/mcp/controllers/bitbucket.go (92.1%)</option>
+				<option value="file9">github.com/gemyago/atlacp/internal/api/mcp/controllers/bitbucket.go (92.2%)</option>
 				
 				<option value="file10">github.com/gemyago/atlacp/internal/api/mcp/controllers/mock_bitbucket_service.go (61.6%)</option>
 				
@@ -834,7 +834,7 @@ type BitbucketController struct {
 }
 
 // NewBitbucketController creates a new Bitbucket MCP controller.
-func NewBitbucketController(deps BitbucketControllerDeps) *BitbucketController <span class="cov10" title="84">{
+func NewBitbucketController(deps BitbucketControllerDeps) *BitbucketController <span class="cov10" title="85">{
         return &amp;BitbucketController{
                 logger:           deps.RootLogger.WithGroup("mcp.bitbucket-controller"),
                 bitbucketService: deps.BitbucketService,
@@ -1737,7 +1737,7 @@ func (bc *BitbucketController) newGetPRDiffstatServerTool() server.ServerTool <s
 /*
  * newGetPRDiffServerTool returns a server tool for getting PR diff.
  */
-func (bc *BitbucketController) newGetPRDiffServerTool() server.ServerTool <span class="cov4" title="7">{
+func (bc *BitbucketController) newGetPRDiffServerTool() server.ServerTool <span class="cov5" title="8">{
         tool := mcp.NewTool(
                 "bitbucket_get_pr_diff",
                 mcp.WithDescription("Get the diff for a pull request in Bitbucket"),
@@ -1756,9 +1756,16 @@ func (bc *BitbucketController) newGetPRDiffServerTool() server.ServerTool <span 
                 mcp.WithString("account",
                         mcp.Description("Atlassian account name to use (optional, uses default if not specified)"),
                 ),
+                mcp.WithArray("file_paths",
+                        mcp.Description("List of file paths to filter the diff (optional)"),
+                        mcp.Items("string"),
+                ),
+                mcp.WithNumber("context_lines",
+                        mcp.Description("Number of context lines to include in the diff (optional)"),
+                ),
         )
 
-        handler := func(ctx context.Context, request mcp.CallToolRequest) (*mcp.CallToolResult, error) </span><span class="cov3" title="3">{
+        handler := func(ctx context.Context, request mcp.CallToolRequest) (*mcp.CallToolResult, error) </span><span class="cov3" title="4">{
                 bc.logger.Debug("Received bitbucket_get_pr_diff request", "params", request.Params)
 
                 // Extract required parameters
@@ -1766,22 +1773,31 @@ func (bc *BitbucketController) newGetPRDiffServerTool() server.ServerTool <span 
                 if err != nil </span><span class="cov1" title="1">{
                         return mcp.NewToolResultErrorFromErr("Missing or invalid pr_id parameter", err), nil
                 }</span>
-                <span class="cov2" title="2">repoOwner, err := request.RequireString("repo_owner")
+                <span class="cov3" title="3">repoOwner, err := request.RequireString("repo_owner")
                 if err != nil </span><span class="cov0" title="0">{
                         return mcp.NewToolResultErrorFromErr("Missing or invalid repo_owner parameter", err), nil
                 }</span>
-                <span class="cov2" title="2">repoName, err := request.RequireString("repo_name")
+                <span class="cov3" title="3">repoName, err := request.RequireString("repo_name")
                 if err != nil </span><span class="cov0" title="0">{
                         return mcp.NewToolResultErrorFromErr("Missing or invalid repo_name parameter", err), nil
                 }</span>
-                <span class="cov2" title="2">account := request.GetString("account", "")
+                <span class="cov3" title="3">account := request.GetString("account", "")
+
+                // Extract optional file_paths and context_lines using idiomatic helpers
+                filePaths := request.GetStringSlice("file_paths", nil)
+                var contextLines *int
+                if cl := request.GetInt("context_lines", 0); cl != 0 </span><span class="cov1" title="1">{
+                        contextLines = &amp;cl
+                }</span>
 
                 // Build params for service layer
-                params := app.BitbucketGetPRDiffParams{
+                <span class="cov3" title="3">params := app.BitbucketGetPRDiffParams{
                         PullRequestID: prID,
                         RepoOwner:     repoOwner,
                         RepoName:      repoName,
                         AccountName:   account,
+                        FilePaths:     filePaths,
+                        ContextLines:  contextLines,
                 }
 
                 // Call the service
@@ -1791,7 +1807,7 @@ func (bc *BitbucketController) newGetPRDiffServerTool() server.ServerTool <span 
                 }</span>
 
                 // Create summary text
-                <span class="cov1" title="1">summaryText := fmt.Sprintf("Diff for PR #%d in %s/%s", prID, repoOwner, repoName)
+                <span class="cov2" title="2">summaryText := fmt.Sprintf("Diff for PR #%d in %s/%s", prID, repoOwner, repoName)
 
                 return &amp;mcp.CallToolResult{
                         Content: []mcp.Content{
@@ -1804,7 +1820,7 @@ func (bc *BitbucketController) newGetPRDiffServerTool() server.ServerTool <span 
                 }, nil</span>
         }
 
-        <span class="cov4" title="7">return server.ServerTool{
+        <span class="cov5" title="8">return server.ServerTool{
                 Tool:    tool,
                 Handler: handler,
         }</span>
@@ -2153,7 +2169,7 @@ type MockbitbucketService_Expecter struct {
         mock *mock.Mock
 }
 
-func (_m *MockbitbucketService) EXPECT() *MockbitbucketService_Expecter <span class="cov8" title="37">{
+func (_m *MockbitbucketService) EXPECT() *MockbitbucketService_Expecter <span class="cov8" title="38">{
         return &amp;MockbitbucketService_Expecter{mock: &amp;_m.Mock}
 }</span>
 
@@ -2458,31 +2474,31 @@ func (_c *MockbitbucketService_GetFileContent_Call) RunAndReturn(run func(contex
 }</span>
 
 // GetPRDiff provides a mock function with given fields: ctx, params
-func (_m *MockbitbucketService) GetPRDiff(ctx context.Context, params app.BitbucketGetPRDiffParams) (string, error) <span class="cov2" title="2">{
+func (_m *MockbitbucketService) GetPRDiff(ctx context.Context, params app.BitbucketGetPRDiffParams) (string, error) <span class="cov3" title="3">{
         ret := _m.Called(ctx, params)
 
         if len(ret) == 0 </span><span class="cov0" title="0">{
                 panic("no return value specified for GetPRDiff")</span>
         }
 
-        <span class="cov2" title="2">var r0 string
+        <span class="cov3" title="3">var r0 string
         var r1 error
         if rf, ok := ret.Get(0).(func(context.Context, app.BitbucketGetPRDiffParams) (string, error)); ok </span><span class="cov0" title="0">{
                 return rf(ctx, params)
         }</span>
-        <span class="cov2" title="2">if rf, ok := ret.Get(0).(func(context.Context, app.BitbucketGetPRDiffParams) string); ok </span><span class="cov0" title="0">{
+        <span class="cov3" title="3">if rf, ok := ret.Get(0).(func(context.Context, app.BitbucketGetPRDiffParams) string); ok </span><span class="cov0" title="0">{
                 r0 = rf(ctx, params)
-        }</span> else<span class="cov2" title="2"> {
+        }</span> else<span class="cov3" title="3"> {
                 r0 = ret.Get(0).(string)
         }</span>
 
-        <span class="cov2" title="2">if rf, ok := ret.Get(1).(func(context.Context, app.BitbucketGetPRDiffParams) error); ok </span><span class="cov0" title="0">{
+        <span class="cov3" title="3">if rf, ok := ret.Get(1).(func(context.Context, app.BitbucketGetPRDiffParams) error); ok </span><span class="cov0" title="0">{
                 r1 = rf(ctx, params)
-        }</span> else<span class="cov2" title="2"> {
+        }</span> else<span class="cov3" title="3"> {
                 r1 = ret.Error(1)
         }</span>
 
-        <span class="cov2" title="2">return r0, r1</span>
+        <span class="cov3" title="3">return r0, r1</span>
 }
 
 // MockbitbucketService_GetPRDiff_Call is a *mock.Call that shadows Run/Return methods with type explicit version for method 'GetPRDiff'
@@ -2493,7 +2509,7 @@ type MockbitbucketService_GetPRDiff_Call struct {
 // GetPRDiff is a helper method to define mock.On call
 //   - ctx context.Context
 //   - params app.BitbucketGetPRDiffParams
-func (_e *MockbitbucketService_Expecter) GetPRDiff(ctx interface{}, params interface{}) *MockbitbucketService_GetPRDiff_Call <span class="cov2" title="2">{
+func (_e *MockbitbucketService_Expecter) GetPRDiff(ctx interface{}, params interface{}) *MockbitbucketService_GetPRDiff_Call <span class="cov3" title="3">{
         return &amp;MockbitbucketService_GetPRDiff_Call{Call: _e.mock.On("GetPRDiff", ctx, params)}
 }</span>
 
@@ -2504,7 +2520,7 @@ func (_c *MockbitbucketService_GetPRDiff_Call) Run(run func(ctx context.Context,
         <span class="cov0" title="0">return _c</span>
 }
 
-func (_c *MockbitbucketService_GetPRDiff_Call) Return(_a0 string, _a1 error) *MockbitbucketService_GetPRDiff_Call <span class="cov2" title="2">{
+func (_c *MockbitbucketService_GetPRDiff_Call) Return(_a0 string, _a1 error) *MockbitbucketService_GetPRDiff_Call <span class="cov3" title="3">{
         _c.Call.Return(_a0, _a1)
         return _c
 }</span>
@@ -2996,13 +3012,13 @@ func (_c *MockbitbucketService_UpdateTask_Call) RunAndReturn(run func(context.Co
 func NewMockbitbucketService(t interface {
         mock.TestingT
         Cleanup(func())
-}) *MockbitbucketService <span class="cov10" title="82">{
+}) *MockbitbucketService <span class="cov10" title="83">{
         mock := &amp;MockbitbucketService{}
         mock.Mock.Test(t)
 
-        t.Cleanup(func() </span><span class="cov10" title="82">{ mock.AssertExpectations(t) }</span>)
+        t.Cleanup(func() </span><span class="cov10" title="83">{ mock.AssertExpectations(t) }</span>)
 
-        <span class="cov10" title="82">return mock</span>
+        <span class="cov10" title="83">return mock</span>
 }
 </pre>
 		
@@ -3281,7 +3297,7 @@ func (s *testMCPServer) Start(
                 stdioServer := mcpserver.NewStdioServer(mcpServer)
                 stdioServer.SetErrorLogger(logger)
 
-                if err := stdioServer.Listen(ctx, s.serverReader, s.serverWriter); err != nil </span><span class="cov10" title="5">{
+                if err := stdioServer.Listen(ctx, s.serverReader, s.serverWriter); err != nil </span><span class="cov8" title="4">{
                         logger.Println("StdioServer.Listen failed:", err)
                 }</span>
         }()
@@ -6101,7 +6117,7 @@ type diagLogHandler struct {
         target slog.Handler
 }
 
-func (h *diagLogHandler) Enabled(ctx context.Context, lvl slog.Level) bool <span class="cov8" title="323">{
+func (h *diagLogHandler) Enabled(ctx context.Context, lvl slog.Level) bool <span class="cov8" title="324">{
         return h.target.Enabled(ctx, lvl)
 }</span>
 
@@ -6115,11 +6131,11 @@ func (h *diagLogHandler) Handle(ctx context.Context, rec slog.Record) error <spa
         <span class="cov7" title="146">return h.target.Handle(ctx, rec)</span>
 }
 
-func (h *diagLogHandler) WithAttrs(attrs []slog.Attr) slog.Handler <span class="cov10" title="758">{
+func (h *diagLogHandler) WithAttrs(attrs []slog.Attr) slog.Handler <span class="cov10" title="760">{
         return &amp;diagLogHandler{target: h.target.WithAttrs(attrs)}
 }</span>
 
-func (h *diagLogHandler) WithGroup(name string) slog.Handler <span class="cov9" title="610">{
+func (h *diagLogHandler) WithGroup(name string) slog.Handler <span class="cov9" title="611">{
         // Using WithAttrs here since group will nest all the attributes
         // inside of it (including correlationId), which makes it harder to
         // filter logs by the correlationId.
@@ -6148,7 +6164,7 @@ func (opts *RootLoggerOpts) WithLogLevel(logLevel slog.Level) *RootLoggerOpts <s
         return opts
 }</span>
 
-func (opts *RootLoggerOpts) WithOutput(output io.Writer) *RootLoggerOpts <span class="cov8" title="277">{
+func (opts *RootLoggerOpts) WithOutput(output io.Writer) *RootLoggerOpts <span class="cov8" title="278">{
         opts.output = output
         return opts
 }</span>
@@ -6165,21 +6181,21 @@ func (opts *RootLoggerOpts) WithOptionalOutputFile(outputFile string) *RootLogge
         return opts</span>
 }
 
-func NewRootLoggerOpts() *RootLoggerOpts <span class="cov8" title="281">{
+func NewRootLoggerOpts() *RootLoggerOpts <span class="cov8" title="282">{
         return &amp;RootLoggerOpts{
                 output: os.Stdout,
         }
 }</span>
 
-func SetupRootLogger(opts *RootLoggerOpts) *slog.Logger <span class="cov8" title="281">{
+func SetupRootLogger(opts *RootLoggerOpts) *slog.Logger <span class="cov8" title="282">{
         logHandlerOpts := &amp;slog.HandlerOptions{Level: opts.logLevel}
         var logHandler slog.Handler
         if opts.jsonLogs </span><span class="cov1" title="1">{
                 logHandler = slog.NewJSONHandler(opts.output, logHandlerOpts)
-        }</span> else<span class="cov8" title="280"> {
+        }</span> else<span class="cov8" title="281"> {
                 logHandler = slog.NewTextHandler(opts.output, logHandlerOpts)
         }</span>
-        <span class="cov8" title="281">return slog.New(&amp;diagLogHandler{target: logHandler})</span>
+        <span class="cov8" title="282">return slog.New(&amp;diagLogHandler{target: logHandler})</span>
 }
 </pre>
 		
@@ -6212,7 +6228,7 @@ func openTestLogFile() *os.File <span class="cov4" title="12">{
 
 var testOutput = openTestLogFile() //nolint:gochecknoglobals //it's ok for tests
 
-func RootTestLogger() *slog.Logger <span class="cov10" title="276">{
+func RootTestLogger() *slog.Logger <span class="cov10" title="277">{
         return SetupRootLogger(
                 NewRootLoggerOpts().WithOutput(testOutput),
         )
@@ -8615,12 +8631,12 @@ import (
 
 // GetMock is a helper function to get a mock from a given instance.
 // Note: This should only be used internally in tests.
-func GetMock[TOutput any](t *testing.T, input interface{}) TOutput <span class="cov10" title="117">{
+func GetMock[TOutput any](t *testing.T, input interface{}) TOutput <span class="cov10" title="118">{
         mock, ok := input.(TOutput)
         if !ok </span><span class="cov0" title="0">{
                 t.Fatalf("input is not a %T", input)
         }</span>
-        <span class="cov10" title="117">return mock</span>
+        <span class="cov10" title="118">return mock</span>
 }
 </pre>
 		
