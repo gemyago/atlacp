@@ -3467,6 +3467,63 @@ func TestBitbucketController(t *testing.T) {
 			require.True(t, ok2)
 			assert.Contains(t, diffContent2.Text, "diff --git")
 		})
+		t.Run("handles optional file_paths and context_lines parameters", func(t *testing.T) {
+			deps := makeMockDeps(t)
+			mockService := mocks.GetMock[*MockbitbucketService](t, deps.BitbucketService)
+			controller := NewBitbucketController(deps)
+			ctx := t.Context()
+
+			prID := int(faker.RandomUnixTime()) % 1000000
+			repoOwner := "workspace-" + faker.Username()
+			repoName := "repo-" + faker.Word()
+			accountName := "account-" + faker.Username()
+			filePaths := []string{faker.Word() + ".go", faker.Word() + ".py"}
+			contextLines := 7
+			expectedDiff := "diff --git a/file1.go b/file1.go\nindex 123..456 789\n--- a/file1.go\n+++ b/file1.go\n@@ ..."
+
+			mockService.EXPECT().
+				GetPRDiff(ctx, mock.MatchedBy(func(params app.BitbucketGetPRDiffParams) bool {
+					return params.PullRequestID == prID &&
+						params.RepoOwner == repoOwner &&
+						params.RepoName == repoName &&
+						params.AccountName == accountName &&
+						assert.ElementsMatch(t, params.FilePaths, filePaths) &&
+						params.ContextLines != nil && *params.ContextLines == contextLines
+				})).
+				Return(expectedDiff, nil)
+
+			request := mcp.CallToolRequest{
+				Params: mcp.CallToolParams{
+					Name: "bitbucket_get_pr_diff",
+					Arguments: map[string]interface{}{
+						"pr_id":         prID,
+						"repo_owner":    repoOwner,
+						"repo_name":     repoName,
+						"account":       accountName,
+						"file_paths":    filePaths,
+						"context_lines": contextLines,
+					},
+				},
+			}
+			serverTool := controller.newGetPRDiffServerTool()
+			handler := serverTool.Handler
+
+			result, err := handler(ctx, request)
+
+			require.NoError(t, err)
+			require.NotNil(t, result)
+			assert.False(t, result.IsError)
+			require.Len(t, result.Content, 2)
+
+			summary, ok := result.Content[0].(mcp.TextContent)
+			require.True(t, ok)
+			assert.Contains(t, summary.Text, "Diff for PR #")
+			assert.Contains(t, summary.Text, repoName)
+
+			diffContent, ok := result.Content[1].(mcp.TextContent)
+			require.True(t, ok)
+			assert.Contains(t, diffContent.Text, "diff --git")
+		})
 
 		t.Run("missing required parameter: pr_id", func(t *testing.T) {
 			deps3 := makeMockDeps(t)
