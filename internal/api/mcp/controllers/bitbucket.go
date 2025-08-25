@@ -960,6 +960,13 @@ func (bc *BitbucketController) newGetPRDiffServerTool() server.ServerTool {
 		mcp.WithString("account",
 			mcp.Description("Atlassian account name to use (optional, uses default if not specified)"),
 		),
+		mcp.WithArray("file_paths",
+			mcp.Description("List of file paths to filter the diff (optional)"),
+			mcp.Items("string"),
+		),
+		mcp.WithNumber("context_lines",
+			mcp.Description("Number of context lines to include in the diff (optional)"),
+		),
 	)
 
 	handler := func(ctx context.Context, request mcp.CallToolRequest) (*mcp.CallToolResult, error) {
@@ -980,12 +987,21 @@ func (bc *BitbucketController) newGetPRDiffServerTool() server.ServerTool {
 		}
 		account := request.GetString("account", "")
 
+		// Extract optional file_paths and context_lines using idiomatic helpers
+		filePaths := request.GetStringSlice("file_paths", nil)
+		var contextLines *int
+		if cl := request.GetInt("context_lines", 0); cl != 0 {
+			contextLines = &cl
+		}
+
 		// Build params for service layer
 		params := app.BitbucketGetPRDiffParams{
 			PullRequestID: prID,
 			RepoOwner:     repoOwner,
 			RepoName:      repoName,
 			AccountName:   account,
+			FilePaths:     filePaths,
+			ContextLines:  contextLines,
 		}
 
 		// Call the service
