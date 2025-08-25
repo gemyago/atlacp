@@ -280,12 +280,9 @@ This test verifies the end-to-end functionality of the Bitbucket PR review tools
 
 1. **Setup test environment**
    - Create a new working branch from main: `feature/pr-review-tools-test-{timestamp}`
-   - Create or update at least **three** test files in `integration-tests/bitbucket/test-files/`:
-     - `integration-test-file-1.txt`
-     - `integration-test-file-2.txt`
-     - `integration-test-file-3.txt`
-   - For each file, write **15-20 lines** of unique content (e.g., numbered lines, sample text, or code snippets).
-   - Commit and push the changes.
+   - Copy the two TypeScript example files (`example1.ts` and `example2.ts`) from the current workspace to a unique subdirectory in `integration-tests/bitbucket/test-files/` (e.g., `integration-tests/bitbucket/test-files/ts-examples-{timestamp}/`).
+   - For each file, ensure it is present and unmodified in the new location.
+   - Commit and push the changes, including the two TypeScript files.
    - Note the commit hash.
 
 2. **Create a Pull Request**
@@ -297,69 +294,40 @@ This test verifies the end-to-end functionality of the Bitbucket PR review tools
      - repo_name: your repository name
      - description: "This is an automated PR review tools test (Test 5)"
    - Extract and save the PR ID for subsequent steps
+   - Ensure the PR includes the two TypeScript files and the three text files.
+   - Use the PR diff to identify the exact line numbers for all `// Update marker` comments in both TypeScript files.
+   - Add inline comments to each marker in both files using the diff line numbers. This will verify if comments are properly added for new files.
 
-3. **Retrieve PR diffstat**
-   - Use the `mcp.bitbucket_get_pr_diffstat` tool with the PR ID from the previous step
-   - Verify that the diffstat includes all test files and reflects the expected changes (e.g., lines added/modified for each file)
-
-4. **Fetch diffs for changed files**
-   - Use the `mcp.bitbucket_get_pr_diff` tool with the PR ID
-   - Verify that the diff output includes the changes made to all test files
-   - Note the file paths and line numbers of the changes for use in later steps
-
-5. **Fetch full file content for each file in the PR**
-   - For each test file, use the `mcp.bitbucket_get_file_content` tool with:
-     - pr_id: the PR ID
-     - file_path: path to the modified test file
-   - Verify that the file content matches what was committed in the branch
-
-6. **Add general and pending comments to the PR**
-   - Use the `mcp.bitbucket_add_pr_comment` tool to add:
-     - A regular general comment with:
-       - pr_id: the PR ID
-       - content: "General comment: PR review tools integration test {timestamp}"
-     - At least one **pending** general comment with:
-       - pr_id: the PR ID
-       - content: "Pending general comment: PR review tools integration test {timestamp}"
-       - pending: true
-   - Verify that both comments appear in the PR's comment list.
-
-7. **Add multiple inline and pending inline comments to specific lines in the PR**
-   - For each test file, add at least one regular inline comment using the `mcp.bitbucket_add_pr_comment` tool with:
-     - pr_id: the PR ID
-     - file_path: path to the modified test file
-     - line: a line number that was changed in this PR (choose a variety: first line, middle line, last line)
-     - content: "Inline comment on {file} line {line}: Please review this change {timestamp}"
-   - For at least one test file, add at least one **pending** inline comment with:
-     - pr_id: the PR ID
-     - file_path: path to the modified test file
-     - line: a line number that was changed in this PR
-     - content: "Pending inline comment on {file} line {line}: Please review this change {timestamp}"
-     - pending: true
-   - Verify that all inline comments (regular and pending) appear at the correct location in the PR.
-
-8. **List and verify comments' pending status**
+3. **List and verify PR comments and line numbers**
    - Use the `mcp.bitbucket_list_pr_comments` tool to list all comments for the PR.
-   - For each comment, verify:
-     - The `pending` flag is correctly set (true for pending comments, false for regular comments).
-     - The comment text, file path, and line number (for inline comments) match what was posted.
-   - Ensure that both general and inline comments include a mix of pending and non-pending statuses as expected.
+   - For each comment on a TypeScript file, use the `mcp.bitbucket_get_file_content` tool to fetch the full file content from the PR branch.
+   - Locate the exact line for each marker by searching the file content for the full marker comment.
+   - Verify that the line number in the comment matches the actual line number in the file content. This ensures line numbers from the diff are correctly mapped to the file content.
 
-9. **Request changes on the PR and verify pending status transition**
-   - Use the `mcp.bitbucket_request_pr_changes` tool
-   - verify the PR status reflects that changes have been requested by reading the PR details:
-     - Use the `mcp.bitbucket_read_pr` tool to fetch PR details.
-     - Validate that the `participants` array includes a participant with `"state": "changes_requested"` and `"approved": false`.
-     - Confirm the PR remains in the "OPEN" state.
+4. **Create a derived branch and update markers**
+   - Create a new branch from the PR branch: `feature/pr-review-tools-test-derived-{timestamp}`
+   - For each `// Update marker` in both TypeScript files, update the marker by appending a timestamp or other unique text.
+   - Commit and push the changes.
 
-10. **Clean up**
-    - Approve the PR using the `mcp.bitbucket_approve_pr` tool
-    - Merge the PR using the `mcp.bitbucket_merge_pr` tool with:
-      - merge_strategy: "squash"
-      - close_source_branch: "true"
-    - Make sure the main branch is checked out again
-    - Pull the latest changes
-    - Delete the working branch
+5. **Create a PR from the derived branch to the original PR branch**
+   - Create a PR from `feature/pr-review-tools-test-derived-{timestamp}` to `feature/pr-review-tools-test-{timestamp}`
+
+6. **Add inline comments to updated markers in the derived PR**
+   - Use the diff tool to locate changes and identify the new line numbers for all updated markers.
+   - Add inline comments to a selection of updated markers (at least one at the start, one in the middle, and one at the end of the files).
+
+7. **List and verify comments and line numbers in the derived PR**
+   - Use the `mcp.bitbucket_list_pr_comments` tool to list all comments for the derived PR.
+   - For each comment, use the `mcp.bitbucket_get_file_content` tool to fetch the full file content from the derived PR branch.
+   - Locate the exact line for each updated marker and verify the comment's line number matches the actual line number in the file content.
+
+8. **Merge the derived PR**
+   - Merge (squash) the derived PR into the original PR branch.
+   - Continue with any other test steps that make sense for end-to-end review tool coverage.
+
+6. **Add a general (non-inline) comment to the PR**
+   - Use the `mcp.bitbucket_add_pr_comment` tool to add a general comment (not associated with a file or line) to the PR, such as "General comment for PR review tools test {timestamp}".
+   - Verify that the general comment appears in the PR's comment list and is not associated with any file or line number.
 
 Update a report as per [instruction](#test-results-reporting).
 
