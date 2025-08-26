@@ -300,9 +300,15 @@ This test verifies the end-to-end functionality of the Bitbucket PR review tools
 
 3. **List and verify PR comments and line numbers**
    - Use the `mcp.bitbucket_list_pr_comments` tool to list all comments for the PR.
-   - For each comment on a TypeScript file, use the `mcp.bitbucket_get_file_content` tool to fetch the full file content from the PR branch.
-   - Locate the exact line for each marker by searching the file content for the full marker comment.
-   - Verify that the line number in the comment matches the actual line number in the file content. This ensures line numbers from the diff are correctly mapped to the file content.
+   - For each comment on a TypeScript file:
+     - Use the `mcp.bitbucket_get_file_content` tool to fetch the full file content from the PR branch.
+     - Write the fetched file content to a uniquely named file in the `tmp/` directory in the current workspace, including a timestamp in the filename (e.g., `tmp/example1-<timestamp>.ts`).
+     - Use the following one-liner script to determine the actual line numbers for all marker comments in the file:
+       ```
+       grep -n "Update marker" <filename> | cut -d: -f1,2
+       ```
+     - Compare the line numbers found by this script with the line numbers in the PR comments to verify mapping.
+   - This approach ensures that the verification uses the actual file content as fetched from Bitbucket and provides a reproducible, timestamped record of the verification process.
 
 4. **Create a derived branch and update markers**
    - Create a new branch from the PR branch: `feature/pr-review-tools-test-derived-{timestamp}`
@@ -318,8 +324,15 @@ This test verifies the end-to-end functionality of the Bitbucket PR review tools
 
 7. **List and verify comments and line numbers in the derived PR**
    - Use the `mcp.bitbucket_list_pr_comments` tool to list all comments for the derived PR.
-   - For each comment, use the `mcp.bitbucket_get_file_content` tool to fetch the full file content from the derived PR branch.
-   - Locate the exact line for each updated marker and verify the comment's line number matches the actual line number in the file content.
+   - For each comment:
+     - Use the `mcp.bitbucket_get_file_content` tool to fetch the full file content from the derived PR branch.
+     - Write the fetched file content to a uniquely named file in the `tmp/` directory in the current workspace, including a timestamp in the filename (e.g., `tmp/example1-derived-<timestamp>.ts`).
+     - Use the following one-liner script to determine the actual line numbers for all marker comments in the file:
+       ```
+       grep -n "Update marker" <filename> | cut -d: -f1,2
+       ```
+     - Compare the line numbers found by this script with the line numbers in the PR comments to verify mapping.
+   - This approach ensures that the verification uses the actual file content as fetched from Bitbucket and provides a reproducible, timestamped record of the verification process.
 
 8. **Merge the derived PR**
    - Merge (squash) the derived PR into the original PR branch.
