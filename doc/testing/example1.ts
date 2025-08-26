@@ -2,6 +2,7 @@
 // This file contains a variety of TypeScript constructs for testing purposes.
 // Update marker 1
 
+(() => {
 // --- Interfaces ---
 interface User {
     id: number;
@@ -154,3 +155,4 @@ logger.log(`Calc multiply: ${calc.multiply(4, 5)}`);
 
 // --- End of File ---
 // Update marker 5
+})();

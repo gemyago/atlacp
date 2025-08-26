@@ -2,6 +2,7 @@
 // This file demonstrates more advanced TypeScript features and patterns.
 // Update marker 1
 
+(() => {
 // --- Types and Interfaces ---
 type UUID = string;
 
@@ -163,12 +164,12 @@ class Service {
 const service = new Service('NotificationService');
 service.start();
 
-// --- Example of Namespaces ---
-namespace MathUtils {
-    export function add(a: number, b: number): number {
+// --- Example of Static Methods ---
+class MathUtils {
+    static add(a: number, b: number): number {
         return a + b;
     }
-    export function multiply(a: number, b: number): number {
+    static multiply(a: number, b: number): number {
         return a * b;
     }
 }
@@ -178,3 +179,4 @@ console.log('Math multiply:', MathUtils.multiply(4, 5));
 
 // --- End of File ---
 // Update marker 4
+})();
