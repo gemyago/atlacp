@@ -3500,7 +3500,7 @@ func TestBitbucketController(t *testing.T) {
 						"repo_owner":    repoOwner,
 						"repo_name":     repoName,
 						"account":       accountName,
-						"file_paths":    filePaths,
+						"file_paths":    filePaths[0] + ", " + filePaths[1],
 						"context_lines": contextLines,
 					},
 				},
@@ -3848,7 +3848,7 @@ func TestBitbucketController(t *testing.T) {
 						"repo_owner": repoOwner,
 						"repo_name":  repoName,
 						"account":    accountName,
-						"file_paths": filePaths,
+						"file_paths": filePaths[0] + ", " + filePaths[1],
 					},
 				},
 			}
