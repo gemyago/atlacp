@@ -21,4 +21,4 @@ For each actionable step follow **the exact** protocol:
 * Run the test again and ensure it is successful
 * Proceed with next step **only** when you're fully done
 * When writting tests, prefer adding new test cases for new logic
-* **Important** to follow [testing-best-practices.md](mdc:doc/testing-best-practices.md)
+* **Important** to follow [testing-best-practices.md](../../doc/testing-best-practices.md)
