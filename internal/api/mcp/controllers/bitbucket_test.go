@@ -3344,7 +3344,7 @@ func TestBitbucketController(t *testing.T) {
 			repoOwner := "workspace-" + faker.Username()
 			repoName := "repo-" + faker.Word()
 			filePath := faker.Word() + ".go"
-			commit_hash := "main"
+			commitHash := "main"
 			accountName := "account-" + faker.Username()
 			expectedErr := errors.New("bitbucket service failure: " + faker.Sentence())
 
@@ -3359,7 +3359,7 @@ func TestBitbucketController(t *testing.T) {
 						"repo_owner":  repoOwner,
 						"repo_name":   repoName,
 						"path":        filePath,
-						"commit_hash": commit_hash,
+						"commit_hash": commitHash,
 						"account":     accountName,
 					},
 				},
