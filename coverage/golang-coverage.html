@@ -73,7 +73,7 @@
 				
 				<option value="file8">github.com/gemyago/atlacp/internal/api/http/server/server.go (92.0%)</option>
 				
-				<option value="file9">github.com/gemyago/atlacp/internal/api/mcp/controllers/bitbucket.go (92.2%)</option>
+				<option value="file9">github.com/gemyago/atlacp/internal/api/mcp/controllers/bitbucket.go (92.4%)</option>
 				
 				<option value="file10">github.com/gemyago/atlacp/internal/api/mcp/controllers/mock_bitbucket_service.go (61.6%)</option>
 				
@@ -802,6 +802,7 @@ import (
         "fmt"
         "log/slog"
         "strconv"
+        "strings"
 
         "github.com/gemyago/atlacp/internal/app"
         "github.com/gemyago/atlacp/internal/services/bitbucket"
@@ -834,7 +835,7 @@ type BitbucketController struct {
 }
 
 // NewBitbucketController creates a new Bitbucket MCP controller.
-func NewBitbucketController(deps BitbucketControllerDeps) *BitbucketController <span class="cov10" title="85">{
+func NewBitbucketController(deps BitbucketControllerDeps) *BitbucketController <span class="cov10" title="86">{
         return &amp;BitbucketController{
                 logger:           deps.RootLogger.WithGroup("mcp.bitbucket-controller"),
                 bitbucketService: deps.BitbucketService,
@@ -1756,9 +1757,8 @@ func (bc *BitbucketController) newGetPRDiffServerTool() server.ServerTool <span 
                 mcp.WithString("account",
                         mcp.Description("Atlassian account name to use (optional, uses default if not specified)"),
                 ),
-                mcp.WithArray("file_paths",
-                        mcp.Description("List of file paths to filter the diff (optional)"),
-                        mcp.Items("string"),
+                mcp.WithString("file_paths",
+                        mcp.Description("List of file paths to filter the diff (optional, multiple comma-separated values are possible)"),
                 ),
                 mcp.WithNumber("context_lines",
                         mcp.Description("Number of context lines to include in the diff (optional)"),
@@ -1784,8 +1784,18 @@ func (bc *BitbucketController) newGetPRDiffServerTool() server.ServerTool <span 
                 <span class="cov3" title="3">account := request.GetString("account", "")
 
                 // Extract optional file_paths and context_lines using idiomatic helpers
-                filePaths := request.GetStringSlice("file_paths", nil)
-                var contextLines *int
+                filePathsStr := request.GetString("file_paths", "")
+                var filePaths []string
+                if filePathsStr != "" </span><span class="cov1" title="1">{
+                        parts := strings.Split(filePathsStr, ",")
+                        for _, s := range parts </span><span class="cov2" title="2">{
+                                s = strings.TrimSpace(s)
+                                if s != "" </span><span class="cov2" title="2">{
+                                        filePaths = append(filePaths, s)
+                                }</span>
+                        }
+                }
+                <span class="cov3" title="3">var contextLines *int
                 if cl := request.GetInt("context_lines", 0); cl != 0 </span><span class="cov1" title="1">{
                         contextLines = &amp;cl
                 }</span>
@@ -1827,7 +1837,7 @@ func (bc *BitbucketController) newGetPRDiffServerTool() server.ServerTool <span 
 }
 
 // newGetFileContentServerTool returns a server tool for getting file content from a Bitbucket repository.
-func (bc *BitbucketController) newGetFileContentServerTool() server.ServerTool <span class="cov4" title="7">{
+func (bc *BitbucketController) newGetFileContentServerTool() server.ServerTool <span class="cov5" title="8">{
         tool := mcp.NewTool(
                 "bitbucket_get_file_content",
                 mcp.WithDescription("Get the content of a file in a Bitbucket repository"),
@@ -1843,38 +1853,42 @@ func (bc *BitbucketController) newGetFileContentServerTool() server.ServerTool <
                         mcp.Description("Path to the file in the repository"),
                         mcp.Required(),
                 ),
-                mcp.WithString("commit",
-                        mcp.Description("Commit hash to fetch file content from (optional, defaults to main branch)"),
+                mcp.WithString("commit_hash",
+                        mcp.Description("The SHA hash to fetch file content from. Only commit hashes are supported."),
+                        mcp.Required(),
                 ),
         )
-        handler := func(ctx context.Context, request mcp.CallToolRequest) (*mcp.CallToolResult, error) </span><span class="cov3" title="3">{
+        handler := func(ctx context.Context, request mcp.CallToolRequest) (*mcp.CallToolResult, error) </span><span class="cov3" title="4">{
                 bc.logger.Debug("Received bitbucket_get_file_content request", "params", request.Params)
 
                 repoOwner, err := request.RequireString("repo_owner")
                 if err != nil </span><span class="cov1" title="1">{
                         return mcp.NewToolResultErrorFromErr("Missing or invalid repo_owner parameter", err), nil
                 }</span>
-                <span class="cov2" title="2">repoName, err := request.RequireString("repo_name")
+                <span class="cov3" title="3">repoName, err := request.RequireString("repo_name")
                 if err != nil </span><span class="cov0" title="0">{
                         return mcp.NewToolResultErrorFromErr("Missing or invalid repo_name parameter", err), nil
                 }</span>
-                <span class="cov2" title="2">filePath := request.GetString("file_path", "")
-                if filePath == "" </span><span class="cov2" title="2">{
+                <span class="cov3" title="3">filePath := request.GetString("file_path", "")
+                if filePath == "" </span><span class="cov3" title="3">{
                         filePath = request.GetString("path", "")
                 }</span>
-                <span class="cov2" title="2">if filePath == "" </span><span class="cov0" title="0">{
+                <span class="cov3" title="3">if filePath == "" </span><span class="cov0" title="0">{
                         return mcp.NewToolResultError(
                                 "Missing or invalid file_path parameter: required argument \"file_path\" not found",
                         ), nil
                 }</span>
-                <span class="cov2" title="2">commit := request.GetString("commit", "")
-                account := request.GetString("account", "")
+                <span class="cov3" title="3">commitHash, err := request.RequireString("commit_hash")
+                if err != nil </span><span class="cov1" title="1">{
+                        return mcp.NewToolResultErrorFromErr("Missing or invalid commit_hash parameter", err), nil
+                }</span>
+                <span class="cov2" title="2">account := request.GetString("account", "")
 
                 params := app.BitbucketGetFileContentParams{
                         AccountName: account,
                         RepoOwner:   repoOwner,
                         RepoName:    repoName,
-                        Commit:      commit,
+                        Commit:      commitHash,
                         Path:        filePath,
                 }
 
@@ -1896,7 +1910,7 @@ func (bc *BitbucketController) newGetFileContentServerTool() server.ServerTool <
                         },
                 }, nil</span>
         }
-        <span class="cov4" title="7">return server.ServerTool{
+        <span class="cov5" title="8">return server.ServerTool{
                 Tool:    tool,
                 Handler: handler,
         }</span>
@@ -3012,13 +3026,13 @@ func (_c *MockbitbucketService_UpdateTask_Call) RunAndReturn(run func(context.Co
 func NewMockbitbucketService(t interface {
         mock.TestingT
         Cleanup(func())
-}) *MockbitbucketService <span class="cov10" title="83">{
+}) *MockbitbucketService <span class="cov10" title="84">{
         mock := &amp;MockbitbucketService{}
         mock.Mock.Test(t)
 
-        t.Cleanup(func() </span><span class="cov10" title="83">{ mock.AssertExpectations(t) }</span>)
+        t.Cleanup(func() </span><span class="cov10" title="84">{ mock.AssertExpectations(t) }</span>)
 
-        <span class="cov10" title="83">return mock</span>
+        <span class="cov10" title="84">return mock</span>
 }
 </pre>
 		
@@ -3297,7 +3311,7 @@ func (s *testMCPServer) Start(
                 stdioServer := mcpserver.NewStdioServer(mcpServer)
                 stdioServer.SetErrorLogger(logger)
 
-                if err := stdioServer.Listen(ctx, s.serverReader, s.serverWriter); err != nil </span><span class="cov8" title="4">{
+                if err := stdioServer.Listen(ctx, s.serverReader, s.serverWriter); err != nil </span><span class="cov10" title="5">{
                         logger.Println("StdioServer.Listen failed:", err)
                 }</span>
         }()
@@ -6117,7 +6131,7 @@ type diagLogHandler struct {
         target slog.Handler
 }
 
-func (h *diagLogHandler) Enabled(ctx context.Context, lvl slog.Level) bool <span class="cov8" title="324">{
+func (h *diagLogHandler) Enabled(ctx context.Context, lvl slog.Level) bool <span class="cov8" title="325">{
         return h.target.Enabled(ctx, lvl)
 }</span>
 
@@ -6131,11 +6145,11 @@ func (h *diagLogHandler) Handle(ctx context.Context, rec slog.Record) error <spa
         <span class="cov7" title="146">return h.target.Handle(ctx, rec)</span>
 }
 
-func (h *diagLogHandler) WithAttrs(attrs []slog.Attr) slog.Handler <span class="cov10" title="760">{
+func (h *diagLogHandler) WithAttrs(attrs []slog.Attr) slog.Handler <span class="cov10" title="762">{
         return &amp;diagLogHandler{target: h.target.WithAttrs(attrs)}
 }</span>
 
-func (h *diagLogHandler) WithGroup(name string) slog.Handler <span class="cov9" title="611">{
+func (h *diagLogHandler) WithGroup(name string) slog.Handler <span class="cov9" title="612">{
         // Using WithAttrs here since group will nest all the attributes
         // inside of it (including correlationId), which makes it harder to
         // filter logs by the correlationId.
@@ -6164,7 +6178,7 @@ func (opts *RootLoggerOpts) WithLogLevel(logLevel slog.Level) *RootLoggerOpts <s
         return opts
 }</span>
 
-func (opts *RootLoggerOpts) WithOutput(output io.Writer) *RootLoggerOpts <span class="cov8" title="278">{
+func (opts *RootLoggerOpts) WithOutput(output io.Writer) *RootLoggerOpts <span class="cov8" title="279">{
         opts.output = output
         return opts
 }</span>
@@ -6181,21 +6195,21 @@ func (opts *RootLoggerOpts) WithOptionalOutputFile(outputFile string) *RootLogge
         return opts</span>
 }
 
-func NewRootLoggerOpts() *RootLoggerOpts <span class="cov8" title="282">{
+func NewRootLoggerOpts() *RootLoggerOpts <span class="cov8" title="283">{
         return &amp;RootLoggerOpts{
                 output: os.Stdout,
         }
 }</span>
 
-func SetupRootLogger(opts *RootLoggerOpts) *slog.Logger <span class="cov8" title="282">{
+func SetupRootLogger(opts *RootLoggerOpts) *slog.Logger <span class="cov8" title="283">{
         logHandlerOpts := &amp;slog.HandlerOptions{Level: opts.logLevel}
         var logHandler slog.Handler
         if opts.jsonLogs </span><span class="cov1" title="1">{
                 logHandler = slog.NewJSONHandler(opts.output, logHandlerOpts)
-        }</span> else<span class="cov8" title="281"> {
+        }</span> else<span class="cov8" title="282"> {
                 logHandler = slog.NewTextHandler(opts.output, logHandlerOpts)
         }</span>
-        <span class="cov8" title="282">return slog.New(&amp;diagLogHandler{target: logHandler})</span>
+        <span class="cov8" title="283">return slog.New(&amp;diagLogHandler{target: logHandler})</span>
 }
 </pre>
 		
@@ -6228,7 +6242,7 @@ func openTestLogFile() *os.File <span class="cov4" title="12">{
 
 var testOutput = openTestLogFile() //nolint:gochecknoglobals //it's ok for tests
 
-func RootTestLogger() *slog.Logger <span class="cov10" title="277">{
+func RootTestLogger() *slog.Logger <span class="cov10" title="278">{
         return SetupRootLogger(
                 NewRootLoggerOpts().WithOutput(testOutput),
         )
