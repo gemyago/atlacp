@@ -1058,7 +1058,8 @@ func (bc *BitbucketController) newGetFileContentServerTool() server.ServerTool {
 			mcp.Required(),
 		),
 		mcp.WithString("commit",
-			mcp.Description("Commit hash to fetch file content from (optional, defaults to main branch)"),
+			mcp.Description("Commit hash to fetch file content from (required)"),
+			mcp.Required(),
 		),
 	)
 	handler := func(ctx context.Context, request mcp.CallToolRequest) (*mcp.CallToolResult, error) {
@@ -1081,7 +1082,10 @@ func (bc *BitbucketController) newGetFileContentServerTool() server.ServerTool {
 				"Missing or invalid file_path parameter: required argument \"file_path\" not found",
 			), nil
 		}
-		commit := request.GetString("commit", "")
+		commit, err := request.RequireString("commit")
+		if err != nil {
+			return mcp.NewToolResultErrorFromErr("Missing or invalid commit parameter", err), nil
+		}
 		account := request.GetString("account", "")
 
 		params := app.BitbucketGetFileContentParams{

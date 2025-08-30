@@ -3410,6 +3410,40 @@ func TestBitbucketController(t *testing.T) {
 			require.True(t, ok)
 			assert.Contains(t, content.Text, "Missing or invalid repo_owner parameter")
 		})
+
+		t.Run("should error if commit is missing", func(t *testing.T) {
+			// Arrange
+			deps := makeMockDeps(t)
+			controller := NewBitbucketController(deps)
+			ctx := t.Context()
+
+			// Missing commit
+			request := mcp.CallToolRequest{
+				Params: mcp.CallToolParams{
+					Name: "bitbucket_get_file_content",
+					Arguments: map[string]interface{}{
+						"repo_owner": "workspace-" + faker.Username(),
+						"repo_name":  "repo-" + faker.Word(),
+						"path":       faker.Word() + ".go",
+						"account":    "account-" + faker.Username(),
+					},
+				},
+			}
+
+			serverTool := controller.newGetFileContentServerTool()
+			handler := serverTool.Handler
+
+			// Act
+			result, err := handler(ctx, request)
+
+			// Assert
+			require.NoError(t, err)
+			require.NotNil(t, result)
+			assert.True(t, result.IsError)
+			content, ok := result.Content[0].(mcp.TextContent)
+			require.True(t, ok)
+			assert.Contains(t, content.Text, "Missing or invalid commit parameter")
+		})
 	})
 
 	t.Run("bitbucket_get_pr_diff", func(t *testing.T) {
