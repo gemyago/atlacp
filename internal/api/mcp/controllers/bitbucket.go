@@ -1057,8 +1057,8 @@ func (bc *BitbucketController) newGetFileContentServerTool() server.ServerTool {
 			mcp.Description("Path to the file in the repository"),
 			mcp.Required(),
 		),
-		mcp.WithString("commit",
-			mcp.Description("Commit hash to fetch file content from (required)"),
+		mcp.WithString("commit_hash",
+			mcp.Description("The SHA hash to fetch file content from. Only commit hashes are supported."),
 			mcp.Required(),
 		),
 	)
@@ -1082,9 +1082,9 @@ func (bc *BitbucketController) newGetFileContentServerTool() server.ServerTool {
 				"Missing or invalid file_path parameter: required argument \"file_path\" not found",
 			), nil
 		}
-		commit, err := request.RequireString("commit")
+		commitHash, err := request.RequireString("commit_hash")
 		if err != nil {
-			return mcp.NewToolResultErrorFromErr("Missing or invalid commit parameter", err), nil
+			return mcp.NewToolResultErrorFromErr("Missing or invalid commit_hash parameter", err), nil
 		}
 		account := request.GetString("account", "")
 
@@ -1092,7 +1092,7 @@ func (bc *BitbucketController) newGetFileContentServerTool() server.ServerTool {
 			AccountName: account,
 			RepoOwner:   repoOwner,
 			RepoName:    repoName,
-			Commit:      commit,
+			Commit:      commitHash,
 			Path:        filePath,
 		}
 
