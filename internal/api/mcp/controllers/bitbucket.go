@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"log/slog"
 	"strconv"
+	"strings"
 
 	"github.com/gemyago/atlacp/internal/app"
 	"github.com/gemyago/atlacp/internal/services/bitbucket"
@@ -960,9 +961,8 @@ func (bc *BitbucketController) newGetPRDiffServerTool() server.ServerTool {
 		mcp.WithString("account",
 			mcp.Description("Atlassian account name to use (optional, uses default if not specified)"),
 		),
-		mcp.WithArray("file_paths",
-			mcp.Description("List of file paths to filter the diff (optional)"),
-			mcp.Items("string"),
+		mcp.WithString("file_paths",
+			mcp.Description("List of file paths to filter the diff (optional, multiple comma-separated values are possible)"),
 		),
 		mcp.WithNumber("context_lines",
 			mcp.Description("Number of context lines to include in the diff (optional)"),
@@ -988,7 +988,17 @@ func (bc *BitbucketController) newGetPRDiffServerTool() server.ServerTool {
 		account := request.GetString("account", "")
 
 		// Extract optional file_paths and context_lines using idiomatic helpers
-		filePaths := request.GetStringSlice("file_paths", nil)
+		filePathsStr := request.GetString("file_paths", "")
+		var filePaths []string
+		if filePathsStr != "" {
+			parts := strings.Split(filePathsStr, ",")
+			for _, s := range parts {
+				s = strings.TrimSpace(s)
+				if s != "" {
+					filePaths = append(filePaths, s)
+				}
+			}
+		}
 		var contextLines *int
 		if cl := request.GetInt("context_lines", 0); cl != 0 {
 			contextLines = &cl
@@ -1047,8 +1057,9 @@ func (bc *BitbucketController) newGetFileContentServerTool() server.ServerTool {
 			mcp.Description("Path to the file in the repository"),
 			mcp.Required(),
 		),
-		mcp.WithString("commit",
-			mcp.Description("Commit hash to fetch file content from (optional, defaults to main branch)"),
+		mcp.WithString("commit_hash",
+			mcp.Description("The SHA hash to fetch file content from. Only commit hashes are supported."),
+			mcp.Required(),
 		),
 	)
 	handler := func(ctx context.Context, request mcp.CallToolRequest) (*mcp.CallToolResult, error) {
@@ -1071,14 +1082,17 @@ func (bc *BitbucketController) newGetFileContentServerTool() server.ServerTool {
 				"Missing or invalid file_path parameter: required argument \"file_path\" not found",
 			), nil
 		}
-		commit := request.GetString("commit", "")
+		commitHash, err := request.RequireString("commit_hash")
+		if err != nil {
+			return mcp.NewToolResultErrorFromErr("Missing or invalid commit_hash parameter", err), nil
+		}
 		account := request.GetString("account", "")
 
 		params := app.BitbucketGetFileContentParams{
 			AccountName: account,
 			RepoOwner:   repoOwner,
 			RepoName:    repoName,
-			Commit:      commit,
+			Commit:      commitHash,
 			Path:        filePath,
 		}
 

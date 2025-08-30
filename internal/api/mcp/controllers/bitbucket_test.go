@@ -3275,7 +3275,7 @@ func TestBitbucketController(t *testing.T) {
 			repoOwner := "workspace-" + faker.Username()
 			repoName := "repo-" + faker.Word()
 			filePath := faker.Word() + ".go"
-			commit := "main"
+			commitHash := "main"
 			accountName := "account-" + faker.Username()
 			expectedContent := "package main\n\nfunc main() {}\n"
 
@@ -3285,7 +3285,7 @@ func TestBitbucketController(t *testing.T) {
 					return params.RepoOwner == repoOwner &&
 						params.RepoName == repoName &&
 						params.Path == filePath &&
-						params.Commit == commit &&
+						params.Commit == commitHash &&
 						params.AccountName == accountName
 				})).
 				Return(&bitbucket.FileContentResult{
@@ -3302,11 +3302,11 @@ func TestBitbucketController(t *testing.T) {
 				Params: mcp.CallToolParams{
 					Name: "bitbucket_get_file_content",
 					Arguments: map[string]interface{}{
-						"repo_owner": repoOwner,
-						"repo_name":  repoName,
-						"path":       filePath,
-						"commit":     commit,
-						"account":    accountName,
+						"repo_owner":  repoOwner,
+						"repo_name":   repoName,
+						"path":        filePath,
+						"commit_hash": commitHash,
+						"account":     accountName,
 					},
 				},
 			}
@@ -3344,7 +3344,7 @@ func TestBitbucketController(t *testing.T) {
 			repoOwner := "workspace-" + faker.Username()
 			repoName := "repo-" + faker.Word()
 			filePath := faker.Word() + ".go"
-			commit := "main"
+			commitHash := "main"
 			accountName := "account-" + faker.Username()
 			expectedErr := errors.New("bitbucket service failure: " + faker.Sentence())
 
@@ -3356,11 +3356,11 @@ func TestBitbucketController(t *testing.T) {
 				Params: mcp.CallToolParams{
 					Name: "bitbucket_get_file_content",
 					Arguments: map[string]interface{}{
-						"repo_owner": repoOwner,
-						"repo_name":  repoName,
-						"path":       filePath,
-						"commit":     commit,
-						"account":    accountName,
+						"repo_owner":  repoOwner,
+						"repo_name":   repoName,
+						"path":        filePath,
+						"commit_hash": commitHash,
+						"account":     accountName,
 					},
 				},
 			}
@@ -3388,10 +3388,10 @@ func TestBitbucketController(t *testing.T) {
 				Params: mcp.CallToolParams{
 					Name: "bitbucket_get_file_content",
 					Arguments: map[string]interface{}{
-						"repo_name": "repo-" + faker.Word(),
-						"path":      faker.Word() + ".go",
-						"commit":    "main",
-						"account":   "account-" + faker.Username(),
+						"repo_name":   "repo-" + faker.Word(),
+						"path":        faker.Word() + ".go",
+						"commit_hash": "main",
+						"account":     "account-" + faker.Username(),
 					},
 				},
 			}
@@ -3409,6 +3409,40 @@ func TestBitbucketController(t *testing.T) {
 			content, ok := result.Content[0].(mcp.TextContent)
 			require.True(t, ok)
 			assert.Contains(t, content.Text, "Missing or invalid repo_owner parameter")
+		})
+
+		t.Run("should error if commit_hash is missing", func(t *testing.T) {
+			// Arrange
+			deps := makeMockDeps(t)
+			controller := NewBitbucketController(deps)
+			ctx := t.Context()
+
+			// Missing commit_hash
+			request := mcp.CallToolRequest{
+				Params: mcp.CallToolParams{
+					Name: "bitbucket_get_file_content",
+					Arguments: map[string]interface{}{
+						"repo_owner": "workspace-" + faker.Username(),
+						"repo_name":  "repo-" + faker.Word(),
+						"path":       faker.Word() + ".go",
+						"account":    "account-" + faker.Username(),
+					},
+				},
+			}
+
+			serverTool := controller.newGetFileContentServerTool()
+			handler := serverTool.Handler
+
+			// Act
+			result, err := handler(ctx, request)
+
+			// Assert
+			require.NoError(t, err)
+			require.NotNil(t, result)
+			assert.True(t, result.IsError)
+			content, ok := result.Content[0].(mcp.TextContent)
+			require.True(t, ok)
+			assert.Contains(t, content.Text, "Missing or invalid commit_hash parameter")
 		})
 	})
 
@@ -3500,7 +3534,7 @@ func TestBitbucketController(t *testing.T) {
 						"repo_owner":    repoOwner,
 						"repo_name":     repoName,
 						"account":       accountName,
-						"file_paths":    filePaths,
+						"file_paths":    filePaths[0] + ", " + filePaths[1],
 						"context_lines": contextLines,
 					},
 				},
@@ -3848,7 +3882,7 @@ func TestBitbucketController(t *testing.T) {
 						"repo_owner": repoOwner,
 						"repo_name":  repoName,
 						"account":    accountName,
-						"file_paths": filePaths,
+						"file_paths": filePaths[0] + ", " + filePaths[1],
 					},
 				},
 			}
