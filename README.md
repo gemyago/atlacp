@@ -31,6 +31,8 @@ An MCP (Model Context Protocol) interface for Atlassian products (Jira and Bitbu
 
 ## Quick Start
 
+See detailed version [here](./quick-start)
+
 ### Configure accounts
 
 The tool is designed to be running locally on developer's machine. In order to run the tool you need to configure your Atlassian accounts first. For bitbucket you need to create a personal access token that can read and write to the repository.
