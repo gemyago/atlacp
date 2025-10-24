@@ -3,7 +3,7 @@
 [![Build](https://github.com/gemyago/atlacp/actions/workflows/build-flow.yml/badge.svg)](https://github.com/gemyago/atlacp/actions/workflows/build-flow.yml)
 [![Coverage](https://raw.githubusercontent.com/gemyago/atlacp/test-artifacts/coverage/golang-coverage.svg)](https://htmlpreview.github.io/?https://raw.githubusercontent.com/gemyago/atlacp/test-artifacts/coverage/golang-coverage.html)
 
-An MCP (Model Context Protocol) interface for Atlassian products (Jira and Bitbucket).
+An MCP (Model Context Protocol) interface for Bitbucket.
 
 ## Features
 
