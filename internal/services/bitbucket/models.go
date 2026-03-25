@@ -202,10 +202,19 @@ type ListPRCommentsParams struct {
 	Workspace string `json:"workspace"`
 	RepoSlug  string `json:"repo_slug"`
 	PRID      int64  `json:"pr_id"`
+
+	// Optional pagination parameters
+	Page    int `json:"page,omitempty"`
+	PageLen int `json:"pagelen,omitempty"`
 }
 
 // ListPRCommentsResponse represents the response for listing PR comments.
 // This matches the Bitbucket API response structure directly.
 type ListPRCommentsResponse struct {
-	Values []PRComment `json:"values"`
+	Size     int         `json:"size,omitempty"`
+	Page     int         `json:"page,omitempty"`
+	PageLen  int         `json:"pagelen,omitempty"`
+	Next     string      `json:"next,omitempty"`
+	Previous string      `json:"previous,omitempty"`
+	Values   []PRComment `json:"values"`
 }

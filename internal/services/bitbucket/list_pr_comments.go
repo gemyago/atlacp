@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 	"net/url"
+	"strconv"
 
 	httpservices "github.com/gemyago/atlacp/internal/services/http"
 	"github.com/gemyago/atlacp/internal/services/http/middleware"
@@ -29,12 +30,25 @@ func (c *Client) ListPRComments(
 		params.PRID,
 	)
 
+	query := url.Values{}
+	if params.Page > 0 {
+		query.Add("page", strconv.Itoa(params.Page))
+	}
+	if params.PageLen > 0 {
+		query.Add("pagelen", strconv.Itoa(params.PageLen))
+	}
+
+	requestURL := c.baseURL + path
+	if len(query) > 0 {
+		requestURL += "?" + query.Encode()
+	}
+
 	var response ListPRCommentsResponse
 	err = httpservices.SendRequest(
 		ctxWithAuth, c.httpClient,
 		httpservices.SendRequestParams[interface{}, ListPRCommentsResponse]{
 			Method: "GET",
-			URL:    c.baseURL + path,
+			URL:    requestURL,
 			Target: &response,
 		})
 	if err != nil {
