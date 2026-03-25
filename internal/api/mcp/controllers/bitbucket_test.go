@@ -4083,5 +4083,152 @@ func TestBitbucketController(t *testing.T) {
 			require.True(t, ok, "Error content should be text content")
 			assert.Contains(t, content.Text, "Missing or invalid pr_id parameter")
 		})
+
+		t.Run("should pass page and pagelen params to service", func(t *testing.T) {
+			deps := makeMockDeps(t)
+			mockService := mocks.GetMock[*MockbitbucketService](t, deps.BitbucketService)
+			controller := NewBitbucketController(deps)
+			ctx := t.Context()
+
+			prID := rand.IntN(1000000) + 1
+			repoOwner := "workspace-" + faker.Username()
+			repoName := "repo-" + faker.Word()
+			accountName := "account-" + faker.Username()
+			page := rand.IntN(5) + 2
+			pagelen := rand.IntN(50) + 10
+
+			expectedParams := app.BitbucketListPRCommentsParams{
+				PullRequestID: prID,
+				RepoOwner:     repoOwner,
+				RepoName:      repoName,
+				AccountName:   accountName,
+				Page:          page,
+				PageLen:       pagelen,
+			}
+
+			mockService.EXPECT().
+				ListPRComments(ctx, mock.MatchedBy(func(params app.BitbucketListPRCommentsParams) bool {
+					return params.PullRequestID == expectedParams.PullRequestID &&
+						params.RepoOwner == expectedParams.RepoOwner &&
+						params.RepoName == expectedParams.RepoName &&
+						params.AccountName == expectedParams.AccountName &&
+						params.Page == expectedParams.Page &&
+						params.PageLen == expectedParams.PageLen
+				})).
+				Return(&bitbucket.ListPRCommentsResponse{
+					Size:    50,
+					Page:    page,
+					PageLen: pagelen,
+					Values:  []bitbucket.PRComment{{ID: 1}},
+				}, nil)
+
+			request := mcp.CallToolRequest{
+				Params: mcp.CallToolParams{
+					Name: "bitbucket_list_pr_comments",
+					Arguments: map[string]interface{}{
+						"pr_id":      prID,
+						"repo_owner": repoOwner,
+						"repo_name":  repoName,
+						"account":    accountName,
+						"page":       page,
+						"pagelen":    pagelen,
+					},
+				},
+			}
+
+			serverTool := controller.newListPRCommentsServerTool()
+			result, err := serverTool.Handler(ctx, request)
+			require.NoError(t, err)
+			require.NotNil(t, result)
+			assert.False(t, result.IsError)
+			content, ok := result.Content[0].(mcp.TextContent)
+			require.True(t, ok)
+			assert.Contains(t, content.Text, fmt.Sprintf("pull request #%d", prID))
+			assert.Contains(t, content.Text, fmt.Sprintf("page %d", page))
+			assert.Contains(t, content.Text, "50 total")
+		})
+
+		t.Run("should include pagination info in summary text", func(t *testing.T) {
+			deps := makeMockDeps(t)
+			mockService := mocks.GetMock[*MockbitbucketService](t, deps.BitbucketService)
+			controller := NewBitbucketController(deps)
+			ctx := t.Context()
+
+			prID := rand.IntN(1000000) + 1
+			repoOwner := "workspace-" + faker.Username()
+			repoName := "repo-" + faker.Word()
+
+			mockService.EXPECT().
+				ListPRComments(ctx, mock.Anything).
+				Return(&bitbucket.ListPRCommentsResponse{
+					Size:    150,
+					Page:    1,
+					PageLen: 25,
+					Values:  make([]bitbucket.PRComment, 25),
+				}, nil)
+
+			request := mcp.CallToolRequest{
+				Params: mcp.CallToolParams{
+					Name: "bitbucket_list_pr_comments",
+					Arguments: map[string]interface{}{
+						"pr_id":      prID,
+						"repo_owner": repoOwner,
+						"repo_name":  repoName,
+					},
+				},
+			}
+
+			serverTool := controller.newListPRCommentsServerTool()
+			result, err := serverTool.Handler(ctx, request)
+			require.NoError(t, err)
+			require.NotNil(t, result)
+			assert.False(t, result.IsError)
+			content, ok := result.Content[0].(mcp.TextContent)
+			require.True(t, ok)
+			// Should show: Found 25 comments on pull request #N (page 1, showing 25 of 150 total)
+			assert.Contains(t, content.Text, "Found 25 comments on pull request #")
+			assert.Contains(t, content.Text, "page 1")
+			assert.Contains(t, content.Text, "showing 25 of 150 total")
+		})
+
+		t.Run("should use default pagination when page and pagelen not specified", func(t *testing.T) {
+			deps := makeMockDeps(t)
+			mockService := mocks.GetMock[*MockbitbucketService](t, deps.BitbucketService)
+			controller := NewBitbucketController(deps)
+			ctx := t.Context()
+
+			prID := rand.IntN(1000000) + 1
+			repoOwner := "workspace-" + faker.Username()
+			repoName := "repo-" + faker.Word()
+
+			mockService.EXPECT().
+				ListPRComments(ctx, mock.MatchedBy(func(params app.BitbucketListPRCommentsParams) bool {
+					// page and pagelen should be zero (defaults handled at app layer)
+					return params.Page == 0 && params.PageLen == 0
+				})).
+				Return(&bitbucket.ListPRCommentsResponse{
+					Size:    5,
+					Page:    1,
+					PageLen: 100,
+					Values:  make([]bitbucket.PRComment, 5),
+				}, nil)
+
+			request := mcp.CallToolRequest{
+				Params: mcp.CallToolParams{
+					Name: "bitbucket_list_pr_comments",
+					Arguments: map[string]interface{}{
+						"pr_id":      prID,
+						"repo_owner": repoOwner,
+						"repo_name":  repoName,
+					},
+				},
+			}
+
+			serverTool := controller.newListPRCommentsServerTool()
+			result, err := serverTool.Handler(ctx, request)
+			require.NoError(t, err)
+			require.NotNil(t, result)
+			assert.False(t, result.IsError)
+		})
 	})
 }

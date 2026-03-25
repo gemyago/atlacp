@@ -1292,6 +1292,12 @@ func (bc *BitbucketController) newListPRCommentsServerTool() server.ServerTool {
 		mcp.WithString("account",
 			mcp.Description("Atlassian account name to use (optional, uses default if not specified)"),
 		),
+		mcp.WithNumber("page",
+			mcp.Description("Page number to retrieve (optional, defaults to 1)"),
+		),
+		mcp.WithNumber("pagelen",
+			mcp.Description("Number of comments per page (optional, defaults to 100)"),
+		),
 	)
 
 	handler := func(ctx context.Context, request mcp.CallToolRequest) (*mcp.CallToolResult, error) {
@@ -1315,6 +1321,8 @@ func (bc *BitbucketController) newListPRCommentsServerTool() server.ServerTool {
 
 		// Optional parameters
 		account := request.GetString("account", "")
+		page := request.GetInt("page", 0)
+		pagelen := request.GetInt("pagelen", 0)
 
 		// Create parameters for the service layer
 		params := app.BitbucketListPRCommentsParams{
@@ -1322,6 +1330,8 @@ func (bc *BitbucketController) newListPRCommentsServerTool() server.ServerTool {
 			AccountName:   account,
 			RepoOwner:     repoOwner,
 			RepoName:      repoName,
+			Page:          page,
+			PageLen:       pagelen,
 		}
 
 		// Call the service to list PR comments
@@ -1336,8 +1346,11 @@ func (bc *BitbucketController) newListPRCommentsServerTool() server.ServerTool {
 			return nil, fmt.Errorf("failed to marshal PR comments to JSON: %w", err)
 		}
 
-		// Create a summary text for the comments
-		summaryText := fmt.Sprintf("Found %d comments on pull request #%d", len(comments.Values), prID)
+		// Create a summary text for the comments including pagination info
+		summaryText := fmt.Sprintf(
+			"Found %d comments on pull request #%d (page %d, showing %d of %d total)",
+			len(comments.Values), prID, comments.Page, len(comments.Values), comments.Size,
+		)
 
 		// Return both a summary text and the full comments data as a resource
 		return &mcp.CallToolResult{
