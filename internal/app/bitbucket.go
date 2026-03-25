@@ -256,6 +256,12 @@ type BitbucketListPRCommentsParams struct {
 
 	// Pull request ID
 	PullRequestID int `json:"pull_request_id"`
+
+	// Page number to retrieve (optional, defaults to 1)
+	Page int `json:"page,omitempty"`
+
+	// Number of comments per page (optional, defaults to 100)
+	PageLen int `json:"page_len,omitempty"`
 }
 
 // CreatePR creates a new pull request.
@@ -855,10 +861,18 @@ func (s *BitbucketService) ListPRComments(
 	// Get token provider from auth factory
 	tokenProvider := s.authFactory.getTokenProvider(ctx, params.AccountName)
 
+	// Apply default page length if not specified
+	pageLen := params.PageLen
+	if pageLen == 0 {
+		pageLen = 100
+	}
+
 	// Call the client to list PR comments
 	return s.client.ListPRComments(ctx, tokenProvider, bitbucket.ListPRCommentsParams{
 		Workspace: params.RepoOwner,
 		RepoSlug:  params.RepoName,
 		PRID:      int64(params.PullRequestID),
+		Page:      params.Page,
+		PageLen:   pageLen,
 	})
 }

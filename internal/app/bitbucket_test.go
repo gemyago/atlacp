@@ -2625,13 +2625,16 @@ func TestBitbucketService(t *testing.T) {
 				getTokenProvider(mock.Anything, "").
 				Return(tokenProvider)
 
-			// Mock the client to return expected comments
+			// Mock the client to return expected comments - default PageLen of 100 is applied
 			mockClient.EXPECT().
-				ListPRComments(mock.Anything, tokenProvider, bitbucket.ListPRCommentsParams{
-					Workspace: repoOwner,
-					RepoSlug:  repoName,
-					PRID:      prID,
-				}).
+				ListPRComments(mock.Anything, tokenProvider, mock.MatchedBy(func(params bitbucket.ListPRCommentsParams) bool {
+					assert.Equal(t, repoOwner, params.Workspace)
+					assert.Equal(t, repoName, params.RepoSlug)
+					assert.Equal(t, prID, params.PRID)
+					assert.Equal(t, 100, params.PageLen) // default PageLen applied
+					assert.Zero(t, params.Page)          // no page specified
+					return true
+				})).
 				Return(expectedComments, nil)
 
 			// Act
@@ -2639,6 +2642,102 @@ func TestBitbucketService(t *testing.T) {
 				RepoOwner:     repoOwner,
 				RepoName:      repoName,
 				PullRequestID: int(prID),
+			})
+
+			// Assert
+			require.NoError(t, err)
+			assert.Equal(t, expectedComments, result)
+		})
+
+		t.Run("passes pagination params through to client", func(t *testing.T) {
+			// Arrange
+			deps := makeMockDeps(t)
+			mockClient := mocks.GetMock[*MockbitbucketClient](t, deps.Client)
+			mockAuth := mocks.GetMock[*MockbitbucketAuthFactory](t, deps.AuthFactory)
+			service := NewBitbucketService(deps)
+
+			repoOwner := "owner-" + faker.Username()
+			repoName := "repo-" + faker.Username()
+			prID := int(100 + faker.RandomUnixTime()%900)
+			page := 2
+			pageLen := 25
+			token := "token-" + faker.UUIDHyphenated()
+			tokenProvider := newStaticTokenProvider(token)
+
+			expectedComments := &bitbucket.ListPRCommentsResponse{
+				Size:    50,
+				Page:    page,
+				PageLen: pageLen,
+				Values:  []bitbucket.PRComment{},
+			}
+
+			mockAuth.EXPECT().
+				getTokenProvider(mock.Anything, "").
+				Return(tokenProvider)
+
+			mockClient.EXPECT().
+				ListPRComments(mock.Anything, tokenProvider, mock.MatchedBy(func(params bitbucket.ListPRCommentsParams) bool {
+					assert.Equal(t, repoOwner, params.Workspace)
+					assert.Equal(t, repoName, params.RepoSlug)
+					assert.Equal(t, int64(prID), params.PRID)
+					assert.Equal(t, page, params.Page)
+					assert.Equal(t, pageLen, params.PageLen)
+					return true
+				})).
+				Return(expectedComments, nil)
+
+			// Act
+			result, err := service.ListPRComments(t.Context(), BitbucketListPRCommentsParams{
+				RepoOwner:     repoOwner,
+				RepoName:      repoName,
+				PullRequestID: prID,
+				Page:          page,
+				PageLen:       pageLen,
+			})
+
+			// Assert
+			require.NoError(t, err)
+			assert.Equal(t, expectedComments, result)
+		})
+
+		t.Run("applies default PageLen of 100 when caller specifies 0", func(t *testing.T) {
+			// Arrange
+			deps := makeMockDeps(t)
+			mockClient := mocks.GetMock[*MockbitbucketClient](t, deps.Client)
+			mockAuth := mocks.GetMock[*MockbitbucketAuthFactory](t, deps.AuthFactory)
+			service := NewBitbucketService(deps)
+
+			repoOwner := "owner-" + faker.Username()
+			repoName := "repo-" + faker.Username()
+			prID := int(100 + faker.RandomUnixTime()%900)
+			token := "token-" + faker.UUIDHyphenated()
+			tokenProvider := newStaticTokenProvider(token)
+
+			expectedComments := &bitbucket.ListPRCommentsResponse{
+				Size:    5,
+				Page:    1,
+				PageLen: 100,
+				Values:  []bitbucket.PRComment{},
+			}
+
+			mockAuth.EXPECT().
+				getTokenProvider(mock.Anything, "").
+				Return(tokenProvider)
+
+			mockClient.EXPECT().
+				ListPRComments(mock.Anything, tokenProvider, mock.MatchedBy(func(params bitbucket.ListPRCommentsParams) bool {
+					// Default PageLen of 100 must be applied when caller passes 0
+					assert.Equal(t, 100, params.PageLen)
+					return true
+				})).
+				Return(expectedComments, nil)
+
+			// Act - explicitly pass PageLen: 0 (the zero value)
+			result, err := service.ListPRComments(t.Context(), BitbucketListPRCommentsParams{
+				RepoOwner:     repoOwner,
+				RepoName:      repoName,
+				PullRequestID: prID,
+				PageLen:       0,
 			})
 
 			// Assert
