@@ -325,6 +325,78 @@ This test verifies the end-to-end functionality of the Bitbucket PR review tools
 
 Update a report as per [instruction](#test-results-reporting).
 
+## Test 6: PR Comments Pagination
+
+This test verifies that PR comments can be retrieved with pagination parameters (`page`, `pagelen`) and that pagination metadata is correctly returned.
+
+### Steps
+
+1. **Setup test environment**
+   - Create a new working branch from main: `feature/pr-comments-pagination-test-{timestamp}`
+   - Create (or update) a test file `integration-tests/bitbucket/test-files/integration-test-file.txt` with new content (e.g., current time)
+   - Commit and push the changes
+
+2. **Create a Pull Request**
+   - Use the `mcp.bitbucket_create_pr` tool with the following parameters:
+     - title: "PR Comments Pagination Test {timestamp}"
+     - source_branch: "feature/pr-comments-pagination-test-{timestamp}"
+     - target_branch: "main"
+     - repo_owner: your workspace name
+     - repo_name: your repository name
+     - description: "This is an automated PR comments pagination test (Test 6)"
+   - Extract and save the PR ID for subsequent steps
+
+3. **Post 20+ comments**
+   - Use the `mcp.bitbucket_add_pr_comment` tool to add at least 20 comments to the PR
+   - Mix general comments and inline comments on the test file:
+     - Add at least 15 general comments with content such as "Pagination test comment {n} {timestamp}"
+     - Add at least 5 inline comments (specifying a file path and line number from the committed test file)
+   - Keep track of all comment IDs returned by each call
+   - Verify that all 20+ comment creation calls succeeded
+
+4. **List comments with default pagelen**
+   - Use the `mcp.bitbucket_list_pr_comments` tool with only `pr_id`, `repo_owner`, and `repo_name` (no `page` or `pagelen`)
+   - Verify that:
+     - All 20+ comments are returned in a single response (default pagelen is 100)
+     - The `size` field in the response is >= 20
+     - The `pagelen` field in the response is 100
+     - The `page` field in the response is 1
+
+5. **List comments with small pagelen**
+   - Use the `mcp.bitbucket_list_pr_comments` tool with `pagelen: 5` (no `page` specified)
+   - Verify that:
+     - Exactly 5 comments are returned
+     - The `pagelen` field in the response is 5
+     - The `page` field in the response is 1
+     - The `next` field is present (indicating there are more pages)
+     - The `size` field is >= 20
+
+6. **List comments on page 2**
+   - Use the `mcp.bitbucket_list_pr_comments` tool with `pagelen: 5, page: 2`
+   - Verify that:
+     - Exactly 5 comments are returned
+     - The `page` field in the response is 2
+     - The comment IDs on page 2 are different from those on page 1
+
+7. **Iterate through all pages and collect all comment IDs**
+   - Starting from page 1 with `pagelen: 5`, iterate through all pages by incrementing `page` until the `next` field is absent
+   - Collect all comment IDs across all pages
+   - Verify that:
+     - The total number of collected comment IDs matches the `size` reported in the first paginated response
+     - All original comment IDs posted in step 3 are present in the collected set
+     - No duplicate comment IDs appear across pages
+
+8. **Clean up**
+   - Approve the PR using the `mcp.bitbucket_approve_pr` tool
+   - Merge the PR using the `mcp.bitbucket_merge_pr` tool with:
+     - merge_strategy: "squash"
+     - close_source_branch: "true"
+   - Make sure the main branch is checked out again
+   - Pull the latest changes
+   - Delete the working branch
+
+Update a report as per [instruction](#test-results-reporting).
+
 ## Test Results Reporting
 
 Follow the protocol below when performing the test:
@@ -369,7 +441,7 @@ When completed all tests, copy the results file from a **current workspace** to 
 4. Commit and push the branch
 5. Use MCP tool to create, approve and merge the PR:
     - title: "Bitbucket MCP Integration Tests Results {timestamp}"
-    - description: "This is an automated integration tests results (Test 1, Test 2, ....., Test X) {timestamp}"
+    - description: "This is an automated integration tests results (Test 1, Test 2, Test 3, Test 4, Test 5, Test 6) {timestamp}"
     - source_branch: "feature/bitbucket-mcp-integration-tests-results-{timestamp}"
     - target_branch: "main"
     - repo_owner: your workspace name
