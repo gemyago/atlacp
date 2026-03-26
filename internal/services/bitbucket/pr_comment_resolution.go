@@ -8,7 +8,7 @@ import (
 // ResolvedStateFromResolutionJSON derives whether a PR comment is resolved from Bitbucket's
 // resolution JSON. When the API returns an empty object ("{}") or omits resolution, known is false
 // and callers should fetch the single comment if they need a definitive resolved flag.
-func ResolvedStateFromResolutionJSON(raw json.RawMessage) (resolved bool, known bool) {
+func ResolvedStateFromResolutionJSON(raw json.RawMessage) (bool, bool) {
 	if len(raw) == 0 {
 		return false, false
 	}
