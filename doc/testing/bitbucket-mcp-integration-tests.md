@@ -11,7 +11,13 @@ It is expected that the prompt to start the test will have the following form:
 Given the following Bitbucket repository `<file system path to the repository>`, run the tests as per the instructions in the `bitbucket-mcp-integration-tests.md` file.
 ```
 
-LLM must run each test scenario in a separate sub-agent.
+### Execution model (mandatory)
+
+- **Each numbered test** in this document (Test 1, Test 2, …) **must** be executed in a **separate delegated sub-agent** (e.g. Cursor Task tool or equivalent “spawn an agent for this scenario” mechanism). The **orchestrator** in the main conversation must not run Bitbucket MCP tool calls or git commands for a test’s steps itself.
+- This applies **even if** the user asks for a **single test**, **“just Test N”**, or **“first test only”**—that one test still runs in its own sub-agent; scope does not waive this rule.
+- **Why**: isolates failures, avoids mixing state between tests, and matches how these runs are intended to be parallelized and reviewed.
+- **Parent agent responsibilities**: confirm MCP/Bitbucket tools are available; launch one sub-agent per test with the integration repo path, repo owner/name, and which test id to run; aggregate results files and final summary from sub-agent outputs.
+- **Sub-agent responsibilities**: perform **all** shell work in the provided repo path and **all** `bitbucket_*` MCP calls for that test only; write/update the workspace results file for that test’s steps; return a concise pass/fail summary and PR ids to the parent.
 
 ## Prerequisites done by the user
 
@@ -477,7 +483,8 @@ gh pr comment <pr_id> --body "Integration tests results: <results file URL>"
 
 As an AI assistant, when asked to run integration tests using this document, follow these steps:
 
-1. Confirm the ATLACP tools are available to you and you can use them.
-2. For each tests follow the exact instruction
-3. Document the results as you progress
-4. Report the results as per instruction in the end of the process
+1. Confirm the ATLACP Bitbucket MCP tools are available (sub-agents need the same MCP access as the parent; if a sub-agent cannot call MCP, do not substitute by running tests in the main agent—surface that limitation to the user instead).
+2. **For each test** you are asked to run: **spawn a dedicated sub-agent** and pass it the Bitbucket repo filesystem path, `repo_owner` / `repo_name` (from `git remote show origin` if needed), and the test number. Do not execute that test’s git/MCP steps in the main thread.
+3. Follow each test’s steps **inside that test’s sub-agent** exactly as written.
+4. Document the results as you progress (orchestrator merges sub-agent outputs into `tmp/integration-tests-*.md` as appropriate).
+5. Report the results as per [Test Results Reporting](#test-results-reporting) at the end of the process.
