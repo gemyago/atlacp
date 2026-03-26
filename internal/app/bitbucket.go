@@ -874,7 +874,7 @@ func (s *BitbucketService) AddPRComment(
 	return s.client.AddPRComment(ctx, tokenProvider, clientParams)
 }
 
-func prCommentToBitbucketPRComment(c bitbucket.PRComment, resolved bool) BitbucketPRComment {
+func prCommentToBitbucketPRComment(c bitbucket.PRComment) BitbucketPRComment {
 	out := BitbucketPRComment{
 		ID:        c.ID,
 		Content:   c.Content,
@@ -883,7 +883,7 @@ func prCommentToBitbucketPRComment(c bitbucket.PRComment, resolved bool) Bitbuck
 		UpdatedOn: c.UpdatedOn,
 		Pending:   c.Pending,
 		Inline:    c.Inline,
-		Resolved:  resolved,
+		Resolved:  bitbucket.ResolvedStateFromResolutionJSON(c.Resolution),
 	}
 	if c.Parent != nil {
 		out.Parent = &struct {
@@ -894,7 +894,7 @@ func prCommentToBitbucketPRComment(c bitbucket.PRComment, resolved bool) Bitbuck
 }
 
 // ListPRComments retrieves all comments for a specific pull request and enriches each with a
-// resolved flag (GET single comment when list payload has ambiguous resolution).
+// resolved flag from the list payload's resolution JSON.
 func (s *BitbucketService) ListPRComments(
 	ctx context.Context,
 	params BitbucketListPRCommentsParams,
@@ -940,25 +940,8 @@ func (s *BitbucketService) ListPRComments(
 		Values:   make([]BitbucketPRComment, 0, len(list.Values)),
 	}
 
-	prID := int64(params.PullRequestID)
 	for _, c := range list.Values {
-		resolved, known := bitbucket.ResolvedStateFromResolutionJSON(c.Resolution)
-		if !known {
-			full, getErr := s.client.GetPRComment(ctx, tokenProvider, bitbucket.GetPRCommentParams{
-				Workspace: params.RepoOwner,
-				RepoSlug:  params.RepoName,
-				PRID:      prID,
-				CommentID: c.ID,
-			})
-			if getErr != nil {
-				return nil, fmt.Errorf("failed to get pull request comment %d: %w", c.ID, getErr)
-			}
-			resolved, known = bitbucket.ResolvedStateFromResolutionJSON(full.Resolution)
-			if !known {
-				resolved = false
-			}
-		}
-		out.Values = append(out.Values, prCommentToBitbucketPRComment(c, resolved))
+		out.Values = append(out.Values, prCommentToBitbucketPRComment(c))
 	}
 
 	return out, nil
