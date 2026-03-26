@@ -22,6 +22,9 @@ const (
 
 	// TaskStateUnresolved represents an "UNRESOLVED" task state.
 	TaskStateUnresolved = "UNRESOLVED"
+
+	// defaultListPRCommentsPageLen is the default pagelen for bitbucket_list_pr_comments when omitted.
+	defaultListPRCommentsPageLen = 100
 )
 
 // BitbucketControllerDeps contains dependencies for the Bitbucket MCP controller.
@@ -1297,6 +1300,7 @@ func (bc *BitbucketController) newListPRCommentsServerTool() server.ServerTool {
 		),
 		mcp.WithNumber("pagelen",
 			mcp.Description("Number of comments per page (optional, defaults to 100)"),
+			mcp.DefaultNumber(float64(defaultListPRCommentsPageLen)),
 		),
 	)
 
@@ -1322,7 +1326,7 @@ func (bc *BitbucketController) newListPRCommentsServerTool() server.ServerTool {
 		// Optional parameters
 		account := request.GetString("account", "")
 		page := request.GetInt("page", 0)
-		pagelen := request.GetInt("pagelen", 0)
+		pagelen := request.GetInt("pagelen", defaultListPRCommentsPageLen)
 
 		// Create parameters for the service layer
 		params := app.BitbucketListPRCommentsParams{

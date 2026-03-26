@@ -4203,8 +4203,8 @@ func TestBitbucketController(t *testing.T) {
 
 			mockService.EXPECT().
 				ListPRComments(ctx, mock.MatchedBy(func(params app.BitbucketListPRCommentsParams) bool {
-					// page and pagelen should be zero (defaults handled at app layer)
-					return params.Page == 0 && params.PageLen == 0
+					// page unset stays 0; pagelen defaults to 100 in the MCP handler (Bitbucket API default is 20 if omitted)
+					return params.Page == 0 && params.PageLen == defaultListPRCommentsPageLen
 				})).
 				Return(&bitbucket.ListPRCommentsResponse{
 					Size:    5,
