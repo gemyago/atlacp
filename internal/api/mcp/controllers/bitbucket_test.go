@@ -3929,20 +3929,22 @@ func TestBitbucketController(t *testing.T) {
 				AccountName:   accountName,
 			}
 
-			expectedComments := []bitbucket.PRComment{
+			expectedComments := []app.BitbucketPRComment{
 				{
 					ID: 1,
 					Content: struct {
-						Raw string "json:\"raw\""
+						Raw string `json:"raw"`
 					}{Raw: "First comment"},
-					Author: &bitbucket.Account{DisplayName: "User1"},
+					Author:   &bitbucket.Account{DisplayName: "User1"},
+					Resolved: false,
 				},
 				{
 					ID: 2,
 					Content: struct {
-						Raw string "json:\"raw\""
+						Raw string `json:"raw"`
 					}{Raw: "Second comment"},
-					Author: &bitbucket.Account{DisplayName: "User2"},
+					Author:   &bitbucket.Account{DisplayName: "User2"},
+					Resolved: false,
 				},
 			}
 
@@ -3953,7 +3955,7 @@ func TestBitbucketController(t *testing.T) {
 						params.RepoName == expectedParams.RepoName &&
 						params.AccountName == expectedParams.AccountName
 				})).
-				Return(&bitbucket.ListPRCommentsResponse{Values: expectedComments}, nil)
+				Return(&app.BitbucketListPRCommentsResult{Values: expectedComments}, nil)
 
 			request := mcp.CallToolRequest{
 				Params: mcp.CallToolParams{
@@ -3992,7 +3994,7 @@ func TestBitbucketController(t *testing.T) {
 
 			mockService.EXPECT().
 				ListPRComments(ctx, mock.Anything).
-				Return(&bitbucket.ListPRCommentsResponse{Values: []bitbucket.PRComment{}}, nil)
+				Return(&app.BitbucketListPRCommentsResult{Values: []app.BitbucketPRComment{}}, nil)
 
 			request := mcp.CallToolRequest{
 				Params: mcp.CallToolParams{
@@ -4115,11 +4117,11 @@ func TestBitbucketController(t *testing.T) {
 						params.Page == expectedParams.Page &&
 						params.PageLen == expectedParams.PageLen
 				})).
-				Return(&bitbucket.ListPRCommentsResponse{
+				Return(&app.BitbucketListPRCommentsResult{
 					Size:    50,
 					Page:    page,
 					PageLen: pagelen,
-					Values:  []bitbucket.PRComment{{ID: 1}},
+					Values:  []app.BitbucketPRComment{{ID: 1, Resolved: false}},
 				}, nil)
 
 			request := mcp.CallToolRequest{
@@ -4160,11 +4162,11 @@ func TestBitbucketController(t *testing.T) {
 
 			mockService.EXPECT().
 				ListPRComments(ctx, mock.Anything).
-				Return(&bitbucket.ListPRCommentsResponse{
+				Return(&app.BitbucketListPRCommentsResult{
 					Size:    150,
 					Page:    1,
 					PageLen: 25,
-					Values:  make([]bitbucket.PRComment, 25),
+					Values:  make([]app.BitbucketPRComment, 25),
 				}, nil)
 
 			request := mcp.CallToolRequest{
@@ -4206,11 +4208,11 @@ func TestBitbucketController(t *testing.T) {
 					// page unset stays 0; pagelen defaults to 100 in the MCP handler (Bitbucket API default is 20 if omitted)
 					return params.Page == 0 && params.PageLen == defaultListPRCommentsPageLen
 				})).
-				Return(&bitbucket.ListPRCommentsResponse{
+				Return(&app.BitbucketListPRCommentsResult{
 					Size:    5,
 					Page:    1,
 					PageLen: 100,
-					Values:  make([]bitbucket.PRComment, 5),
+					Values:  make([]app.BitbucketPRComment, 5),
 				}, nil)
 
 			request := mcp.CallToolRequest{

@@ -264,6 +264,42 @@ type BitbucketListPRCommentsParams struct {
 	PageLen int `json:"page_len,omitempty"`
 }
 
+// BitbucketPRComment is a pull request comment with a flat resolved flag (no nested resolution JSON).
+type BitbucketPRComment struct {
+	ID      int64 `json:"id"`
+	Content struct {
+		Raw string `json:"raw"`
+	} `json:"content"`
+	Author    *bitbucket.Account       `json:"user,omitempty"`
+	CreatedOn time.Time                `json:"created_on"`
+	UpdatedOn time.Time                `json:"updated_on"`
+	Pending   bool                     `json:"pending,omitempty"`
+	Inline    *bitbucket.InlineContext `json:"inline,omitempty"`
+	Parent    *struct {
+		ID int64 `json:"id"`
+	} `json:"parent,omitempty"`
+	Resolved bool `json:"resolved"`
+}
+
+// BitbucketListPRCommentsResult is the app-layer list response (pagination + enriched comments).
+type BitbucketListPRCommentsResult struct {
+	Size     int                  `json:"size,omitempty"`
+	Page     int                  `json:"page,omitempty"`
+	PageLen  int                  `json:"pagelen,omitempty"`
+	Next     string               `json:"next,omitempty"`
+	Previous string               `json:"previous,omitempty"`
+	Values   []BitbucketPRComment `json:"values"`
+}
+
+// BitbucketResolvePRCommentParams identifies a PR comment to resolve via Bitbucket API.
+type BitbucketResolvePRCommentParams struct {
+	AccountName   string `json:"account_name,omitempty"`
+	RepoOwner     string `json:"repo_owner"`
+	RepoName      string `json:"repo_name"`
+	PullRequestID int    `json:"pull_request_id"`
+	CommentID     int64  `json:"comment_id"`
+}
+
 // CreatePR creates a new pull request.
 func (s *BitbucketService) CreatePR(
 	ctx context.Context,
@@ -838,16 +874,35 @@ func (s *BitbucketService) AddPRComment(
 	return s.client.AddPRComment(ctx, tokenProvider, clientParams)
 }
 
-// ListPRComments retrieves all comments for a specific pull request.
+func prCommentToBitbucketPRComment(c bitbucket.PRComment, resolved bool) BitbucketPRComment {
+	out := BitbucketPRComment{
+		ID:        c.ID,
+		Content:   c.Content,
+		Author:    c.Author,
+		CreatedOn: c.CreatedOn,
+		UpdatedOn: c.UpdatedOn,
+		Pending:   c.Pending,
+		Inline:    c.Inline,
+		Resolved:  resolved,
+	}
+	if c.Parent != nil {
+		out.Parent = &struct {
+			ID int64 `json:"id"`
+		}{ID: c.Parent.ID}
+	}
+	return out
+}
+
+// ListPRComments retrieves all comments for a specific pull request and enriches each with a
+// resolved flag (GET single comment when list payload has ambiguous resolution).
 func (s *BitbucketService) ListPRComments(
 	ctx context.Context,
 	params BitbucketListPRCommentsParams,
-) (*bitbucket.ListPRCommentsResponse, error) {
+) (*BitbucketListPRCommentsResult, error) {
 	s.logger.InfoContext(ctx, "Listing pull request comments",
 		slog.String("repo", params.RepoOwner+"/"+params.RepoName),
 		slog.Int("pr_id", params.PullRequestID))
 
-	// Validate required parameters
 	if params.RepoOwner == "" {
 		return nil, errors.New("repository owner is required")
 	}
@@ -858,21 +913,89 @@ func (s *BitbucketService) ListPRComments(
 		return nil, errors.New("pull request ID must be positive")
 	}
 
-	// Get token provider from auth factory
 	tokenProvider := s.authFactory.getTokenProvider(ctx, params.AccountName)
 
-	// Apply default page length if not specified
 	pageLen := params.PageLen
 	if pageLen == 0 {
 		pageLen = 100
 	}
 
-	// Call the client to list PR comments
-	return s.client.ListPRComments(ctx, tokenProvider, bitbucket.ListPRCommentsParams{
+	list, err := s.client.ListPRComments(ctx, tokenProvider, bitbucket.ListPRCommentsParams{
 		Workspace: params.RepoOwner,
 		RepoSlug:  params.RepoName,
 		PRID:      int64(params.PullRequestID),
 		Page:      params.Page,
 		PageLen:   pageLen,
 	})
+	if err != nil {
+		return nil, fmt.Errorf("failed to list pull request comments: %w", err)
+	}
+
+	out := &BitbucketListPRCommentsResult{
+		Size:     list.Size,
+		Page:     list.Page,
+		PageLen:  list.PageLen,
+		Next:     list.Next,
+		Previous: list.Previous,
+		Values:   make([]BitbucketPRComment, 0, len(list.Values)),
+	}
+
+	prID := int64(params.PullRequestID)
+	for _, c := range list.Values {
+		resolved, known := bitbucket.ResolvedStateFromResolutionJSON(c.Resolution)
+		if !known {
+			full, getErr := s.client.GetPRComment(ctx, tokenProvider, bitbucket.GetPRCommentParams{
+				Workspace: params.RepoOwner,
+				RepoSlug:  params.RepoName,
+				PRID:      prID,
+				CommentID: c.ID,
+			})
+			if getErr != nil {
+				return nil, fmt.Errorf("failed to get pull request comment %d: %w", c.ID, getErr)
+			}
+			resolved, known = bitbucket.ResolvedStateFromResolutionJSON(full.Resolution)
+			if !known {
+				resolved = false
+			}
+		}
+		out.Values = append(out.Values, prCommentToBitbucketPRComment(c, resolved))
+	}
+
+	return out, nil
+}
+
+// ResolvePRComment resolves a pull request comment thread on Bitbucket.
+func (s *BitbucketService) ResolvePRComment(
+	ctx context.Context,
+	params BitbucketResolvePRCommentParams,
+) (*bitbucket.CommentResolution, error) {
+	s.logger.InfoContext(ctx, "Resolving pull request comment",
+		slog.String("repo", params.RepoOwner+"/"+params.RepoName),
+		slog.Int("pr_id", params.PullRequestID),
+		slog.Int64("comment_id", params.CommentID))
+
+	if params.RepoOwner == "" {
+		return nil, errors.New("repository owner is required")
+	}
+	if params.RepoName == "" {
+		return nil, errors.New("repository name is required")
+	}
+	if params.PullRequestID <= 0 {
+		return nil, errors.New("pull request ID must be positive")
+	}
+	if params.CommentID <= 0 {
+		return nil, errors.New("comment ID must be positive")
+	}
+
+	tokenProvider := s.authFactory.getTokenProvider(ctx, params.AccountName)
+	cr, err := s.client.ResolvePRComment(ctx, tokenProvider, bitbucket.ResolvePRCommentParams{
+		Workspace: params.RepoOwner,
+		RepoSlug:  params.RepoName,
+		PRID:      int64(params.PullRequestID),
+		CommentID: params.CommentID,
+	})
+	if err != nil {
+		return nil, fmt.Errorf("failed to resolve pull request comment: %w", err)
+	}
+	return cr, nil
 }

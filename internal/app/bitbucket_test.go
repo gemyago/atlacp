@@ -1,6 +1,7 @@
 package app
 
 import (
+	"encoding/json"
 	"errors"
 	"testing"
 	"time"
@@ -2605,19 +2606,23 @@ func TestBitbucketService(t *testing.T) {
 			token := "token-" + faker.UUIDHyphenated()
 			tokenProvider := newStaticTokenProvider(token)
 
-			// Create expected response
-			expectedComments := &bitbucket.ListPRCommentsResponse{
-				Values: []bitbucket.PRComment{
-					{
-						ID: 1,
-						Content: struct {
-							Raw string `json:"raw"`
-						}{Raw: "Test comment"},
-						Author:    &bitbucket.Account{DisplayName: faker.Name()},
-						CreatedOn: time.Now(),
-						UpdatedOn: time.Now(),
-					},
-				},
+			created := time.Now()
+			updated := time.Now()
+			rawComment := bitbucket.PRComment{
+				ID: 1,
+				Content: struct {
+					Raw string `json:"raw"`
+				}{Raw: "Test comment"},
+				Author:     &bitbucket.Account{DisplayName: faker.Name()},
+				CreatedOn:  created,
+				UpdatedOn:  updated,
+				Resolution: json.RawMessage("null"),
+			}
+			listResponse := &bitbucket.ListPRCommentsResponse{
+				Values: []bitbucket.PRComment{rawComment},
+			}
+			expected := &BitbucketListPRCommentsResult{
+				Values: []BitbucketPRComment{prCommentToBitbucketPRComment(rawComment, false)},
 			}
 
 			// Mock the auth factory to return our token provider
@@ -2635,7 +2640,7 @@ func TestBitbucketService(t *testing.T) {
 					assert.Zero(t, params.Page)          // no page specified
 					return true
 				})).
-				Return(expectedComments, nil)
+				Return(listResponse, nil)
 
 			// Act
 			result, err := service.ListPRComments(t.Context(), BitbucketListPRCommentsParams{
@@ -2646,7 +2651,7 @@ func TestBitbucketService(t *testing.T) {
 
 			// Assert
 			require.NoError(t, err)
-			assert.Equal(t, expectedComments, result)
+			assert.Equal(t, expected, result)
 		})
 
 		t.Run("passes pagination params through to client", func(t *testing.T) {
@@ -2664,11 +2669,17 @@ func TestBitbucketService(t *testing.T) {
 			token := "token-" + faker.UUIDHyphenated()
 			tokenProvider := newStaticTokenProvider(token)
 
-			expectedComments := &bitbucket.ListPRCommentsResponse{
+			listResponse := &bitbucket.ListPRCommentsResponse{
 				Size:    50,
 				Page:    page,
 				PageLen: pageLen,
 				Values:  []bitbucket.PRComment{},
+			}
+			expected := &BitbucketListPRCommentsResult{
+				Size:    listResponse.Size,
+				Page:    listResponse.Page,
+				PageLen: listResponse.PageLen,
+				Values:  []BitbucketPRComment{},
 			}
 
 			mockAuth.EXPECT().
@@ -2684,7 +2695,7 @@ func TestBitbucketService(t *testing.T) {
 					assert.Equal(t, pageLen, params.PageLen)
 					return true
 				})).
-				Return(expectedComments, nil)
+				Return(listResponse, nil)
 
 			// Act
 			result, err := service.ListPRComments(t.Context(), BitbucketListPRCommentsParams{
@@ -2697,7 +2708,7 @@ func TestBitbucketService(t *testing.T) {
 
 			// Assert
 			require.NoError(t, err)
-			assert.Equal(t, expectedComments, result)
+			assert.Equal(t, expected, result)
 		})
 
 		t.Run("applies default PageLen of 100 when caller specifies 0", func(t *testing.T) {
@@ -2713,11 +2724,17 @@ func TestBitbucketService(t *testing.T) {
 			token := "token-" + faker.UUIDHyphenated()
 			tokenProvider := newStaticTokenProvider(token)
 
-			expectedComments := &bitbucket.ListPRCommentsResponse{
+			listResponse := &bitbucket.ListPRCommentsResponse{
 				Size:    5,
 				Page:    1,
 				PageLen: 100,
 				Values:  []bitbucket.PRComment{},
+			}
+			expected := &BitbucketListPRCommentsResult{
+				Size:    listResponse.Size,
+				Page:    listResponse.Page,
+				PageLen: listResponse.PageLen,
+				Values:  []BitbucketPRComment{},
 			}
 
 			mockAuth.EXPECT().
@@ -2730,7 +2747,7 @@ func TestBitbucketService(t *testing.T) {
 					assert.Equal(t, 100, params.PageLen)
 					return true
 				})).
-				Return(expectedComments, nil)
+				Return(listResponse, nil)
 
 			// Act - explicitly pass PageLen: 0 (the zero value)
 			result, err := service.ListPRComments(t.Context(), BitbucketListPRCommentsParams{
@@ -2742,7 +2759,56 @@ func TestBitbucketService(t *testing.T) {
 
 			// Assert
 			require.NoError(t, err)
-			assert.Equal(t, expectedComments, result)
+			assert.Equal(t, expected, result)
+		})
+
+		t.Run("GETs single comment when list resolution is empty object", func(t *testing.T) {
+			deps := makeMockDeps(t)
+			mockClient := mocks.GetMock[*MockbitbucketClient](t, deps.Client)
+			mockAuth := mocks.GetMock[*MockbitbucketAuthFactory](t, deps.AuthFactory)
+			service := NewBitbucketService(deps)
+
+			repoOwner := "owner-" + faker.Username()
+			repoName := "repo-" + faker.Username()
+			prID := int(200 + faker.RandomUnixTime()%800)
+			token := "token-" + faker.UUIDHyphenated()
+			tokenProvider := newStaticTokenProvider(token)
+
+			listComment := bitbucket.PRComment{
+				ID: 77,
+				Content: struct {
+					Raw string `json:"raw"`
+				}{Raw: "thread"},
+				Resolution: json.RawMessage("{}"),
+			}
+			mockAuth.EXPECT().
+				getTokenProvider(mock.Anything, "").
+				Return(tokenProvider)
+			mockClient.EXPECT().
+				ListPRComments(mock.Anything, tokenProvider, mock.Anything).
+				Return(&bitbucket.ListPRCommentsResponse{Values: []bitbucket.PRComment{listComment}}, nil)
+			mockClient.EXPECT().
+				GetPRComment(mock.Anything, tokenProvider, mock.MatchedBy(func(p bitbucket.GetPRCommentParams) bool {
+					return p.Workspace == repoOwner && p.RepoSlug == repoName &&
+						p.PRID == int64(prID) && p.CommentID == 77
+				})).
+				Return(&bitbucket.PRComment{
+					ID: listComment.ID,
+					Content: struct {
+						Raw string `json:"raw"`
+					}{Raw: "thread"},
+					Resolution: json.RawMessage(`{"resolved":true}`),
+				}, nil)
+
+			result, err := service.ListPRComments(t.Context(), BitbucketListPRCommentsParams{
+				RepoOwner:     repoOwner,
+				RepoName:      repoName,
+				PullRequestID: prID,
+			})
+			require.NoError(t, err)
+			require.Len(t, result.Values, 1)
+			assert.True(t, result.Values[0].Resolved)
+			assert.Equal(t, int64(77), result.Values[0].ID)
 		})
 
 		t.Run("validates required parameters", func(t *testing.T) {
@@ -2788,6 +2854,40 @@ func TestBitbucketService(t *testing.T) {
 					assert.Contains(t, err.Error(), tc.errMsg)
 				})
 			}
+		})
+	})
+
+	t.Run("ResolvePRComment", func(t *testing.T) {
+		t.Run("calls client with validated params", func(t *testing.T) {
+			deps := makeMockDeps(t)
+			mockClient := mocks.GetMock[*MockbitbucketClient](t, deps.Client)
+			mockAuth := mocks.GetMock[*MockbitbucketAuthFactory](t, deps.AuthFactory)
+			service := NewBitbucketService(deps)
+			token := "token-" + faker.UUIDHyphenated()
+			tokenProvider := newStaticTokenProvider(token)
+			mockAuth.EXPECT().getTokenProvider(mock.Anything, "").Return(tokenProvider)
+			want := &bitbucket.CommentResolution{Type: "pullrequest_comment"}
+			mockClient.EXPECT().
+				ResolvePRComment(mock.Anything, tokenProvider, mock.MatchedBy(func(p bitbucket.ResolvePRCommentParams) bool {
+					return p.Workspace == "o" && p.RepoSlug == "r" && p.PRID == 1 && p.CommentID == 99
+				})).
+				Return(want, nil)
+
+			got, err := service.ResolvePRComment(t.Context(), BitbucketResolvePRCommentParams{
+				RepoOwner: "o", RepoName: "r", PullRequestID: 1, CommentID: 99,
+			})
+			require.NoError(t, err)
+			assert.Equal(t, want, got)
+		})
+
+		t.Run("validates repository owner", func(t *testing.T) {
+			deps := makeMockDeps(t)
+			service := NewBitbucketService(deps)
+			_, err := service.ResolvePRComment(t.Context(), BitbucketResolvePRCommentParams{
+				RepoOwner: "", RepoName: "r", PullRequestID: 1, CommentID: 1,
+			})
+			require.Error(t, err)
+			assert.Contains(t, err.Error(), "repository owner is required")
 		})
 	})
 }
