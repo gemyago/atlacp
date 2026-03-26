@@ -125,13 +125,6 @@ type bitbucketClient interface {
 		params bitbucket.RequestPRChangesParams,
 	) (string, time.Time, error)
 
-	// GetPRComment fetches a single pull request comment by ID.
-	GetPRComment(
-		ctx context.Context,
-		tokenProvider bitbucket.TokenProvider,
-		params bitbucket.GetPRCommentParams,
-	) (*bitbucket.PRComment, error)
-
 	// ResolvePRComment resolves a pull request comment thread.
 	ResolvePRComment(
 		ctx context.Context,

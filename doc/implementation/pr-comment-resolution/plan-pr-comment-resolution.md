@@ -7,19 +7,19 @@ Bitbucket’s list-comments API often returns `resolution: {}` (empty object), w
 ## Business Logic
 
 - Parse `resolution` JSON when it carries meaningful fields (`resolved`, `resolved_by`, `resolved_on`, etc.).
-- When resolution is absent, `null`, or empty `{}`, optionally **GET** the single comment to determine status; if GET still yields `{}`, treat as not resolved (known).
+- When resolution is absent, `null`, or empty `{}`, treat as not resolved (list payload only; no per-comment GET).
 - Resolve: call Bitbucket resolve endpoint; no request body.
 
 ## High-Level Architecture
 
-- **Services (`internal/services/bitbucket`)**: Raw API types (`PRComment` + `resolution` as `json.RawMessage`), `GetPRComment`, `ResolvePRComment`, `ResolvedStateFromResolutionJSON`.
+- **Services (`internal/services/bitbucket`)**: Raw API types (`PRComment` + `resolution` as `json.RawMessage`), `ResolvePRComment`, `ResolvedStateFromResolutionJSON`.
 - **App (`internal/app`)**: `BitbucketListPRCommentsResult` / `BitbucketPRComment` with `resolved`; `ListPRComments` enriches when needed; `ResolvePRComment`.
 - **MCP**: List tool returns app DTO JSON; new resolve tool.
 
 ## Key Architectural Decisions
 
 - Application layer returns `BitbucketListPRCommentsResult` (not `*bitbucket.ListPRCommentsResponse`) so MCP stays flat without Bitbucket’s nested `resolution` object.
-- N+1 GETs only when resolution state is ambiguous from the list payload.
+- No N+1 GETs; resolution state comes only from the list payload.
 
 ## Uncertainties
 
@@ -27,7 +27,7 @@ Bitbucket’s list-comments API often returns `resolution: {}` (empty object), w
 
 ## Related Files
 
-- `internal/services/bitbucket/models.go`, new `pr_comment_resolution.go`, `get_pr_comment.go`, `resolve_pr_comment.go`, tests
+- `internal/services/bitbucket/models.go`, new `pr_comment_resolution.go`, `resolve_pr_comment.go`, tests
 - `internal/app/bitbucket.go`, `ports.go`, mocks
 - `internal/api/mcp/controllers/bitbucket.go`, `ports.go`, mocks, tests
 - `doc/testing/bitbucket-mcp-integration-tests.md`
@@ -39,15 +39,15 @@ Bitbucket’s list-comments API often returns `resolution: {}` (empty object), w
 - Add `Resolution json.RawMessage` to `PRComment`.
 - Implement `ResolvedStateFromResolutionJSON` and unit tests (TDD).
 
-**Task 1.2: HTTP client — get / resolve comment**
+**Task 1.2: HTTP client — resolve comment**
 
-- Add `GetPRComment`, `ResolvePRComment` with tests (httptest).
+- Add `ResolvePRComment` with tests (httptest).
 
 **Task 1.2: App layer mapping and ListPRComments enrichment**
 
 - Add `BitbucketPRComment`, `BitbucketListPRCommentsResult`.
 - Implement `ListPRComments` enrichment + `ResolvePRComment`; update `bitbucketClient` port and regenerate mocks.
-- Update `bitbucket_test.go` (set `resolution` in list mocks or expect `GetPRComment`).
+- Update `bitbucket_test.go` (set `resolution` in list mocks as needed).
 
 **Task 1.3: MCP + integration doc**
 

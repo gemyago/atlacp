@@ -390,66 +390,6 @@ func (_c *MockbitbucketClient_GetPR_Call) RunAndReturn(run func(context.Context,
 	return _c
 }
 
-// GetPRComment provides a mock function with given fields: ctx, tokenProvider, params
-func (_m *MockbitbucketClient) GetPRComment(ctx context.Context, tokenProvider bitbucket.TokenProvider, params bitbucket.GetPRCommentParams) (*bitbucket.PRComment, error) {
-	ret := _m.Called(ctx, tokenProvider, params)
-
-	if len(ret) == 0 {
-		panic("no return value specified for GetPRComment")
-	}
-
-	var r0 *bitbucket.PRComment
-	var r1 error
-	if rf, ok := ret.Get(0).(func(context.Context, bitbucket.TokenProvider, bitbucket.GetPRCommentParams) (*bitbucket.PRComment, error)); ok {
-		return rf(ctx, tokenProvider, params)
-	}
-	if rf, ok := ret.Get(0).(func(context.Context, bitbucket.TokenProvider, bitbucket.GetPRCommentParams) *bitbucket.PRComment); ok {
-		r0 = rf(ctx, tokenProvider, params)
-	} else {
-		if ret.Get(0) != nil {
-			r0 = ret.Get(0).(*bitbucket.PRComment)
-		}
-	}
-
-	if rf, ok := ret.Get(1).(func(context.Context, bitbucket.TokenProvider, bitbucket.GetPRCommentParams) error); ok {
-		r1 = rf(ctx, tokenProvider, params)
-	} else {
-		r1 = ret.Error(1)
-	}
-
-	return r0, r1
-}
-
-// MockbitbucketClient_GetPRComment_Call is a *mock.Call that shadows Run/Return methods with type explicit version for method 'GetPRComment'
-type MockbitbucketClient_GetPRComment_Call struct {
-	*mock.Call
-}
-
-// GetPRComment is a helper method to define mock.On call
-//   - ctx context.Context
-//   - tokenProvider bitbucket.TokenProvider
-//   - params bitbucket.GetPRCommentParams
-func (_e *MockbitbucketClient_Expecter) GetPRComment(ctx interface{}, tokenProvider interface{}, params interface{}) *MockbitbucketClient_GetPRComment_Call {
-	return &MockbitbucketClient_GetPRComment_Call{Call: _e.mock.On("GetPRComment", ctx, tokenProvider, params)}
-}
-
-func (_c *MockbitbucketClient_GetPRComment_Call) Run(run func(ctx context.Context, tokenProvider bitbucket.TokenProvider, params bitbucket.GetPRCommentParams)) *MockbitbucketClient_GetPRComment_Call {
-	_c.Call.Run(func(args mock.Arguments) {
-		run(args[0].(context.Context), args[1].(bitbucket.TokenProvider), args[2].(bitbucket.GetPRCommentParams))
-	})
-	return _c
-}
-
-func (_c *MockbitbucketClient_GetPRComment_Call) Return(_a0 *bitbucket.PRComment, _a1 error) *MockbitbucketClient_GetPRComment_Call {
-	_c.Call.Return(_a0, _a1)
-	return _c
-}
-
-func (_c *MockbitbucketClient_GetPRComment_Call) RunAndReturn(run func(context.Context, bitbucket.TokenProvider, bitbucket.GetPRCommentParams) (*bitbucket.PRComment, error)) *MockbitbucketClient_GetPRComment_Call {
-	_c.Call.Return(run)
-	return _c
-}
-
 // GetPRDiff provides a mock function with given fields: ctx, tokenProvider, params
 func (_m *MockbitbucketClient) GetPRDiff(ctx context.Context, tokenProvider bitbucket.TokenProvider, params bitbucket.GetPRDiffParams) (string, error) {
 	ret := _m.Called(ctx, tokenProvider, params)
