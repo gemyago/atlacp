@@ -173,6 +173,17 @@ func TestBitbucketController(t *testing.T) {
 			assert.NotNil(t, serverTool.Tool.InputSchema)
 			assert.NotNil(t, serverTool.Handler)
 		})
+		t.Run("should define ResolvePRComment tool correctly", func(t *testing.T) {
+			deps := makeMockDeps(t)
+			controller := NewBitbucketController(deps)
+
+			serverTool := controller.newResolvePRCommentServerTool()
+
+			assert.Equal(t, "bitbucket_resolve_pr_comment", serverTool.Tool.Name)
+			assert.Equal(t, "Resolve a pull request comment thread in Bitbucket (no request body)", serverTool.Tool.Description)
+			assert.NotNil(t, serverTool.Tool.InputSchema)
+			assert.NotNil(t, serverTool.Handler)
+		})
 	})
 
 	t.Run("should register all tools", func(t *testing.T) {
@@ -181,9 +192,9 @@ func TestBitbucketController(t *testing.T) {
 
 		tools := controller.NewTools()
 
-		// 14 tools: create, read, update, approve, merge, list, update, create task,
-		// get diffstat, get diff, get file content, add comment, request changes, list comments
-		require.Len(t, tools, 14)
+		// 15 tools: create, read, update, approve, merge, list, update, create task,
+		// get diffstat, get diff, get file content, add comment, request changes, list comments, resolve comment
+		require.Len(t, tools, 15)
 		toolNames := make([]string, len(tools))
 		for i, tool := range tools {
 			toolNames[i] = tool.Tool.Name
@@ -199,6 +210,7 @@ func TestBitbucketController(t *testing.T) {
 		assert.Contains(t, toolNames, "bitbucket_get_pr_diffstat")
 		assert.Contains(t, toolNames, "bitbucket_get_pr_diff")
 		assert.Contains(t, toolNames, "bitbucket_get_file_content")
+		assert.Contains(t, toolNames, "bitbucket_resolve_pr_comment")
 	})
 
 	t.Run("handlers", func(t *testing.T) {
@@ -3979,6 +3991,15 @@ func TestBitbucketController(t *testing.T) {
 			content, ok := result.Content[0].(mcp.TextContent)
 			require.True(t, ok, "Result content should be text content")
 			assert.Contains(t, content.Text, fmt.Sprintf("Found 2 comments on pull request #%d", prID))
+
+			jsonContent, ok := result.Content[1].(mcp.TextContent)
+			require.True(t, ok)
+			var listResult app.BitbucketListPRCommentsResult
+			err = json.Unmarshal([]byte(jsonContent.Text), &listResult)
+			require.NoError(t, err)
+			require.Len(t, listResult.Values, 2)
+			assert.False(t, listResult.Values[0].Resolved)
+			assert.False(t, listResult.Values[1].Resolved)
 		})
 
 		t.Run("should handle no comments found", func(t *testing.T) {
@@ -4231,6 +4252,139 @@ func TestBitbucketController(t *testing.T) {
 			require.NoError(t, err)
 			require.NotNil(t, result)
 			assert.False(t, result.IsError)
+		})
+	})
+
+	t.Run("bitbucket_resolve_pr_comment", func(t *testing.T) {
+		t.Run("should handle ResolvePRComment call successfully", func(t *testing.T) {
+			deps := makeMockDeps(t)
+			mockService := mocks.GetMock[*MockbitbucketService](t, deps.BitbucketService)
+			controller := NewBitbucketController(deps)
+			ctx := t.Context()
+
+			prID := int(faker.RandomUnixTime())%1000000 + 1
+			commentID := int(faker.RandomUnixTime()%1000000 + 1)
+			repoOwner := "workspace-" + faker.Username()
+			repoName := "repo-" + faker.Word()
+			accountName := "account-" + faker.Username()
+
+			expectedParams := app.BitbucketResolvePRCommentParams{
+				PullRequestID: prID,
+				CommentID:     int64(commentID),
+				RepoOwner:     repoOwner,
+				RepoName:      repoName,
+				AccountName:   accountName,
+			}
+
+			resolution := &bitbucket.CommentResolution{
+				Type: "pullrequest_comment_resolution",
+				User: &bitbucket.Account{DisplayName: "Resolver"},
+			}
+
+			mockService.EXPECT().
+				ResolvePRComment(ctx, mock.MatchedBy(func(params app.BitbucketResolvePRCommentParams) bool {
+					return params.PullRequestID == expectedParams.PullRequestID &&
+						params.CommentID == expectedParams.CommentID &&
+						params.RepoOwner == expectedParams.RepoOwner &&
+						params.RepoName == expectedParams.RepoName &&
+						params.AccountName == expectedParams.AccountName
+				})).
+				Return(resolution, nil)
+
+			request := mcp.CallToolRequest{
+				Params: mcp.CallToolParams{
+					Name: "bitbucket_resolve_pr_comment",
+					Arguments: map[string]interface{}{
+						"pr_id":      prID,
+						"comment_id": commentID,
+						"repo_owner": repoOwner,
+						"repo_name":  repoName,
+						"account":    accountName,
+					},
+				},
+			}
+
+			serverTool := controller.newResolvePRCommentServerTool()
+			result, err := serverTool.Handler(ctx, request)
+
+			require.NoError(t, err)
+			require.NotNil(t, result)
+			assert.False(t, result.IsError)
+			require.Len(t, result.Content, 2)
+
+			summary, ok := result.Content[0].(mcp.TextContent)
+			require.True(t, ok)
+			assert.Contains(t, summary.Text, fmt.Sprintf("Resolved comment #%d on pull request #%d", commentID, prID))
+
+			jsonContent, ok := result.Content[1].(mcp.TextContent)
+			require.True(t, ok)
+			var parsed bitbucket.CommentResolution
+			err = json.Unmarshal([]byte(jsonContent.Text), &parsed)
+			require.NoError(t, err)
+			assert.Equal(t, resolution.Type, parsed.Type)
+		})
+
+		t.Run("should handle service error in ResolvePRComment", func(t *testing.T) {
+			deps := makeMockDeps(t)
+			mockService := mocks.GetMock[*MockbitbucketService](t, deps.BitbucketService)
+			controller := NewBitbucketController(deps)
+			ctx := t.Context()
+
+			prID := int(faker.RandomUnixTime())%1000000 + 1
+			commentID := 42
+			repoOwner := "workspace-" + faker.Username()
+			repoName := "repo-" + faker.Word()
+			expectedErr := errors.New("resolve failed: " + faker.Sentence())
+
+			mockService.EXPECT().
+				ResolvePRComment(ctx, mock.Anything).
+				Return(nil, expectedErr)
+
+			request := mcp.CallToolRequest{
+				Params: mcp.CallToolParams{
+					Name: "bitbucket_resolve_pr_comment",
+					Arguments: map[string]interface{}{
+						"pr_id":      prID,
+						"comment_id": commentID,
+						"repo_owner": repoOwner,
+						"repo_name":  repoName,
+					},
+				},
+			}
+
+			serverTool := controller.newResolvePRCommentServerTool()
+			result, err := serverTool.Handler(ctx, request)
+
+			require.Error(t, err)
+			assert.Contains(t, err.Error(), expectedErr.Error())
+			assert.Nil(t, result)
+		})
+
+		t.Run("should handle missing required parameters", func(t *testing.T) {
+			deps := makeMockDeps(t)
+			controller := NewBitbucketController(deps)
+			ctx := t.Context()
+
+			request := mcp.CallToolRequest{
+				Params: mcp.CallToolParams{
+					Name: "bitbucket_resolve_pr_comment",
+					Arguments: map[string]interface{}{
+						"pr_id":      1,
+						"repo_owner": "o",
+						"repo_name":  "n",
+					},
+				},
+			}
+
+			serverTool := controller.newResolvePRCommentServerTool()
+			result, err := serverTool.Handler(ctx, request)
+
+			require.NoError(t, err)
+			require.NotNil(t, result)
+			assert.True(t, result.IsError)
+			content, ok := result.Content[0].(mcp.TextContent)
+			require.True(t, ok)
+			assert.Contains(t, content.Text, "comment_id")
 		})
 	})
 }

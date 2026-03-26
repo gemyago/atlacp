@@ -742,6 +742,65 @@ func (_c *MockbitbucketService_RequestPRChanges_Call) RunAndReturn(run func(cont
 	return _c
 }
 
+// ResolvePRComment provides a mock function with given fields: ctx, params
+func (_m *MockbitbucketService) ResolvePRComment(ctx context.Context, params app.BitbucketResolvePRCommentParams) (*bitbucket.CommentResolution, error) {
+	ret := _m.Called(ctx, params)
+
+	if len(ret) == 0 {
+		panic("no return value specified for ResolvePRComment")
+	}
+
+	var r0 *bitbucket.CommentResolution
+	var r1 error
+	if rf, ok := ret.Get(0).(func(context.Context, app.BitbucketResolvePRCommentParams) (*bitbucket.CommentResolution, error)); ok {
+		return rf(ctx, params)
+	}
+	if rf, ok := ret.Get(0).(func(context.Context, app.BitbucketResolvePRCommentParams) *bitbucket.CommentResolution); ok {
+		r0 = rf(ctx, params)
+	} else {
+		if ret.Get(0) != nil {
+			r0 = ret.Get(0).(*bitbucket.CommentResolution)
+		}
+	}
+
+	if rf, ok := ret.Get(1).(func(context.Context, app.BitbucketResolvePRCommentParams) error); ok {
+		r1 = rf(ctx, params)
+	} else {
+		r1 = ret.Error(1)
+	}
+
+	return r0, r1
+}
+
+// MockbitbucketService_ResolvePRComment_Call is a *mock.Call that shadows Run/Return methods with type explicit version for method 'ResolvePRComment'
+type MockbitbucketService_ResolvePRComment_Call struct {
+	*mock.Call
+}
+
+// ResolvePRComment is a helper method to define mock.On call
+//   - ctx context.Context
+//   - params app.BitbucketResolvePRCommentParams
+func (_e *MockbitbucketService_Expecter) ResolvePRComment(ctx interface{}, params interface{}) *MockbitbucketService_ResolvePRComment_Call {
+	return &MockbitbucketService_ResolvePRComment_Call{Call: _e.mock.On("ResolvePRComment", ctx, params)}
+}
+
+func (_c *MockbitbucketService_ResolvePRComment_Call) Run(run func(ctx context.Context, params app.BitbucketResolvePRCommentParams)) *MockbitbucketService_ResolvePRComment_Call {
+	_c.Call.Run(func(args mock.Arguments) {
+		run(args[0].(context.Context), args[1].(app.BitbucketResolvePRCommentParams))
+	})
+	return _c
+}
+
+func (_c *MockbitbucketService_ResolvePRComment_Call) Return(_a0 *bitbucket.CommentResolution, _a1 error) *MockbitbucketService_ResolvePRComment_Call {
+	_c.Call.Return(_a0, _a1)
+	return _c
+}
+
+func (_c *MockbitbucketService_ResolvePRComment_Call) RunAndReturn(run func(context.Context, app.BitbucketResolvePRCommentParams) (*bitbucket.CommentResolution, error)) *MockbitbucketService_ResolvePRComment_Call {
+	_c.Call.Return(run)
+	return _c
+}
+
 // UpdatePR provides a mock function with given fields: ctx, params
 func (_m *MockbitbucketService) UpdatePR(ctx context.Context, params app.BitbucketUpdatePRParams) (*bitbucket.PullRequest, error) {
 	ret := _m.Called(ctx, params)

@@ -28,6 +28,10 @@ type bitbucketService interface {
 		ctx context.Context,
 		params app.BitbucketListPRCommentsParams,
 	) (*app.BitbucketListPRCommentsResult, error)
+	ResolvePRComment(
+		ctx context.Context,
+		params app.BitbucketResolvePRCommentParams,
+	) (*bitbucket.CommentResolution, error)
 }
 
 // Ensure that app.BitbucketService implements bitbucketService.

@@ -339,6 +339,11 @@ This test verifies the end-to-end functionality of the Bitbucket PR review tools
    - Use the `mcp.bitbucket_add_pr_comment` tool to add a general comment (not associated with a file or line) to the PR, such as "General comment for PR review tools test {timestamp}".
    - Verify that the general comment appears in the PR's comment list and is not associated with any file or line number.
 
+7. **Resolve a PR comment and verify `resolved` in list JSON**
+   - Pick a comment ID from step 4 or step 6 (inline thread root or general comment, as supported by Bitbucket for resolve).
+   - Use the `mcp.bitbucket_resolve_pr_comment` tool with `pr_id`, `comment_id`, `repo_owner`, `repo_name`, and optional `account`.
+   - Call `mcp.bitbucket_list_pr_comments` again and verify the JSON payload: the matching comment entry includes `resolved: true` (or document Bitbucket’s behavior if the thread cannot be resolved for that comment type).
+
 Update a report as per [instruction](#test-results-reporting).
 
 ## Test 6: PR Comments Pagination
