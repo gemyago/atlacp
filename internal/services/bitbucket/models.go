@@ -194,6 +194,13 @@ type PRComment struct {
 	Resolution json.RawMessage `json:"resolution,omitempty"`
 }
 
+// CommentResolution is the response body from POST .../comments/{comment_id}/resolve.
+type CommentResolution struct {
+	Type      string    `json:"type"`
+	User      *Account  `json:"user,omitempty"`
+	CreatedOn time.Time `json:"created_on,omitempty"`
+}
+
 // InlineContext represents the file and line context for inline comments.
 type InlineContext struct {
 	Path string `json:"path"`
