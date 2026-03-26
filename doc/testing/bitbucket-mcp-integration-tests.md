@@ -2,16 +2,16 @@
 
 This document provides step-by-step instructions for testing the Bitbucket MCP integration. These tests are designed to be executed by AI assistants to verify the correct functioning of the Bitbucket MCP tools.
 
-**Important**: If otherwise mentioned - figure out all the details of the repository and files **yourself** before you start the tests. Feel free to do it by running various git commands to get repository details. The user will provide the file system path to the repository and that's it.
-
 **Important**: If not mentioned, run all tests from this file.
 
-**Very Important**: The user **MUST** provide the file system path to the repository. Current workspace is NOT the bitbucket repository. If not provided - ask the user for the path.
+**Important**: The user **MUST** provide the file system path to the bitbucket repository. Current workspace is NOT the bitbucket repository. If not provided - ask the user for the path. Once you get repository, `git remote show origin` will help you to figure-out repo owner and name.
 
 It is expected that the prompt to start the test will have the following form:
 ```markdown
 Given the following Bitbucket repository `<file system path to the repository>`, run the tests as per the instructions in the `bitbucket-mcp-integration-tests.md` file.
 ```
+
+LLM must run each test scenario in a separate sub-agent.
 
 ## Prerequisites done by the user
 
@@ -20,6 +20,16 @@ It should be assumed that below is already prepared by the user:
 2. Proper Atlassian account configuration is set up with at least two accounts:
    - A default account - assume it is named "user" if not otherwise mentioned
    - A secondary account named "bot"
+
+### SSH Troubleshooting notes (for user ONLY)
+
+```bash
+# See which ssh key is used
+ssh -T git@bitbucket.org
+```
+
+If wrong key is used, define section for bitbucket explicitly: `Host bitbucket.org\n....`. 
+If you have wildcard ssh key, negate bitbucket from it: `Host * !bitbucket.org\n....`
 
 ## Working with the repository
 
