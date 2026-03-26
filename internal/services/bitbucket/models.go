@@ -1,6 +1,7 @@
 package bitbucket
 
 import (
+	"encoding/json"
 	"time"
 )
 
@@ -188,6 +189,9 @@ type PRComment struct {
 	Parent *struct {
 		ID int64 `json:"id"`
 	} `json:"parent,omitempty"`
+
+	// Resolution is omitted or empty ({}) in list responses; single-comment GET may return full details.
+	Resolution json.RawMessage `json:"resolution,omitempty"`
 }
 
 // InlineContext represents the file and line context for inline comments.
