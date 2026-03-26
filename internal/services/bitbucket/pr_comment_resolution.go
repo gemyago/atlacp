@@ -6,32 +6,19 @@ import (
 )
 
 // ResolvedStateFromResolutionJSON derives whether a PR comment is resolved from Bitbucket's
-// resolution JSON. When the API returns an empty object ("{}") or omits resolution, known is false
-// and callers should fetch the single comment if they need a definitive resolved flag.
-func ResolvedStateFromResolutionJSON(raw json.RawMessage) (bool, bool) {
+// resolution JSON. It returns true when raw is a JSON object (including "{}" or any object with
+// keys). It returns false for null, non-objects, invalid JSON, or empty input.
+func ResolvedStateFromResolutionJSON(raw json.RawMessage) bool {
 	if len(raw) == 0 {
-		return false, false
+		return false
 	}
 	s := strings.TrimSpace(string(raw))
-	if s == "null" {
-		return false, true
+	if s == "" {
+		return false
 	}
-	if s == "{}" {
-		return false, false
+	var m map[string]json.RawMessage
+	if err := json.Unmarshal([]byte(s), &m); err != nil || m == nil {
+		return false
 	}
-	var r struct {
-		Resolved   *bool    `json:"resolved,omitempty"`
-		ResolvedBy *Account `json:"resolved_by,omitempty"`
-		ResolvedOn string   `json:"resolved_on,omitempty"`
-	}
-	if err := json.Unmarshal(raw, &r); err != nil {
-		return false, false
-	}
-	if r.Resolved != nil {
-		return *r.Resolved, true
-	}
-	if r.ResolvedBy != nil || strings.TrimSpace(r.ResolvedOn) != "" {
-		return true, true
-	}
-	return false, true
+	return true
 }
