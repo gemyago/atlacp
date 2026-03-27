@@ -125,6 +125,13 @@ type bitbucketClient interface {
 		params bitbucket.RequestPRChangesParams,
 	) (string, time.Time, error)
 
+	// ResolvePRComment resolves a pull request comment thread.
+	ResolvePRComment(
+		ctx context.Context,
+		tokenProvider bitbucket.TokenProvider,
+		params bitbucket.ResolvePRCommentParams,
+	) (*bitbucket.CommentResolution, error)
+
 	// ListPRComments retrieves all comments for a specific pull request.
 	ListPRComments(
 		ctx context.Context,

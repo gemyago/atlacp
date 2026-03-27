@@ -6,6 +6,7 @@ import (
 	"math/rand"
 	"net/http"
 	"net/http/httptest"
+	"strconv"
 	"testing"
 	"time"
 
@@ -191,6 +192,101 @@ func TestClient_ListPRComments(t *testing.T) {
 		require.NoError(t, err)
 		require.NotNil(t, result)
 		assert.Empty(t, result.Values)
+	})
+
+	t.Run("sends pagination query params when specified", func(t *testing.T) {
+		// Arrange
+		workspace := "test-workspace-" + faker.Word()
+		repoSlug := "test-repo-" + faker.Word()
+		prID := int64(rand.Intn(1000) + 1)
+		page := rand.Intn(5) + 2     // 2-6
+		pagelen := rand.Intn(50) + 5 // 5-54
+
+		mockTokenProvider := &MockTokenProvider{
+			TokenType:  "Bearer",
+			TokenValue: faker.UUIDHyphenated(),
+		}
+
+		server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+			// Verify query params are sent
+			assert.Equal(t, strconv.Itoa(page), r.URL.Query().Get("page"))
+			assert.Equal(t, strconv.Itoa(pagelen), r.URL.Query().Get("pagelen"))
+
+			w.Header().Set("Content-Type", "application/json")
+			w.WriteHeader(http.StatusOK)
+			fmt.Fprintf(w, `{
+				"size": 50,
+				"page": %d,
+				"pagelen": %d,
+				"next": "https://api.bitbucket.org/2.0/next-page",
+				"previous": "https://api.bitbucket.org/2.0/prev-page",
+				"values": []
+			}`, page, pagelen)
+		}))
+		defer server.Close()
+
+		deps := makeMockDepsWithTestName(t, server.URL)
+		client := NewClient(deps)
+
+		params := ListPRCommentsParams{
+			Workspace: workspace,
+			RepoSlug:  repoSlug,
+			PRID:      prID,
+			Page:      page,
+			PageLen:   pagelen,
+		}
+
+		// Act
+		result, err := client.ListPRComments(t.Context(), mockTokenProvider, params)
+
+		// Assert
+		require.NoError(t, err)
+		require.NotNil(t, result)
+		assert.Equal(t, 50, result.Size)
+		assert.Equal(t, page, result.Page)
+		assert.Equal(t, pagelen, result.PageLen)
+		assert.Equal(t, "https://api.bitbucket.org/2.0/next-page", result.Next)
+		assert.Equal(t, "https://api.bitbucket.org/2.0/prev-page", result.Previous)
+	})
+
+	t.Run("no query params sent when pagination fields are zero-valued", func(t *testing.T) {
+		// Arrange
+		workspace := "test-workspace-" + faker.Word()
+		repoSlug := "test-repo-" + faker.Word()
+		prID := int64(rand.Intn(1000) + 1)
+
+		mockTokenProvider := &MockTokenProvider{
+			TokenType:  "Bearer",
+			TokenValue: faker.UUIDHyphenated(),
+		}
+
+		server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+			// Verify no pagination query params are sent
+			assert.Empty(t, r.URL.Query().Get("page"))
+			assert.Empty(t, r.URL.Query().Get("pagelen"))
+
+			w.Header().Set("Content-Type", "application/json")
+			w.WriteHeader(http.StatusOK)
+			fmt.Fprintf(w, `{"size": 0, "page": 1, "pagelen": 10, "values": []}`)
+		}))
+		defer server.Close()
+
+		deps := makeMockDepsWithTestName(t, server.URL)
+		client := NewClient(deps)
+
+		params := ListPRCommentsParams{
+			Workspace: workspace,
+			RepoSlug:  repoSlug,
+			PRID:      prID,
+			// Page and PageLen are zero-valued (not specified)
+		}
+
+		// Act
+		result, err := client.ListPRComments(t.Context(), mockTokenProvider, params)
+
+		// Assert
+		require.NoError(t, err)
+		require.NotNil(t, result)
 	})
 
 	t.Run("api error", func(t *testing.T) {

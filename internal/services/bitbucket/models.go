@@ -1,6 +1,7 @@
 package bitbucket
 
 import (
+	"encoding/json"
 	"time"
 )
 
@@ -188,6 +189,16 @@ type PRComment struct {
 	Parent *struct {
 		ID int64 `json:"id"`
 	} `json:"parent,omitempty"`
+
+	// Resolution is omitted or empty ({}) in list responses; single-comment GET may return full details.
+	Resolution json.RawMessage `json:"resolution,omitempty"`
+}
+
+// CommentResolution is the response body from POST .../comments/{comment_id}/resolve.
+type CommentResolution struct {
+	Type      string    `json:"type"`
+	User      *Account  `json:"user,omitempty"`
+	CreatedOn time.Time `json:"created_on,omitempty"`
 }
 
 // InlineContext represents the file and line context for inline comments.
@@ -202,10 +213,19 @@ type ListPRCommentsParams struct {
 	Workspace string `json:"workspace"`
 	RepoSlug  string `json:"repo_slug"`
 	PRID      int64  `json:"pr_id"`
+
+	// Optional pagination parameters
+	Page    int `json:"page,omitempty"`
+	PageLen int `json:"pagelen,omitempty"`
 }
 
 // ListPRCommentsResponse represents the response for listing PR comments.
 // This matches the Bitbucket API response structure directly.
 type ListPRCommentsResponse struct {
-	Values []PRComment `json:"values"`
+	Size     int         `json:"size,omitempty"`
+	Page     int         `json:"page,omitempty"`
+	PageLen  int         `json:"pagelen,omitempty"`
+	Next     string      `json:"next,omitempty"`
+	Previous string      `json:"previous,omitempty"`
+	Values   []PRComment `json:"values"`
 }

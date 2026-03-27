@@ -9,7 +9,7 @@ To guide an AI assistant in creating a detailed plan of the work in Markdown for
 1.  **Receive Initial Prompt:** The user provides a brief description or request for a new feature or functionality, optionally referencing existing document
 2.  **Do Research:** Before creating the plan, the AI *must* do the research of the codebase to gather sufficient detail. The goal is to understand the "what", "why" and most important **how** of the requested work.
 3.  **Generate Plan:** Based on the initial prompt and the research, generate the plan using the structure outlined below.
-4.  **Save the Plan:** Save the generated document as `plan-[feature-name].md` inside the `/doc/[feature-name]` directory.
+4.  **Save the Plan:** Save the generated document as `plan-[feature-name].md` inside the `/doc/implementation/[feature-name]` directory (relevant to the module).
 
 ## Research Areas (Examples)
 
@@ -35,7 +35,7 @@ The generated Plan may include the following sections when applicable:
 5. **Key Architectural Decisions:** List key architectural decisions that were made.
 6. **Uncertanties:** List any uncertanties (if present) or areas needing further clarification.
 8. **Releted Files** List all files related to the change. If new files needs to be created - mention them as well.
-7. **Task List** Detailed numbered list of tasks (steps) that needs to be taken to implement the required plan. Please note that TDD approach should be followed to implement the desired change as per [tdd-flow](../tdd-flow.md) (mention this in the task list). Please note that each task should be self contained - codebase is "operational" after each task. Completion protocol must followed as per project guidelines to ensure the codebase is in a "operational" state.
+7. **Task List** Detailed numbered list of tasks (steps) that needs to be taken to implement the required plan. Please note that TDD approach must be followed to implement the desired change (mention this in the task list). Please note that each task should be self contained. Module specific task completion protocol **must** be followed.
 
 ### Example task format
 
@@ -53,13 +53,19 @@ The generated Plan may include the following sections when applicable:
 - Implement `updateUser(_ update: UserUpdate)` logic
 - Run affected tests: `go test -v ./<package> --run <test pattern>`
   - Verify all tests pass
-- Write summary to `doc/<plan-slug>/completed-task-x.x.md`
-- Success criteria: As per completion protocol, at least: `make test` passes, `make lint` passes, summary written
+- Write summary to `docs/implementation/plan-<plan-slug>/summary-task-x.x.md`
+- All checks from completion protocol must be passed
 ```
 
 Important notes:
 - Tests for new types/new fields are not required, only logic needs tests
-- Any task should leave the codebase in "operational" state
+- Any task should leave the codebase in builable state as per module specific task completion protocol.
+
+Last task must always be the following:
+```markdown
+**Task X.X: Compress implementation summaries**
+- Follow [compress-implementation-summaries.md](/.context/compress-implementation-summaries.md) to compress the implementation summaries.
+```
 
 ## Target Audience
 
@@ -68,7 +74,7 @@ Assume the primary reader of the Plan is a **junior developer**. Therefore, requ
 ## Output
 
 *   **Format:** Markdown (`.md`)
-*   **Location:** `/doc/[feature-name]`
+*   **Location:** `/doc/implementation/[feature-name]` (relevant to the module)
 *   **Filename:** `plan-[feature-name].md`
 
 ## Final instructions

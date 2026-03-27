@@ -2,16 +2,23 @@
 
 This document provides step-by-step instructions for testing the Bitbucket MCP integration. These tests are designed to be executed by AI assistants to verify the correct functioning of the Bitbucket MCP tools.
 
-**Important**: If otherwise mentioned - figure out all the details of the repository and files **yourself** before you start the tests. Feel free to do it by running various git commands to get repository details. The user will provide the file system path to the repository and that's it.
-
 **Important**: If not mentioned, run all tests from this file.
 
-**Very Important**: The user **MUST** provide the file system path to the repository. Current workspace is NOT the bitbucket repository. If not provided - ask the user for the path.
+**Important**: The user may provide the file system path to the bitbucket repository. Current workspace is NOT the bitbucket repository. If not provided - try to see if `atlacp-integration-tests` repository exists in a parent folder of the current workspace. Once you get repository, `git remote show origin` will help you to figure-out repo owner and name. Do not attempt to recursively search for the repository in all parent folders, just check the repo as suggested above, if not found - ask the user for the path.
 
 It is expected that the prompt to start the test will have the following form:
 ```markdown
 Given the following Bitbucket repository `<file system path to the repository>`, run the tests as per the instructions in the `bitbucket-mcp-integration-tests.md` file.
 ```
+
+### Execution model (mandatory, no exceptions)
+
+- **Tests always run in sub-agents.** Every numbered test (Test 1, Test 2, …) **must** be executed **only** inside a **separate delegated sub-agent** (e.g. Cursor Task tool or equivalent). The orchestrator **must not** run that test’s git commands, Bitbucket MCP calls, or any step that mutates the integration repo or Bitbucket state.
+- **No waiver.** This rule applies if the user asks for one test, “just Test N”, “first test only”, or the full suite. Convenience, speed, or “single coherent thread” are **not** reasons to run test steps in the orchestrator.
+- **Orchestrator-only work is allowed** (and encouraged where useful): planning order, spawning sub-agents, passing repo path / `repo_owner` / `repo_name` / test id, **verification that does not execute the test** (e.g. confirming sub-agents have MCP, merging `tmp/integration-tests-*.md` from outputs, summarizing pass/fail). The orchestrator does **not** substitute for a sub-agent when executing a test.
+- **Why sub-agents**: isolates failures, avoids mixing state between tests, and matches parallelization and review expectations.
+- **Orchestrator responsibilities**: confirm Bitbucket MCP is available to sub-agents; launch one sub-agent per test to run; collect outputs and produce the final report.
+- **Sub-agent responsibilities**: perform **all** shell work in the provided repo path and **all** `bitbucket_*` MCP calls for **that test only**; write/update the workspace results file for that test’s steps; return a concise pass/fail summary and PR ids to the orchestrator.
 
 ## Prerequisites done by the user
 
@@ -20,6 +27,16 @@ It should be assumed that below is already prepared by the user:
 2. Proper Atlassian account configuration is set up with at least two accounts:
    - A default account - assume it is named "user" if not otherwise mentioned
    - A secondary account named "bot"
+
+### SSH Troubleshooting notes (for user ONLY)
+
+```bash
+# See which ssh key is used
+ssh -T git@bitbucket.org
+```
+
+If wrong key is used, define section for bitbucket explicitly: `Host bitbucket.org\n....`. 
+If you have wildcard ssh key, negate bitbucket from it: `Host * !bitbucket.org\n....`
 
 ## Working with the repository
 
@@ -323,6 +340,83 @@ This test verifies the end-to-end functionality of the Bitbucket PR review tools
    - Use the `mcp.bitbucket_add_pr_comment` tool to add a general comment (not associated with a file or line) to the PR, such as "General comment for PR review tools test {timestamp}".
    - Verify that the general comment appears in the PR's comment list and is not associated with any file or line number.
 
+7. **Resolve a PR comment and verify `resolved` in list JSON**
+   - Pick a comment ID from step 4 or step 6 (inline thread root or general comment, as supported by Bitbucket for resolve).
+   - Use the `mcp.bitbucket_resolve_pr_comment` tool with `pr_id`, `comment_id`, `repo_owner`, `repo_name`, and optional `account`.
+   - Call `mcp.bitbucket_list_pr_comments` again and verify the JSON payload: the matching comment entry includes `resolved: true` (or document Bitbucket’s behavior if the thread cannot be resolved for that comment type).
+
+Update a report as per [instruction](#test-results-reporting).
+
+## Test 6: PR Comments Pagination
+
+This test verifies that PR comments can be retrieved with pagination parameters (`page`, `pagelen`) and that pagination metadata is correctly returned.
+
+### Steps
+
+1. **Setup test environment**
+   - Create a new working branch from main: `feature/pr-comments-pagination-test-{timestamp}`
+   - Create (or update) a test file `integration-tests/bitbucket/test-files/integration-test-file.txt` with new content (e.g., current time)
+   - Commit and push the changes
+
+2. **Create a Pull Request**
+   - Use the `mcp.bitbucket_create_pr` tool with the following parameters:
+     - title: "PR Comments Pagination Test {timestamp}"
+     - source_branch: "feature/pr-comments-pagination-test-{timestamp}"
+     - target_branch: "main"
+     - repo_owner: your workspace name
+     - repo_name: your repository name
+     - description: "This is an automated PR comments pagination test (Test 6)"
+   - Extract and save the PR ID for subsequent steps
+
+3. **Post 20+ comments**
+   - Use the `mcp.bitbucket_add_pr_comment` tool to add at least 20 comments to the PR
+   - Mix general comments and inline comments on the test file:
+     - Add at least 15 general comments with content such as "Pagination test comment {n} {timestamp}"
+     - Add at least 5 inline comments (specifying a file path and line number from the committed test file)
+   - Keep track of all comment IDs returned by each call
+   - Verify that all 20+ comment creation calls succeeded
+
+4. **List comments with default pagelen**
+   - Use the `mcp.bitbucket_list_pr_comments` tool with only `pr_id`, `repo_owner`, and `repo_name` (no `page` or `pagelen`)
+   - Verify that:
+     - All 20+ comments are returned in a single response (default pagelen is 100)
+     - The `size` field in the response is >= 20
+     - The `pagelen` field in the response is 100
+     - The `page` field in the response is 1
+
+5. **List comments with small pagelen**
+   - Use the `mcp.bitbucket_list_pr_comments` tool with `pagelen: 5` (no `page` specified)
+   - Verify that:
+     - Exactly 5 comments are returned
+     - The `pagelen` field in the response is 5
+     - The `page` field in the response is 1
+     - The `next` field is present (indicating there are more pages)
+     - The `size` field is >= 20
+
+6. **List comments on page 2**
+   - Use the `mcp.bitbucket_list_pr_comments` tool with `pagelen: 5, page: 2`
+   - Verify that:
+     - Exactly 5 comments are returned
+     - The `page` field in the response is 2
+     - The comment IDs on page 2 are different from those on page 1
+
+7. **Iterate through all pages and collect all comment IDs**
+   - Starting from page 1 with `pagelen: 5`, iterate through all pages by incrementing `page` until the `next` field is absent
+   - Collect all comment IDs across all pages
+   - Verify that:
+     - The total number of collected comment IDs matches the `size` reported in the first paginated response
+     - All original comment IDs posted in step 3 are present in the collected set
+     - No duplicate comment IDs appear across pages
+
+8. **Clean up**
+   - Approve the PR using the `mcp.bitbucket_approve_pr` tool
+   - Merge the PR using the `mcp.bitbucket_merge_pr` tool with:
+     - merge_strategy: "squash"
+     - close_source_branch: "true"
+   - Make sure the main branch is checked out again
+   - Pull the latest changes
+   - Delete the working branch
+
 Update a report as per [instruction](#test-results-reporting).
 
 ## Test Results Reporting
@@ -369,7 +463,7 @@ When completed all tests, copy the results file from a **current workspace** to 
 4. Commit and push the branch
 5. Use MCP tool to create, approve and merge the PR:
     - title: "Bitbucket MCP Integration Tests Results {timestamp}"
-    - description: "This is an automated integration tests results (Test 1, Test 2, ....., Test X) {timestamp}"
+    - description: "This is an automated integration tests results (Test 1, Test 2, Test 3, Test 4, Test 5, Test 6) {timestamp}"
     - source_branch: "feature/bitbucket-mcp-integration-tests-results-{timestamp}"
     - target_branch: "main"
     - repo_owner: your workspace name
@@ -395,7 +489,9 @@ gh pr comment <pr_id> --body "Integration tests results: <results file URL>"
 
 As an AI assistant, when asked to run integration tests using this document, follow these steps:
 
-1. Confirm the ATLACP tools are available to you and you can use them.
-2. For each tests follow the exact instruction
-3. Document the results as you progress
-4. Report the results as per instruction in the end of the process
+1. Confirm the ATLACP Bitbucket MCP tools are available **to sub-agents** (sub-agents need the same MCP access as the parent; if a sub-agent cannot call MCP, **do not** run the test in the orchestrator—report that limitation to the user instead).
+2. **Strict rule:** **Every** test’s executable steps run **only** in a dedicated sub-agent. The orchestrator may verify prerequisites, merge reports, and summarize; it **must not** run git or `bitbucket_*` calls for a test’s procedure in the main thread.
+3. **For each test** you are asked to run: **spawn a dedicated sub-agent** and pass it the Bitbucket repo filesystem path, `repo_owner` / `repo_name` (from `git remote show origin` if needed), and the test number.
+4. Follow each test’s steps **inside that test’s sub-agent** exactly as written.
+5. Document the results as you progress (orchestrator merges sub-agent outputs into `tmp/integration-tests-*.md` as appropriate).
+6. Report the results as per [Test Results Reporting](#test-results-reporting) at the end of the process.

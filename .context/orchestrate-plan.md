@@ -2,6 +2,8 @@
 
 **Pre Condition**: This instruction is for AI agents with mode switching/running sub-agents capabilities only. If you don't have access to mode switching/running sub-agents, please report the limitation and do not proceed.
 
+**Important**: You are doing plan orchestration, this means you do not need to understand the work itself, instead just delegate the work as per instructions.
+
 ## Input
 
 You will be given a plan usually in form of a document as an input. The plan will usually include a tasks list. Each task should be assumed to be `atomic` - this means it can be implemented fully independently and after the implementation the codebase is supposed to stay in a "green" state (all tests passing).
