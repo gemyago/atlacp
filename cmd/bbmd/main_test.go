@@ -1,7 +1,13 @@
 package main
 
 import (
+	"bytes"
+	"encoding/json"
+	"errors"
+	"io"
+	"os"
 	"path/filepath"
+	"strings"
 	"testing"
 
 	"github.com/go-faker/faker/v4"
@@ -9,7 +15,266 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
+// faultyWriter fails every Write; used to cover auth status stdout error handling.
+type faultyWriter struct{}
+
+func (faultyWriter) Write([]byte) (int, error) {
+	return 0, errors.New("injected write error")
+}
+
 func TestBBMD(t *testing.T) {
+	t.Run("auth", func(t *testing.T) {
+		t.Run("status noop exercises DI", func(t *testing.T) {
+			rootCmd := setupCommands()
+			logFile := filepath.Join(t.TempDir(), "bbmd-test.log")
+			rootCmd.SetArgs([]string{
+				"auth", "status",
+				"--noop",
+				"--logs-file", logFile,
+			})
+			require.NoError(t, rootCmd.Execute())
+		})
+		t.Run("status without noop prints empty array", func(t *testing.T) {
+			var stdout bytes.Buffer
+			rootCmd := setupCommands()
+			rootCmd.SetOut(&stdout)
+			rootCmd.SetErr(io.Discard)
+			dir := t.TempDir()
+			accountsPath := filepath.Join(dir, "accounts.json")
+			logFile := filepath.Join(dir, "bbmd.log")
+			rootCmd.SetArgs([]string{
+				"auth", "status",
+				"--logs-file", logFile,
+				"--atlassian-accounts-file", accountsPath,
+			})
+			require.NoError(t, rootCmd.Execute())
+			assert.JSONEq(t, "[]", strings.TrimSpace(stdout.String()))
+		})
+		t.Run("status redacts jira token from file", func(t *testing.T) {
+			dir := t.TempDir()
+			accountsPath := filepath.Join(dir, "accounts.json")
+			logFile := filepath.Join(dir, "bbmd.log")
+			accountsJSON := `{
+  "accounts": [
+    {
+      "name": "jin",
+      "default": true,
+      "jira": { "type": "Bearer", "value": "jjjjjjjjjjjjjjjj" }
+    }
+  ]
+}`
+			require.NoError(t, os.WriteFile(accountsPath, []byte(accountsJSON), 0o600))
+
+			var stdout bytes.Buffer
+			rootCmd := setupCommands()
+			rootCmd.SetOut(&stdout)
+			rootCmd.SetErr(io.Discard)
+			rootCmd.SetArgs([]string{
+				"auth", "status",
+				"--logs-file", logFile,
+				"--atlassian-accounts-file", accountsPath,
+			})
+			require.NoError(t, rootCmd.Execute())
+
+			var rows []map[string]any
+			require.NoError(t, json.Unmarshal(bytes.TrimSpace(stdout.Bytes()), &rows))
+			require.Len(t, rows, 1)
+			jr := rows[0]["jira"].(map[string]any)
+			assert.Equal(t, "jjjj***jjjj", jr["value"])
+		})
+		t.Run("status returns error when stdout write fails", func(t *testing.T) {
+			dir := t.TempDir()
+			accountsPath := filepath.Join(dir, "accounts.json")
+			logFile := filepath.Join(dir, "bbmd.log")
+			rootCmd := setupCommands()
+			rootCmd.SetOut(faultyWriter{})
+			rootCmd.SetErr(io.Discard)
+			rootCmd.SetArgs([]string{
+				"auth", "status",
+				"--logs-file", logFile,
+				"--atlassian-accounts-file", accountsPath,
+			})
+			err := rootCmd.Execute()
+			require.Error(t, err)
+			assert.ErrorContains(t, err, "write auth status")
+		})
+		t.Run("mutating commands persist and status redacts", func(t *testing.T) {
+			dir := t.TempDir()
+			accountsPath := filepath.Join(dir, "accounts.json")
+			logFile := filepath.Join(dir, "bbmd.log")
+			base := []string{"--logs-file", logFile, "--atlassian-accounts-file", accountsPath}
+
+			runExec := func(args ...string) {
+				t.Helper()
+				c := setupCommands()
+				c.SetOut(io.Discard)
+				c.SetErr(io.Discard)
+				c.SetArgs(append(args, base...))
+				require.NoError(t, c.Execute())
+			}
+
+			runExec(
+				"auth", "add",
+				"--name", "a1",
+				"--default",
+				"--token-value", "aaaaaaaaaaaaaaaa",
+			)
+			runExec(
+				"auth", "add",
+				"--name", "b2",
+				"--token-value", "bbbbbbbbbbbbbbbb",
+			)
+
+			var st bytes.Buffer
+			stCmd := setupCommands()
+			stCmd.SetOut(&st)
+			stCmd.SetErr(io.Discard)
+			stCmd.SetArgs(append([]string{"auth", "status"}, base...))
+			require.NoError(t, stCmd.Execute())
+
+			var rows []map[string]any
+			require.NoError(t, json.Unmarshal(bytes.TrimSpace(st.Bytes()), &rows))
+			require.Len(t, rows, 2)
+
+			runExec("auth", "set-default", "--name", "b2")
+			runExec("auth", "remove", "--name", "a1")
+
+			st2 := bytes.Buffer{}
+			stCmd2 := setupCommands()
+			stCmd2.SetOut(&st2)
+			stCmd2.SetErr(io.Discard)
+			stCmd2.SetArgs(append([]string{"auth", "status"}, base...))
+			require.NoError(t, stCmd2.Execute())
+			require.NoError(t, json.Unmarshal(bytes.TrimSpace(st2.Bytes()), &rows))
+			require.Len(t, rows, 1)
+			bb := rows[0]["bitbucket"].(map[string]any)
+			assert.Equal(t, "bbbb***bbbb", bb["value"])
+		})
+		t.Run("add remove set-default noop", func(t *testing.T) {
+			logFile := filepath.Join(t.TempDir(), "bbmd-test.log")
+			for _, args := range [][]string{
+				{"auth", "add", "--noop", "--name", "n", "--token-value", "zzzzzzzzzzzzzzzz"},
+				{"auth", "remove", "--noop", "--name", "n"},
+				{"auth", "set-default", "--noop", "--name", "n"},
+			} {
+				rootCmd := setupCommands()
+				rootCmd.SetOut(io.Discard)
+				rootCmd.SetErr(io.Discard)
+				rootCmd.SetArgs(append(args, "--logs-file", logFile))
+				require.NoError(t, rootCmd.Execute())
+			}
+		})
+		t.Run("add returns error when save fails", func(t *testing.T) {
+			roDir := filepath.Join(t.TempDir(), "ro")
+			require.NoError(t, os.Mkdir(roDir, 0o555))
+			accountsPath := filepath.Join(roDir, "accounts.json")
+			logFile := filepath.Join(t.TempDir(), "bbmd-test.log")
+			rootCmd := setupCommands()
+			rootCmd.SilenceErrors = true
+			rootCmd.SilenceUsage = true
+			rootCmd.SetOut(io.Discard)
+			rootCmd.SetErr(io.Discard)
+			rootCmd.SetArgs([]string{
+				"auth", "add",
+				"--name", "n1",
+				"--default",
+				"--token-value", "zzzzzzzzzzzzzzzz",
+				"--logs-file", logFile,
+				"--atlassian-accounts-file", accountsPath,
+			})
+			err := rootCmd.Execute()
+			require.Error(t, err)
+			assert.ErrorContains(t, err, "save accounts")
+		})
+		t.Run("remove returns error when save fails", func(t *testing.T) {
+			dir := t.TempDir()
+			dataDir := filepath.Join(dir, "data")
+			require.NoError(t, os.MkdirAll(dataDir, 0o755))
+			accountsPath := filepath.Join(dataDir, "accounts.json")
+			logFile := filepath.Join(dir, "bbmd-test.log")
+
+			add1 := setupCommands()
+			add1.SetOut(io.Discard)
+			add1.SetErr(io.Discard)
+			add1.SetArgs([]string{
+				"auth", "add",
+				"--name", "keep",
+				"--default",
+				"--token-value", "zzzzzzzzzzzzzzzz",
+				"--logs-file", logFile,
+				"--atlassian-accounts-file", accountsPath,
+			})
+			require.NoError(t, add1.Execute())
+
+			add2 := setupCommands()
+			add2.SetOut(io.Discard)
+			add2.SetErr(io.Discard)
+			add2.SetArgs([]string{
+				"auth", "add",
+				"--name", "drop",
+				"--token-value", "yyyyyyyyyyyyyyyy",
+				"--logs-file", logFile,
+				"--atlassian-accounts-file", accountsPath,
+			})
+			require.NoError(t, add2.Execute())
+
+			require.NoError(t, os.Chmod(dataDir, 0o555))
+			t.Cleanup(func() { _ = os.Chmod(dataDir, 0o755) })
+
+			rm := setupCommands()
+			rm.SilenceErrors = true
+			rm.SilenceUsage = true
+			rm.SetOut(io.Discard)
+			rm.SetErr(io.Discard)
+			rm.SetArgs([]string{
+				"auth", "remove",
+				"--name", "drop",
+				"--logs-file", logFile,
+				"--atlassian-accounts-file", accountsPath,
+			})
+			err := rm.Execute()
+			require.Error(t, err)
+			assert.ErrorContains(t, err, "save accounts")
+		})
+		t.Run("set-default returns error when save fails", func(t *testing.T) {
+			dir := t.TempDir()
+			dataDir := filepath.Join(dir, "data")
+			require.NoError(t, os.MkdirAll(dataDir, 0o755))
+			accountsPath := filepath.Join(dataDir, "accounts.json")
+			logFile := filepath.Join(dir, "bbmd-test.log")
+
+			add := setupCommands()
+			add.SetOut(io.Discard)
+			add.SetErr(io.Discard)
+			add.SetArgs([]string{
+				"auth", "add",
+				"--name", "only",
+				"--default",
+				"--token-value", "zzzzzzzzzzzzzzzz",
+				"--logs-file", logFile,
+				"--atlassian-accounts-file", accountsPath,
+			})
+			require.NoError(t, add.Execute())
+
+			require.NoError(t, os.Chmod(dataDir, 0o555))
+			t.Cleanup(func() { _ = os.Chmod(dataDir, 0o755) })
+
+			sd := setupCommands()
+			sd.SilenceErrors = true
+			sd.SilenceUsage = true
+			sd.SetOut(io.Discard)
+			sd.SetErr(io.Discard)
+			sd.SetArgs([]string{
+				"auth", "set-default",
+				"--name", "only",
+				"--logs-file", logFile,
+				"--atlassian-accounts-file", accountsPath,
+			})
+			err := sd.Execute()
+			require.Error(t, err)
+			assert.ErrorContains(t, err, "save accounts")
+		})
+	})
 	t.Run("pr", func(t *testing.T) {
 		t.Run("read noop exercises DI", func(t *testing.T) {
 			rootCmd := setupCommands()

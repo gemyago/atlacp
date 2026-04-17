@@ -18,7 +18,7 @@ import (
 //nolint:gochecknoglobals // root --noop shared by all bbmd executors
 var noop bool
 
-//nolint:gochecknoglobals,unused // set in PersistentPreRunE for auth SaveToFile (task 2.2+)
+//nolint:gochecknoglobals // set in PersistentPreRunE for auth SaveToFile
 var resolvedAccountsFilePath string
 
 func newRootCmd(container *dig.Container) *cobra.Command {
