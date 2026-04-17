@@ -359,6 +359,22 @@ func TestBBMD(t *testing.T) {
 			}
 		})
 	})
+	t.Run("file", func(t *testing.T) {
+		t.Run("content noop exercises DI", func(t *testing.T) {
+			rootCmd := setupCommands()
+			logFile := filepath.Join(t.TempDir(), "bbmd-test.log")
+			rootCmd.SetArgs([]string{
+				"file", "content",
+				"--noop",
+				"--logs-file", logFile,
+				"--repo-owner", "dummy-owner",
+				"--repo-name", "dummy-repo",
+				"--commit", "deadbeef",
+				"--path", "README.md",
+			})
+			require.NoError(t, rootCmd.Execute())
+		})
+	})
 	t.Run("root", func(t *testing.T) {
 		t.Run("should fail if bad log level", func(t *testing.T) {
 			rootCmd := setupCommands()

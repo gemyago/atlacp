@@ -5,6 +5,7 @@ tmp
 .DS_Store
 .cover
 test.log
+bbmd.log
 .venv
 
 # Ignore MCP configs for now
