@@ -1,3 +1,8 @@
+// AccountsStore (defined below) provides in-memory management of validated Atlassian accounts
+// with optional JSON file persistence (load/save using the same {"accounts":[...]} envelope as
+// the file-backed repository). This standalone component is not registered in application
+// dependency injection; construct it directly where needed until wiring is added.
+
 package services
 
 import (
@@ -12,8 +17,8 @@ import (
 	"github.com/gemyago/atlacp/internal/app"
 )
 
-// AccountsStore holds validated Atlassian accounts in memory. It can be loaded from
-// and saved to the same JSON file shape as the file-backed repository ({ "accounts": [...] }).
+// AccountsStore holds validated Atlassian accounts in memory. It can be loaded from and saved
+// to the same JSON file shape as the file-backed repository ({ "accounts": [...] }).
 // Mutations replace the in-memory list only after full re-validation; SaveToFile writes atomically.
 type AccountsStore struct {
 	mu       sync.RWMutex
