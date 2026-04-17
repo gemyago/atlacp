@@ -10,6 +10,7 @@ import (
 	"testing"
 
 	"github.com/gemyago/atlacp/internal/app"
+	"github.com/gemyago/atlacp/internal/diag"
 	"github.com/go-faker/faker/v4"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -33,6 +34,45 @@ func TestAccountsStore(t *testing.T) {
 
 		return tempFile
 	}
+
+	t.Run("NewAccountsStoreWithDeps", func(t *testing.T) {
+		makeDeps := func(configPath string) AccountsStoreDeps {
+			return AccountsStoreDeps{
+				RootLogger: diag.RootTestLogger(),
+				ConfigPath: configPath,
+			}
+		}
+
+		t.Run("fails when config path is empty", func(t *testing.T) {
+			store, err := NewAccountsStoreWithDeps(makeDeps(""))
+			require.Error(t, err)
+			assert.Nil(t, store)
+			assert.Equal(t, "accounts configuration path not specified", err.Error())
+		})
+
+		t.Run("fails when config file does not exist", func(t *testing.T) {
+			missing := filepath.Join(t.TempDir(), "nonexistent-"+faker.Username()+".json")
+			store, err := NewAccountsStoreWithDeps(makeDeps(missing))
+			require.Error(t, err)
+			assert.Nil(t, store)
+			assert.Contains(t, err.Error(), "not found")
+		})
+
+		t.Run("loads valid config from file", func(t *testing.T) {
+			defaultAccount := app.NewRandomAtlassianAccount(app.WithAtlassianAccountDefault(true))
+			other := app.NewRandomAtlassianAccount()
+			path := createTempAccountsFile(t, []app.AtlassianAccount{other, defaultAccount})
+
+			store, err := NewAccountsStoreWithDeps(makeDeps(path))
+			require.NoError(t, err)
+			require.NotNil(t, store)
+
+			got, err := store.GetDefaultAccount(t.Context())
+			require.NoError(t, err)
+			require.NotNil(t, got)
+			assert.Equal(t, defaultAccount, *got)
+		})
+	})
 
 	t.Run("LoadFromFile and queries", func(t *testing.T) {
 		t.Run("happy path loads and returns default and account by name", func(t *testing.T) {

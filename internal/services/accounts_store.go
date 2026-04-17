@@ -10,11 +10,13 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"log/slog"
 	"os"
 	"path/filepath"
 	"sync"
 
 	"github.com/gemyago/atlacp/internal/app"
+	"go.uber.org/dig"
 )
 
 // AccountsStore holds validated Atlassian accounts in memory. It can be loaded from and saved
@@ -23,6 +25,38 @@ import (
 type AccountsStore struct {
 	mu       sync.RWMutex
 	accounts []app.AtlassianAccount
+	logger   *slog.Logger // set by NewAccountsStoreWithDeps; reserved for future logging parity with the former repository
+}
+
+// AccountsStoreDeps contains dependencies for constructing an AccountsStore from the configured accounts file (DI).
+type AccountsStoreDeps struct {
+	dig.In
+
+	RootLogger *slog.Logger
+	ConfigPath string `name:"config.atlassian.accountsFilePath"`
+}
+
+// NewAccountsStoreWithDeps loads validated accounts from ConfigPath into a new store. It mirrors startup
+// behavior of the former file-backed repository: empty path and missing file fail before load; other errors
+// come from LoadFromFile.
+func NewAccountsStoreWithDeps(deps AccountsStoreDeps) (*AccountsStore, error) {
+	logger := deps.RootLogger.WithGroup("atlassian-accounts")
+	configPath := deps.ConfigPath
+
+	if configPath == "" {
+		return nil, errors.New("accounts configuration path not specified")
+	}
+
+	if _, err := os.Stat(configPath); os.IsNotExist(err) {
+		return nil, fmt.Errorf("accounts configuration file not found at %s", configPath)
+	}
+
+	store := &AccountsStore{logger: logger}
+	if err := store.LoadFromFile(configPath); err != nil {
+		return nil, err
+	}
+
+	return store, nil
 }
 
 // NewAccountsStore returns an empty store. Call LoadFromFile to populate it.
