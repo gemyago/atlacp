@@ -3,16 +3,18 @@ package services
 import (
 	"context"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"os"
+	"path/filepath"
 	"sync"
 
 	"github.com/gemyago/atlacp/internal/app"
 )
 
 // AccountsStore holds validated Atlassian accounts in memory. It can be loaded from
-// the same JSON file shape as the file-backed repository ({ "accounts": [...] }).
-// Mutations and persistence are not implemented in this iteration.
+// and saved to the same JSON file shape as the file-backed repository ({ "accounts": [...] }).
+// Mutations replace the in-memory list only after full re-validation; SaveToFile writes atomically.
 type AccountsStore struct {
 	mu       sync.RWMutex
 	accounts []app.AtlassianAccount
@@ -80,4 +82,156 @@ func (s *AccountsStore) GetAccountByName(_ context.Context, name string) (*app.A
 	}
 
 	return nil, fmt.Errorf("%w: %s", app.ErrAccountNotFound, name)
+}
+
+// Upsert inserts or replaces an account by name. The full resulting configuration is validated
+// before it replaces the stored state.
+func (s *AccountsStore) Upsert(account app.AtlassianAccount) error {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+
+	next := cloneAtlassianAccounts(s.accounts)
+	found := false
+	for i := range next {
+		if next[i].Name == account.Name {
+			next[i] = account
+			found = true
+			break
+		}
+	}
+	if !found {
+		next = append(next, account)
+	}
+
+	if validateErr := app.ValidateAtlassianAccounts(next); validateErr != nil {
+		return fmt.Errorf("invalid accounts configuration: %w", validateErr)
+	}
+
+	s.accounts = cloneAtlassianAccounts(next)
+	return nil
+}
+
+// Remove deletes the account with the given name. The full resulting configuration is validated
+// before committing (e.g. removing the last account or the only default fails validation).
+func (s *AccountsStore) Remove(name string) error {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+
+	next := cloneAtlassianAccounts(s.accounts)
+	found := false
+	for i := range next {
+		if next[i].Name == name {
+			next = append(next[:i], next[i+1:]...)
+			found = true
+			break
+		}
+	}
+	if !found {
+		return fmt.Errorf("%w: %s", app.ErrAccountNotFound, name)
+	}
+
+	if validateErr := app.ValidateAtlassianAccounts(next); validateErr != nil {
+		return fmt.Errorf("invalid accounts configuration: %w", validateErr)
+	}
+
+	s.accounts = cloneAtlassianAccounts(next)
+	return nil
+}
+
+// SetDefault marks the named account as the sole default. The full resulting configuration is validated
+// before committing.
+func (s *AccountsStore) SetDefault(name string) error {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+
+	next := cloneAtlassianAccounts(s.accounts)
+	found := false
+	for i := range next {
+		if next[i].Name == name {
+			found = true
+		}
+		next[i].Default = next[i].Name == name
+	}
+	if !found {
+		return fmt.Errorf("%w: %s", app.ErrAccountNotFound, name)
+	}
+
+	if validateErr := app.ValidateAtlassianAccounts(next); validateErr != nil {
+		return fmt.Errorf("invalid accounts configuration: %w", validateErr)
+	}
+
+	s.accounts = cloneAtlassianAccounts(next)
+	return nil
+}
+
+// SaveToFile writes the current accounts to path as JSON ({ "accounts": [...] }) using a
+// temporary file in the same directory followed by rename so the target file is not left partial.
+func (s *AccountsStore) SaveToFile(path string) error {
+	if path == "" {
+		return errors.New("accounts save path is empty")
+	}
+
+	s.mu.RLock()
+	snapshot := cloneAtlassianAccounts(s.accounts)
+	s.mu.RUnlock()
+
+	if validateErr := app.ValidateAtlassianAccounts(snapshot); validateErr != nil {
+		return fmt.Errorf("invalid accounts configuration: %w", validateErr)
+	}
+
+	config := atlassianAccountsConfig{Accounts: snapshot}
+	data, err := json.Marshal(config)
+	if err != nil {
+		return fmt.Errorf("failed to marshal accounts configuration: %w", err)
+	}
+
+	if writeErr := writeAccountsFileAtomically(path, data); writeErr != nil {
+		return writeErr
+	}
+
+	return nil
+}
+
+func cloneAtlassianAccounts(src []app.AtlassianAccount) []app.AtlassianAccount {
+	if len(src) == 0 {
+		return nil
+	}
+	dst := make([]app.AtlassianAccount, len(src))
+	copy(dst, src)
+	return dst
+}
+
+func writeAccountsFileAtomically(path string, data []byte) error {
+	dir := filepath.Dir(path)
+	f, err := os.CreateTemp(dir, "."+filepath.Base(path)+".*.tmp")
+	if err != nil {
+		return fmt.Errorf("failed to create temp file for accounts save: %w", err)
+	}
+
+	tmpName := f.Name()
+	cleanup := true
+	defer func() {
+		if cleanup {
+			_ = os.Remove(tmpName)
+		}
+	}()
+
+	if _, writeErr := f.Write(data); writeErr != nil {
+		_ = f.Close()
+		return fmt.Errorf("failed to write accounts temp file: %w", writeErr)
+	}
+	if syncErr := f.Sync(); syncErr != nil {
+		_ = f.Close()
+		return fmt.Errorf("failed to sync accounts temp file: %w", syncErr)
+	}
+	if closeErr := f.Close(); closeErr != nil {
+		return fmt.Errorf("failed to close accounts temp file: %w", closeErr)
+	}
+
+	//nolint:gosec // caller-chosen save path; temp file is in the same directory as destination
+	if renameErr := os.Rename(tmpName, path); renameErr != nil {
+		return fmt.Errorf("failed to replace accounts file: %w", renameErr)
+	}
+	cleanup = false
+	return nil
 }

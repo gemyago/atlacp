@@ -32,7 +32,7 @@ type BitbucketAuthFactoryDeps struct {
 }
 
 // newBitbucketAuthFactory creates a new Bitbucket account auth component.
-func newBitbucketAuthFactory(deps BitbucketAuthFactoryDeps) bitbucketAuthFactory { //nolint:ireturn
+func newBitbucketAuthFactory(deps BitbucketAuthFactoryDeps) bitbucketAuthFactory {
 	return &bitbucketAuthFactoryImpl{
 		accountsRepo: deps.AccountsRepo,
 		logger:       deps.RootLogger.WithGroup("app.bitbucket-account-auth"),
@@ -41,8 +41,6 @@ func newBitbucketAuthFactory(deps BitbucketAuthFactoryDeps) bitbucketAuthFactory
 
 // getTokenProvider returns a TokenProvider for the specified account name.
 // If accountName is empty, uses the default account.
-//
-//nolint:ireturn
 func (a *bitbucketAuthFactoryImpl) getTokenProvider(
 	_ context.Context,
 	accountName string,
