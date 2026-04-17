@@ -1,0 +1,121 @@
+package main
+
+import (
+	"errors"
+	"fmt"
+	"log/slog"
+
+	"github.com/gemyago/atlacp/internal/app"
+	"github.com/gemyago/atlacp/internal/config"
+	"github.com/gemyago/atlacp/internal/di"
+	"github.com/gemyago/atlacp/internal/diag"
+	"github.com/gemyago/atlacp/internal/services"
+	"github.com/samber/lo"
+	"github.com/spf13/cobra"
+	"go.uber.org/dig"
+)
+
+//nolint:gochecknoglobals // root --noop shared by all bbmd executors
+var noop bool
+
+//nolint:gochecknoglobals,unused // set in PersistentPreRunE for auth SaveToFile (task 2.2+)
+var resolvedAccountsFilePath string
+
+func newRootCmd(container *dig.Container) *cobra.Command {
+	logsOutputFile := "bbmd.log"
+
+	cmd := &cobra.Command{
+		Use:   "bbmd",
+		Short: "Bitbucket CLI — direct access to Bitbucket and account operations",
+	}
+	cmd.SilenceUsage = true
+	cmd.PersistentFlags().StringP("log-level", "l", "", "Produce logs with given level. Default is env specific.")
+	cmd.PersistentFlags().StringVar(
+		&logsOutputFile,
+		"logs-file",
+		"bbmd.log",
+		"Write logs to this file (default bbmd.log in the current directory).",
+	)
+	cmd.PersistentFlags().Bool(
+		"json-logs",
+		false,
+		"Indicates if logs should be in JSON format or text (default)",
+	)
+	cmd.PersistentFlags().StringP(
+		"env",
+		"e",
+		"",
+		"Env that the process is running in.",
+	)
+	cmd.PersistentFlags().StringP(
+		"atlassian-accounts-file",
+		"a",
+		"",
+		"Path to the Atlassian accounts file.",
+	)
+	cmd.PersistentFlags().BoolVar(
+		&noop,
+		"noop",
+		false,
+		"Dry-run: wire dependencies and skip real Bitbucket/account side effects.",
+	)
+	cfg := config.New()
+	lo.Must0(cfg.BindPFlag("atlassian.accountsFilePath", cmd.PersistentFlags().Lookup("atlassian-accounts-file")))
+	lo.Must0(cfg.BindPFlag("jsonLogs", cmd.PersistentFlags().Lookup("json-logs")))
+	lo.Must0(cfg.BindPFlag("defaultLogLevel", cmd.PersistentFlags().Lookup("log-level")))
+	lo.Must0(cfg.BindPFlag("env", cmd.PersistentFlags().Lookup("env")))
+	cmd.PersistentPreRunE = func(cmd *cobra.Command, _ []string) error {
+		err := config.Load(cfg, config.NewLoadOpts().WithEnv(cfg.GetString("env")))
+		if err != nil {
+			return err
+		}
+
+		accountsFile, err := cmd.Flags().GetString("atlassian-accounts-file")
+		if err != nil {
+			return fmt.Errorf("get atlassian-accounts-file flag: %w", err)
+		}
+		if accountsFile == "" {
+			defaultPath, pathErr := services.DefaultAccountsFilePath()
+			if pathErr != nil {
+				return fmt.Errorf("resolve default atlassian accounts file path: %w", pathErr)
+			}
+			resolvedAccountsFilePath = defaultPath
+			cfg.Set("atlassian.accountsFilePath", defaultPath)
+		} else {
+			resolvedAccountsFilePath = accountsFile
+		}
+
+		var logLevel slog.Level
+		if err = logLevel.UnmarshalText([]byte(cfg.GetString("defaultLogLevel"))); err != nil {
+			return err
+		}
+
+		rootLogger := diag.SetupRootLogger(
+			diag.NewRootLoggerOpts().
+				WithJSONLogs(cfg.GetBool("jsonLogs")).
+				WithLogLevel(logLevel).
+				WithOptionalOutputFile(logsOutputFile),
+		)
+
+		err = errors.Join(
+			config.Provide(container, cfg),
+			app.Register(container),
+			services.Register(container),
+			di.ProvideAll(container,
+				di.ProvideValue(rootLogger),
+			),
+		)
+
+		return lo.
+			If(err != nil, fmt.Errorf("failed to inject dependencies: %w", err)).
+			Else(nil)
+	}
+
+	cmd.AddCommand(
+		newPRCmd(container),
+		newFileCmd(container),
+		newAuthCmd(container),
+	)
+
+	return cmd
+}
