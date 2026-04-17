@@ -28,6 +28,9 @@ type AccountsStore struct {
 	logger   *slog.Logger // set by NewAccountsStoreWithDeps; reserved for future logging parity with the former repository
 }
 
+// Compile-time check: AccountsStore is wired in DI as app.AtlassianAccountsRepository.
+var _ app.AtlassianAccountsRepository = (*AccountsStore)(nil)
+
 // AccountsStoreDeps contains dependencies for constructing an AccountsStore from the configured accounts file (DI).
 type AccountsStoreDeps struct {
 	dig.In

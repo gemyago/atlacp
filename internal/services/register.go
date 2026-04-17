@@ -3,6 +3,7 @@ package services
 import (
 	"time"
 
+	"github.com/gemyago/atlacp/internal/app"
 	"github.com/gemyago/atlacp/internal/di"
 	"github.com/gemyago/atlacp/internal/services/bitbucket"
 	httpservices "github.com/gemyago/atlacp/internal/services/http"
@@ -18,6 +19,7 @@ func Register(container *dig.Container) error {
 		httpservices.NewClientFactory,
 		bitbucket.NewClient,
 		jira.NewClient,
-		NewAtlassianAccountsRepository,
+		NewAccountsStoreWithDeps,
+		di.ProvideAs[*AccountsStore, app.AtlassianAccountsRepository],
 	)
 }
