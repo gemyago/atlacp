@@ -223,166 +223,20 @@ func TestAtlassianAccountsRepository(t *testing.T) {
 		})
 	})
 
-	t.Run("validateAccountsConfig", func(t *testing.T) {
-		t.Run("should fail when no accounts are configured", func(t *testing.T) {
-			// Arrange
-			config := &atlassianAccountsConfig{
-				Accounts: []app.AtlassianAccount{},
-			}
+	t.Run("NewAtlassianAccountsRepository rejects invalid accounts via shared validation", func(t *testing.T) {
+		invalid := []app.AtlassianAccount{
+			app.NewRandomAtlassianAccount(),
+			app.NewRandomAtlassianAccount(),
+		}
+		invalid[0].Default = false
+		invalid[1].Default = false
 
-			// Act
-			err := validateAccountsConfig(config)
+		configPath := createTempAccountsFile(t, invalid)
+		deps := makeMockDeps(configPath)
 
-			// Assert
-			require.Error(t, err, "Should fail with empty accounts")
-			assert.Contains(t, err.Error(), "no accounts configured", "Error should mention no accounts")
-		})
-
-		t.Run("should fail with duplicate account names", func(t *testing.T) {
-			// Arrange
-			name := "duplicate-" + faker.Username()
-			account1 := app.NewRandomAtlassianAccount(app.WithAtlassianAccountName(name))
-			account2 := app.NewRandomAtlassianAccount(app.WithAtlassianAccountName(name))
-
-			config := &atlassianAccountsConfig{
-				Accounts: []app.AtlassianAccount{account1, account2},
-			}
-
-			// Act
-			err := validateAccountsConfig(config)
-
-			// Assert
-			require.Error(t, err, "Should fail with duplicate names")
-			assert.Contains(t, err.Error(), "duplicate account name", "Error should mention duplicate name")
-		})
-
-		t.Run("should fail with multiple default accounts", func(t *testing.T) {
-			// Arrange
-			account1 := app.NewRandomAtlassianAccount(app.WithAtlassianAccountDefault(true))
-			account2 := app.NewRandomAtlassianAccount(app.WithAtlassianAccountDefault(true))
-
-			config := &atlassianAccountsConfig{
-				Accounts: []app.AtlassianAccount{account1, account2},
-			}
-
-			// Act
-			err := validateAccountsConfig(config)
-
-			// Assert
-			require.Error(t, err, "Should fail with multiple default accounts")
-			assert.Contains(
-				t,
-				err.Error(),
-				"multiple default accounts defined",
-				"Error should mention multiple defaults",
-			)
-		})
-
-		t.Run("should fail with no default account", func(t *testing.T) {
-			// Arrange
-			account1 := app.NewRandomAtlassianAccount()
-			account1.Default = false
-			account2 := app.NewRandomAtlassianAccount()
-			account2.Default = false
-
-			config := &atlassianAccountsConfig{
-				Accounts: []app.AtlassianAccount{account1, account2},
-			}
-
-			// Act
-			err := validateAccountsConfig(config)
-
-			// Assert
-			require.Error(t, err, "Should fail with no default account")
-			assert.Contains(t, err.Error(), "no default account specified", "Error should mention no default")
-		})
-	})
-
-	t.Run("validateBasicAccountProperties", func(t *testing.T) {
-		t.Run("should fail with empty account name", func(t *testing.T) {
-			// Arrange
-			account := app.NewRandomAtlassianAccount()
-			account.Name = ""
-			existingNames := make(map[string]bool)
-
-			// Act
-			err := validateBasicAccountProperties(account, existingNames)
-
-			// Assert
-			require.Error(t, err, "Should fail with empty name")
-			assert.Contains(t, err.Error(), "account missing name", "Error should mention missing name")
-		})
-
-		t.Run("should fail with no services configured", func(t *testing.T) {
-			// Arrange
-			account := app.NewRandomAtlassianAccount()
-			account.Bitbucket = nil
-			account.Jira = nil
-			existingNames := make(map[string]bool)
-
-			// Act
-			err := validateBasicAccountProperties(account, existingNames)
-
-			// Assert
-			require.Error(t, err, "Should fail with no services")
-			assert.Contains(t, err.Error(), "must have at least one service configured",
-				"Error should mention service requirement")
-		})
-	})
-
-	t.Run("validateBitbucketConfig", func(t *testing.T) {
-		t.Run("should fail with empty token", func(t *testing.T) {
-			// Arrange
-			account := app.NewRandomAtlassianAccount()
-			account.Bitbucket.Value = ""
-
-			// Act
-			err := validateBitbucketConfig(account)
-
-			// Assert
-			require.Error(t, err, "Should fail with empty token")
-			assert.Contains(t, err.Error(), "missing Bitbucket token", "Error should mention missing token")
-		})
-
-		t.Run("should fail with empty type", func(t *testing.T) {
-			// Arrange
-			account := app.NewRandomAtlassianAccount()
-			account.Bitbucket.Type = ""
-
-			// Act
-			err := validateBitbucketConfig(account)
-
-			// Assert
-			require.Error(t, err, "Should fail with empty type")
-			assert.Contains(t, err.Error(), "missing Bitbucket token type", "Error should mention missing type")
-		})
-	})
-
-	t.Run("validateJiraConfig", func(t *testing.T) {
-		t.Run("should fail with empty token", func(t *testing.T) {
-			// Arrange
-			account := app.NewRandomAtlassianAccount()
-			account.Jira.Value = ""
-
-			// Act
-			err := validateJiraConfig(account)
-
-			// Assert
-			require.Error(t, err, "Should fail with empty token")
-			assert.Contains(t, err.Error(), "missing Jira token", "Error should mention missing token")
-		})
-
-		t.Run("should fail with empty type", func(t *testing.T) {
-			// Arrange
-			account := app.NewRandomAtlassianAccount()
-			account.Jira.Type = ""
-
-			// Act
-			err := validateJiraConfig(account)
-
-			// Assert
-			require.Error(t, err, "Should fail with empty domain")
-			assert.Contains(t, err.Error(), "missing Jira token type", "Error should mention missing type")
-		})
+		_, err := NewAtlassianAccountsRepository(deps)
+		require.Error(t, err)
+		assert.Contains(t, err.Error(), "invalid accounts configuration")
+		assert.Contains(t, err.Error(), "no default account specified")
 	})
 }

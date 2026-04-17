@@ -61,7 +61,7 @@ func NewAtlassianAccountsRepository(deps AtlassianAccountsRepositoryDeps) (app.A
 	}
 
 	// Validate configuration
-	if validateErr := validateAccountsConfig(&config); validateErr != nil {
+	if validateErr := app.ValidateAtlassianAccounts(config.Accounts); validateErr != nil {
 		return nil, fmt.Errorf("invalid accounts configuration: %w", validateErr)
 	}
 
@@ -89,103 +89,4 @@ func (r *atlassianAccountsRepository) GetAccountByName(_ context.Context, name s
 		}
 	}
 	return nil, fmt.Errorf("%w: %s", app.ErrAccountNotFound, name)
-}
-
-// validateAccountsConfig validates the accounts configuration.
-func validateAccountsConfig(config *atlassianAccountsConfig) error {
-	if len(config.Accounts) == 0 {
-		return errors.New("no accounts configured")
-	}
-
-	accountNames := make(map[string]bool)
-	foundDefault := false
-
-	for _, account := range config.Accounts {
-		// Validate basic account properties
-		if err := validateBasicAccountProperties(account, accountNames); err != nil {
-			return err
-		}
-		accountNames[account.Name] = true
-
-		// Validate service-specific configuration
-		if err := validateServiceConfigs(account); err != nil {
-			return err
-		}
-
-		// Track default account
-		if account.Default {
-			if foundDefault {
-				return errors.New("multiple default accounts defined")
-			}
-			foundDefault = true
-		}
-	}
-
-	// Ensure at least one default account exists
-	if !foundDefault {
-		return errors.New("no default account specified")
-	}
-
-	return nil
-}
-
-// validateBasicAccountProperties validates non-service-specific account properties.
-func validateBasicAccountProperties(account app.AtlassianAccount, existingNames map[string]bool) error {
-	// Check for duplicate names
-	if existingNames[account.Name] {
-		return fmt.Errorf("duplicate account name: %s", account.Name)
-	}
-
-	// Check that name is specified
-	if account.Name == "" {
-		return errors.New("account missing name")
-	}
-
-	// Ensure at least one service is configured
-	if account.Bitbucket == nil && account.Jira == nil {
-		return fmt.Errorf("account %s must have at least one service configured", account.Name)
-	}
-
-	return nil
-}
-
-// validateServiceConfigs validates Bitbucket and Jira configurations for an account.
-func validateServiceConfigs(account app.AtlassianAccount) error {
-	// Validate Bitbucket configuration if provided
-	if account.Bitbucket != nil {
-		if err := validateBitbucketConfig(account); err != nil {
-			return err
-		}
-	}
-
-	// Validate Jira configuration if provided
-	if account.Jira != nil {
-		if err := validateJiraConfig(account); err != nil {
-			return err
-		}
-	}
-
-	return nil
-}
-
-// validateBitbucketConfig validates Bitbucket-specific configuration.
-func validateBitbucketConfig(account app.AtlassianAccount) error {
-	if account.Bitbucket.Value == "" {
-		return fmt.Errorf("account %s is missing Bitbucket token value", account.Name)
-	}
-	if account.Bitbucket.Type == "" {
-		return fmt.Errorf("account %s is missing Bitbucket token type", account.Name)
-	}
-	return nil
-}
-
-// validateJiraConfig validates Jira-specific configuration.
-func validateJiraConfig(account app.AtlassianAccount) error {
-	if account.Jira.Value == "" {
-		return fmt.Errorf("account %s is missing Jira token value", account.Name)
-	}
-	if account.Jira.Type == "" {
-		return fmt.Errorf("account %s is missing Jira token type", account.Name)
-	}
-	return nil
 }
