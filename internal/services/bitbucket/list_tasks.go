@@ -59,7 +59,7 @@ func (c *Client) ListPullRequestTasks(
 
 	// Make API call
 	var response PaginatedTasks
-	err = http.SendRequest(ctxWithAuth, c.httpClient, http.SendRequestParams[interface{}, PaginatedTasks]{
+	err = http.SendRequest(ctxWithAuth, c.httpClient, http.SendRequestParams[any, PaginatedTasks]{
 		Method: "GET",
 		URL:    requestURL,
 		Target: &response,

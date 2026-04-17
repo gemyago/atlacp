@@ -29,7 +29,11 @@ func TestClient_GetPRDiff(t *testing.T) {
 
 		server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 			assert.Equal(t, "GET", r.Method)
-			assert.Equal(t, fmt.Sprintf("/repositories/%s/%s/pullrequests/%d/diff", username, repoSlug, prID), r.URL.Path)
+			assert.Equal(
+				t,
+				fmt.Sprintf("/repositories/%s/%s/pullrequests/%d/diff", username, repoSlug, prID),
+				r.URL.Path,
+			)
 			assert.Equal(t, "Bearer "+mockTokenProvider.TokenValue, r.Header.Get("Authorization"))
 
 			w.Header().Set("Content-Type", "text/plain")
@@ -79,7 +83,7 @@ func TestClient_GetPRDiff(t *testing.T) {
 			PRID:      prID,
 		})
 		require.Error(t, err)
-		assert.Equal(t, "", result)
+		assert.Empty(t, result)
 		assert.ErrorContains(t, err, "failed to read diff response")
 	})
 
@@ -139,7 +143,11 @@ func TestClient_GetPRDiff(t *testing.T) {
 
 		server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 			assert.Equal(t, "GET", r.Method)
-			assert.Equal(t, fmt.Sprintf("/repositories/%s/%s/pullrequests/%d/diff", username, repoSlug, prID), r.URL.Path)
+			assert.Equal(
+				t,
+				fmt.Sprintf("/repositories/%s/%s/pullrequests/%d/diff", username, repoSlug, prID),
+				r.URL.Path,
+			)
 			assert.Equal(t, "Bearer "+mockTokenProvider.TokenValue, r.Header.Get("Authorization"))
 			// Check query params
 			q := r.URL.Query()
@@ -196,7 +204,7 @@ func TestClient_GetPRDiff(t *testing.T) {
 		})
 
 		require.Error(t, err)
-		assert.Equal(t, "", result)
+		assert.Empty(t, result)
 		assert.ErrorContains(t, err, "get diff failed")
 	})
 
@@ -219,7 +227,7 @@ func TestClient_GetPRDiff(t *testing.T) {
 		})
 
 		require.Error(t, err)
-		assert.Equal(t, "", result)
+		assert.Empty(t, result)
 		assert.ErrorContains(t, err, "failed to get token")
 	})
 	t.Run("parameter validation errors", func(t *testing.T) {
@@ -234,14 +242,18 @@ func TestClient_GetPRDiff(t *testing.T) {
 		}{
 			{"missing RepoOwner", GetPRDiffParams{RepoName: "repo", PRID: 1}, "RepoOwner is required"},
 			{"missing RepoName", GetPRDiffParams{RepoOwner: "owner", PRID: 1}, "RepoName is required"},
-			{"missing PRID", GetPRDiffParams{RepoOwner: "owner", RepoName: "repo"}, "PRID is required and must be non-zero"},
+			{
+				"missing PRID",
+				GetPRDiffParams{RepoOwner: "owner", RepoName: "repo"},
+				"PRID is required and must be non-zero",
+			},
 		}
 		client := NewClient(makeMockDepsWithTestName(t, "http://example.com"))
 		for _, tc := range tests {
 			t.Run(tc.name, func(t *testing.T) {
 				result, err := client.GetPRDiff(t.Context(), mockTokenProvider, tc.params)
 				require.Error(t, err)
-				assert.Equal(t, "", result)
+				assert.Empty(t, result)
 				assert.ErrorContains(t, err, tc.errMsg)
 			})
 		}

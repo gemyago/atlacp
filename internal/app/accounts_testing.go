@@ -37,7 +37,7 @@ func WithAtlassianAccountJira(opts ...AtlassianTokenOpt) AtlassianAccountOpt {
 	}
 }
 
-// BitbucketAccountOpt is a function that configures a BitbucketAccount.
+// AtlassianTokenOpt is a function that configures an AtlassianToken.
 type AtlassianTokenOpt func(*AtlassianToken)
 
 // WithBitbucketAccountToken sets the Bitbucket token.
@@ -71,7 +71,7 @@ func NewRandomAtlassianAccount(opts ...AtlassianAccountOpt) AtlassianAccount {
 	return account
 }
 
-// NewRandomBitbucketAccount generates a random BitbucketAccount for testing.
+// NewRandomAtlassianToken generates a random AtlassianToken for testing.
 func NewRandomAtlassianToken(opts ...AtlassianTokenOpt) *AtlassianToken {
 	account := &AtlassianToken{
 		Type:  faker.Word(),

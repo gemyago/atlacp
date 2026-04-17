@@ -48,7 +48,11 @@ func TestClient_ListPRComments(t *testing.T) {
 		server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 			// Verify request details
 			assert.Equal(t, "GET", r.Method)
-			assert.Equal(t, fmt.Sprintf("/repositories/%s/%s/pullrequests/%d/comments", workspace, repoSlug, prID), r.URL.Path)
+			assert.Equal(
+				t,
+				fmt.Sprintf("/repositories/%s/%s/pullrequests/%d/comments", workspace, repoSlug, prID),
+				r.URL.Path,
+			)
 			assert.Equal(t, "Bearer "+mockTokenProvider.TokenValue, r.Header.Get("Authorization"))
 
 			// Return successful response with both general and inline comments

@@ -14,7 +14,7 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
-// MockRoundTripper is a mock implementation of http.RoundTripper for testing.
+// MockRoundTripper is a mock implementation of [http.RoundTripper] for testing.
 type MockRoundTripper struct {
 	mock.Mock
 }

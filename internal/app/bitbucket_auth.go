@@ -32,6 +32,8 @@ type BitbucketAuthFactoryDeps struct {
 }
 
 // newBitbucketAuthFactory creates a new Bitbucket account auth component.
+//
+//nolint:ireturn // Returns internal factory interface for DI and tests.
 func newBitbucketAuthFactory(deps BitbucketAuthFactoryDeps) bitbucketAuthFactory {
 	return &bitbucketAuthFactoryImpl{
 		accountsRepo: deps.AccountsRepo,
@@ -41,6 +43,8 @@ func newBitbucketAuthFactory(deps BitbucketAuthFactoryDeps) bitbucketAuthFactory
 
 // getTokenProvider returns a TokenProvider for the specified account name.
 // If accountName is empty, uses the default account.
+//
+//nolint:ireturn // Interface is the auth boundary for token resolution.
 func (a *bitbucketAuthFactoryImpl) getTokenProvider(_ context.Context, accountName string) TokenProvider {
 	return tokenProviderFunc(func(ctx context.Context) (middleware.Token, error) {
 		var account *AtlassianAccount

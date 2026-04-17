@@ -38,6 +38,8 @@ func (f ToolsFactoryFunc) NewTools() []mcpserver.ServerTool {
 type MCPServerDeps struct {
 	dig.In
 
+	*services.ShutdownHooks
+
 	RootLogger *slog.Logger
 
 	// config
@@ -45,9 +47,6 @@ type MCPServerDeps struct {
 	Version  string `name:"config.mcpServer.version"`
 	HTTPHost string `name:"config.mcpServer.httpHost"`
 	HTTPPort int    `name:"config.mcpServer.httpPort"`
-
-	// services
-	*services.ShutdownHooks
 
 	// controllers
 	Controllers []ToolsFactory `group:"mcp-controllers"`

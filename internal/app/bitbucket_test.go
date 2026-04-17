@@ -10,7 +10,6 @@ import (
 	"github.com/gemyago/atlacp/internal/services/bitbucket"
 	"github.com/gemyago/atlacp/internal/testing/mocks"
 	"github.com/go-faker/faker/v4"
-	"github.com/samber/lo"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/mock"
 	"github.com/stretchr/testify/require"
@@ -199,7 +198,7 @@ func TestBitbucketService(t *testing.T) {
 			repoOwner := "owner-" + faker.Username()
 			repoName := "repo-" + faker.Username()
 			expectedPR := bitbucket.NewRandomPullRequest()
-			expectedPR.Draft = lo.ToPtr(true) // Set draft status on expected PR
+			expectedPR.Draft = new(true) // Set draft status on expected PR
 			token := "token-" + faker.UUIDHyphenated()
 			tokenProvider := newStaticTokenProvider(token)
 
@@ -224,7 +223,7 @@ func TestBitbucketService(t *testing.T) {
 				Title:        expectedPR.Title,
 				SourceBranch: expectedPR.Source.Branch.Name,
 				DestBranch:   expectedPR.Destination.Branch.Name,
-				Draft:        lo.ToPtr(true), // Set as draft PR
+				Draft:        new(true), // Set as draft PR
 			})
 
 			// Assert
@@ -793,7 +792,7 @@ func TestBitbucketService(t *testing.T) {
 			pullRequestID := int(faker.RandomUnixTime()) % 10000
 
 			expectedPR := bitbucket.NewRandomPullRequest()
-			expectedPR.Draft = lo.ToPtr(true) // Set draft status on expected PR
+			expectedPR.Draft = new(true) // Set draft status on expected PR
 
 			token := "token-" + faker.UUIDHyphenated()
 			tokenProvider := newStaticTokenProvider(token)
@@ -822,7 +821,7 @@ func TestBitbucketService(t *testing.T) {
 				RepoOwner:     repoOwner,
 				RepoName:      repoName,
 				PullRequestID: pullRequestID,
-				Draft:         lo.ToPtr(true),
+				Draft:         new(true),
 			})
 
 			// Assert
@@ -2237,7 +2236,7 @@ func TestBitbucketService(t *testing.T) {
 			repoName := "repo-" + faker.Username()
 			prID := int(100 + faker.RandomUnixTime()%900)
 			filePaths := []string{"foo.go", "bar.go"}
-			contextLines := lo.ToPtr(7)
+			contextLines := new(7)
 			expectedDiff := "diff --git ..."
 			token := "token-" + faker.UUIDHyphenated()
 			tokenProvider := newStaticTokenProvider(token)

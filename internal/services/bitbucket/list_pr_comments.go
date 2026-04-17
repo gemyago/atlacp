@@ -46,7 +46,7 @@ func (c *Client) ListPRComments(
 	var response ListPRCommentsResponse
 	err = httpservices.SendRequest(
 		ctxWithAuth, c.httpClient,
-		httpservices.SendRequestParams[interface{}, ListPRCommentsResponse]{
+		httpservices.SendRequestParams[any, ListPRCommentsResponse]{
 			Method: "GET",
 			URL:    requestURL,
 			Target: &response,

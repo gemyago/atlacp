@@ -50,7 +50,7 @@ func (c *Client) ManageLabels(
 		})
 	}
 
-	sendParams := httpservices.SendRequestParams[LabelUpdateRequest, interface{}]{
+	sendParams := httpservices.SendRequestParams[LabelUpdateRequest, any]{
 		Method: "PUT",
 		URL:    baseURL + path,
 		Body:   &request,

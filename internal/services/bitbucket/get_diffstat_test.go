@@ -27,7 +27,11 @@ func TestClient_GetPRDiffStat(t *testing.T) {
 
 		server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 			assert.Equal(t, "GET", r.Method)
-			assert.Equal(t, fmt.Sprintf("/repositories/%s/%s/pullrequests/%d/diffstat", username, repoSlug, prID), r.URL.Path)
+			assert.Equal(
+				t,
+				fmt.Sprintf("/repositories/%s/%s/pullrequests/%d/diffstat", username, repoSlug, prID),
+				r.URL.Path,
+			)
 			assert.Equal(t, "Bearer "+mockTokenProvider.TokenValue, r.Header.Get("Authorization"))
 
 			w.Header().Set("Content-Type", "application/json")
@@ -231,7 +235,11 @@ func TestClient_GetPRDiffStat(t *testing.T) {
 		}{
 			{"missing RepoOwner", GetPRDiffStatParams{RepoName: "repo", PRID: 1}, "RepoOwner is required"},
 			{"missing RepoName", GetPRDiffStatParams{RepoOwner: "owner", PRID: 1}, "RepoName is required"},
-			{"missing PRID", GetPRDiffStatParams{RepoOwner: "owner", RepoName: "repo"}, "PRID is required and must be non-zero"},
+			{
+				"missing PRID",
+				GetPRDiffStatParams{RepoOwner: "owner", RepoName: "repo"},
+				"PRID is required and must be non-zero",
+			},
 		}
 		client := NewClient(makeMockDepsWithTestName(t, "http://example.com"))
 		for _, tc := range tests {

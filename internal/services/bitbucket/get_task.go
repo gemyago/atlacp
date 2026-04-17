@@ -18,7 +18,7 @@ type GetTaskParams struct {
 	TaskID    int
 }
 
-// GET /repositories/{workspace}/{repo_slug}/pullrequests/{pull_request_id}/tasks/{task_id}.
+// GetTask fetches a pull request task (GET .../pullrequests/{id}/tasks/{task_id}).
 func (c *Client) GetTask(
 	ctx context.Context,
 	tokenProvider TokenProvider,
@@ -40,7 +40,7 @@ func (c *Client) GetTask(
 	err = httpservices.SendRequest(
 		ctxWithAuth,
 		c.httpClient,
-		httpservices.SendRequestParams[interface{}, PullRequestCommentTask]{
+		httpservices.SendRequestParams[any, PullRequestCommentTask]{
 			Method: "GET",
 			URL:    c.baseURL + path,
 			Target: &task,

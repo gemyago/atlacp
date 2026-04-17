@@ -48,15 +48,15 @@ func TestClient_AddPRComment(t *testing.T) {
 			assert.Equal(t, expectedPath, r.URL.Path)
 			assert.Equal(t, "Bearer "+mockTokenProvider.TokenValue, r.Header.Get("Authorization"))
 
-			var payload map[string]interface{}
+			var payload map[string]any
 			err := json.NewDecoder(r.Body).Decode(&payload)
 			assert.NoError(t, err)
-			contentMap, ok := payload["content"].(map[string]interface{})
+			contentMap, ok := payload["content"].(map[string]any)
 			if !assert.True(t, ok, "payload[\"content\"] is not a map[string]interface{}\"") {
 				return
 			}
 			assert.Equal(t, commentText, contentMap["raw"])
-			inline, ok := payload["inline"].(map[string]interface{})
+			inline, ok := payload["inline"].(map[string]any)
 			if !assert.True(t, ok, "payload[\"inline\"] is not a map[string]interface{}\"") {
 				return
 			}
@@ -117,10 +117,10 @@ func TestClient_AddPRComment(t *testing.T) {
 			assert.Equal(t, expectedPath, r.URL.Path)
 			assert.Equal(t, "Bearer "+mockTokenProvider.TokenValue, r.Header.Get("Authorization"))
 
-			var payload map[string]interface{}
+			var payload map[string]any
 			err := json.NewDecoder(r.Body).Decode(&payload)
 			assert.NoError(t, err)
-			contentMap, ok := payload["content"].(map[string]interface{})
+			contentMap, ok := payload["content"].(map[string]any)
 			if !assert.True(t, ok, "payload content is not a map") {
 				return
 			}
@@ -174,7 +174,7 @@ func TestClient_AddPRComment(t *testing.T) {
 
 		server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 			assert.Equal(t, "POST", r.Method)
-			var payload map[string]interface{}
+			var payload map[string]any
 			err := json.NewDecoder(r.Body).Decode(&payload)
 			assert.NoError(t, err)
 			pending, ok := payload["pending"].(bool)
@@ -235,7 +235,7 @@ func TestClient_AddPRComment(t *testing.T) {
 		commentID, status, err := client.AddPRComment(t.Context(), mockTokenProvider, params)
 		require.Error(t, err)
 		assert.Equal(t, int64(0), commentID)
-		assert.Equal(t, "", status)
+		assert.Empty(t, status)
 		assert.Contains(t, err.Error(), "add pull request comment failed")
 	})
 
@@ -263,7 +263,7 @@ func TestClient_AddPRComment(t *testing.T) {
 		commentID, status, err := client.AddPRComment(t.Context(), mockTokenProvider, params)
 		require.Error(t, err)
 		assert.Equal(t, int64(0), commentID)
-		assert.Equal(t, "", status)
+		assert.Empty(t, status)
 		assert.Contains(t, err.Error(), "failed to get token")
 	})
 }

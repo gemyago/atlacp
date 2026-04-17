@@ -19,13 +19,13 @@ import (
 type startHTTPServerParams struct {
 	dig.In `ignore-unexported:"true"`
 
+	*services.ShutdownHooks
+
 	noop bool
 
 	RootLogger *slog.Logger
 
 	MCPServer *mcpserver.MCPServer
-
-	*services.ShutdownHooks
 }
 
 func watchForceSignal(

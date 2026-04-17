@@ -30,7 +30,7 @@ func paginateDiffStat(
 		pageErr := httpservices.SendRequest(
 			ctx,
 			httpClient,
-			httpservices.SendRequestParams[interface{}, paginatedResponse]{
+			httpservices.SendRequestParams[any, paginatedResponse]{
 				Method: "GET",
 				URL:    nextURL,
 				Target: &resp,

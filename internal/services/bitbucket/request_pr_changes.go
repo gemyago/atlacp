@@ -41,7 +41,7 @@ func (c *Client) RequestPRChanges(
 
 	// The Bitbucket API returns the participant object with the new state.
 	var participant Participant
-	err = httpservices.SendRequest(ctxWithAuth, c.httpClient, httpservices.SendRequestParams[interface{}, Participant]{
+	err = httpservices.SendRequest(ctxWithAuth, c.httpClient, httpservices.SendRequestParams[any, Participant]{
 		Method: "POST",
 		URL:    c.baseURL + path,
 		Target: &participant,

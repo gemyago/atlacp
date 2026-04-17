@@ -60,6 +60,7 @@ func (c *Client) GetFileContent(
 	}
 	req.Header.Set("Accept", "text/plain")
 
+	//nolint:gosec // G704: URL is built from Bitbucket baseURL and repository path parameters.
 	resp, err := c.httpClient.Do(req)
 	if err != nil {
 		return nil, fmt.Errorf("get file content failed: %w", err)

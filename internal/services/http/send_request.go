@@ -8,7 +8,7 @@ import (
 	"net/http"
 )
 
-// Use interface{} if no body and or target are needed.
+// SendRequestParams configures [SendRequest] with optional JSON body and response target.
 type SendRequestParams[TBody any, TTarget any] struct {
 	// HTTP method (GET, POST, PUT, DELETE, etc.)
 	Method string
@@ -47,6 +47,7 @@ func SendRequest[TBody any, TTarget any](
 		req.Header.Set("Content-Type", "application/json")
 	}
 
+	//nolint:gosec // G704: callers supply URLs for known API endpoints.
 	resp, err := client.Do(req)
 	if err != nil {
 		return fmt.Errorf("HTTP request failed: %w", err)

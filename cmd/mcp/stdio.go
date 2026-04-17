@@ -19,13 +19,13 @@ import (
 type stdioServerParams struct {
 	dig.In `ignore-unexported:"true"`
 
+	*services.ShutdownHooks
+
 	noop bool
 
 	RootLogger *slog.Logger
 
 	MCPServer *mcpserver.MCPServer
-
-	*services.ShutdownHooks
 }
 
 func startStdioServer(rootCtx context.Context, params stdioServerParams) error {

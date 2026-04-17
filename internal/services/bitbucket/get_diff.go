@@ -14,6 +14,8 @@ import (
 
 type contextKey string
 
+const atlassianAccountCtxKey = contextKey("X-Atlassian-Account")
+
 // GetPRDiffParams contains parameters for getting diff for a pull request.
 type GetPRDiffParams struct {
 	RepoOwner string
@@ -24,21 +26,27 @@ type GetPRDiffParams struct {
 	Account   *string  // optional
 }
 
+func validateGetPRDiffParams(params GetPRDiffParams) error {
+	if params.RepoOwner == "" {
+		return errors.New("RepoOwner is required")
+	}
+	if params.RepoName == "" {
+		return errors.New("RepoName is required")
+	}
+	if params.PRID == 0 {
+		return errors.New("PRID is required and must be non-zero")
+	}
+	return nil
+}
+
 // GetPRDiff retrieves the diff for a pull request, handling parameters, pagination, and error validation.
 func (c *Client) GetPRDiff(
 	ctx context.Context,
 	tokenProvider TokenProvider,
 	params GetPRDiffParams,
 ) (string, error) {
-	// Parameter validation
-	if params.RepoOwner == "" {
-		return "", errors.New("RepoOwner is required")
-	}
-	if params.RepoName == "" {
-		return "", errors.New("RepoName is required")
-	}
-	if params.PRID == 0 {
-		return "", errors.New("PRID is required and must be non-zero")
+	if err := validateGetPRDiffParams(params); err != nil {
+		return "", err
 	}
 
 	token, err := tokenProvider.GetToken(ctx)
@@ -66,9 +74,7 @@ func (c *Client) GetPRDiff(
 	}
 	// Bitbucket API does not support account as a query param, but if needed as a header:
 	if params.Account != nil {
-		// Use a custom header for account if required by internal convention
-		const contextKeyAtlassianAccount = contextKey("X-Atlassian-Account")
-		ctxWithAuth = context.WithValue(ctxWithAuth, contextKeyAtlassianAccount, *params.Account)
+		ctxWithAuth = context.WithValue(ctxWithAuth, atlassianAccountCtxKey, *params.Account)
 	}
 
 	fullURL := c.baseURL + path
@@ -76,30 +82,42 @@ func (c *Client) GetPRDiff(
 		fullURL += "?" + query.Encode()
 	}
 
+	return c.aggregatePagedDiff(ctxWithAuth, fullURL, params.Account)
+}
+
+func (c *Client) aggregatePagedDiff(
+	ctxWithAuth context.Context,
+	firstURL string,
+	account *string,
+) (string, error) {
 	var aggregatedDiff []byte
-	nextURL := fullURL
+	nextURL := firstURL
 	for {
 		req, reqErr := http.NewRequestWithContext(ctxWithAuth, http.MethodGet, nextURL, nil)
 		if reqErr != nil {
 			return "", fmt.Errorf("failed to create request: %w", reqErr)
 		}
 		req.Header.Set("Accept", "text/plain")
-		if params.Account != nil {
-			req.Header.Set("X-Atlassian-Account", *params.Account)
+		if account != nil {
+			req.Header.Set("X-Atlassian-Account", *account)
 		}
 
+		//nolint:gosec // G704: URL is built from Bitbucket baseURL and API path; pagination uses API-provided links.
 		resp, doErr := c.httpClient.Do(req)
 		if doErr != nil {
 			return "", fmt.Errorf("get diff failed: %w", doErr)
 		}
-		defer resp.Body.Close()
 
 		if resp.StatusCode != http.StatusOK {
 			body, _ := io.ReadAll(resp.Body)
+			_ = resp.Body.Close()
 			return "", fmt.Errorf("get diff failed: status %d, body: %s", resp.StatusCode, string(body))
 		}
 
 		body, readErr := io.ReadAll(resp.Body)
+		if closeErr := resp.Body.Close(); closeErr != nil {
+			return "", fmt.Errorf("failed to close diff response body: %w", closeErr)
+		}
 		if readErr != nil {
 			return "", fmt.Errorf("failed to read diff response: %w", readErr)
 		}

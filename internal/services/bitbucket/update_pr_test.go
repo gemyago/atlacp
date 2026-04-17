@@ -35,7 +35,11 @@ func TestClient_UpdatePR(t *testing.T) {
 		server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 			// Verify request details
 			assert.Equal(t, "PUT", r.Method)
-			assert.Equal(t, fmt.Sprintf("/repositories/%s/%s/pullrequests/%d", username, repoSlug, pullRequestID), r.URL.Path)
+			assert.Equal(
+				t,
+				fmt.Sprintf("/repositories/%s/%s/pullrequests/%d", username, repoSlug, pullRequestID),
+				r.URL.Path,
+			)
 			assert.Equal(t, "application/json", r.Header.Get("Content-Type"))
 			assert.Equal(t, "Bearer "+mockTokenProvider.TokenValue, r.Header.Get("Authorization"))
 

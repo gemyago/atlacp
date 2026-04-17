@@ -1,4 +1,4 @@
-package http
+package http_test
 
 import (
 	"fmt"
@@ -7,6 +7,7 @@ import (
 	"testing"
 
 	"github.com/gemyago/atlacp/internal/diag"
+	httpsvc "github.com/gemyago/atlacp/internal/services/http"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
@@ -33,14 +34,14 @@ func TestSendRequest(t *testing.T) {
 		}
 
 		var response ResponseData
-		params := SendRequestParams[interface{}, ResponseData]{
+		params := httpsvc.SendRequestParams[any, ResponseData]{
 			Method: "GET",
 			URL:    server.URL + "/users/123",
 			Body:   nil,
 			Target: &response,
 		}
 
-		err := SendRequest(ctx, client, params)
+		err := httpsvc.SendRequest(ctx, client, params)
 
 		require.NoError(t, err)
 		assert.Equal(t, "123", response.ID)
@@ -80,14 +81,14 @@ func TestSendRequest(t *testing.T) {
 		}
 
 		var response ResponseData
-		params := SendRequestParams[RequestData, ResponseData]{
+		params := httpsvc.SendRequestParams[RequestData, ResponseData]{
 			Method: "POST",
 			URL:    server.URL + "/users",
 			Body:   &requestBody,
 			Target: &response,
 		}
 
-		err := SendRequest(ctx, client, params)
+		err := httpsvc.SendRequest(ctx, client, params)
 
 		require.NoError(t, err)
 		assert.Equal(t, "user123", response.ID)
@@ -108,14 +109,14 @@ func TestSendRequest(t *testing.T) {
 		client := server.Client()
 		ctx := t.Context()
 
-		params := SendRequestParams[interface{}, interface{}]{
+		params := httpsvc.SendRequestParams[any, any]{
 			Method: "DELETE",
 			URL:    server.URL + "/users/123",
 			Body:   nil,
 			Target: nil,
 		}
 
-		err := SendRequest(ctx, client, params)
+		err := httpsvc.SendRequest(ctx, client, params)
 
 		require.NoError(t, err)
 	})
@@ -129,19 +130,19 @@ func TestSendRequest(t *testing.T) {
 		defer server.Close()
 
 		client := server.Client()
-		client.Transport = NewClientFactory(ClientFactoryDeps{
+		client.Transport = httpsvc.NewClientFactory(httpsvc.ClientFactoryDeps{
 			RootLogger: diag.RootTestLogger(),
 		}).CreateClient().Transport
 		ctx := t.Context()
 
-		params := SendRequestParams[interface{}, interface{}]{
+		params := httpsvc.SendRequestParams[any, any]{
 			Method: "GET",
 			URL:    server.URL + "/nonexistent",
 			Body:   nil,
 			Target: nil,
 		}
 
-		err := SendRequest(ctx, client, params)
+		err := httpsvc.SendRequest(ctx, client, params)
 
 		require.Error(t, err)
 		assert.Contains(t, err.Error(), "500")
@@ -151,14 +152,14 @@ func TestSendRequest(t *testing.T) {
 		client := &http.Client{}
 		ctx := t.Context()
 
-		params := SendRequestParams[interface{}, interface{}]{
+		params := httpsvc.SendRequestParams[any, any]{
 			Method: "GET",
 			URL:    "not-a-valid-url",
 			Body:   nil,
 			Target: nil,
 		}
 
-		err := SendRequest(ctx, client, params)
+		err := httpsvc.SendRequest(ctx, client, params)
 
 		require.Error(t, err)
 	})
@@ -176,14 +177,14 @@ func TestSendRequest(t *testing.T) {
 			Channel: make(chan int),
 		}
 
-		params := SendRequestParams[InvalidBody, interface{}]{
+		params := httpsvc.SendRequestParams[InvalidBody, any]{
 			Method: "POST",
 			URL:    "http://example.com",
 			Body:   &invalidBody,
 			Target: nil,
 		}
 
-		err := SendRequest(ctx, client, params)
+		err := httpsvc.SendRequest(ctx, client, params)
 
 		require.Error(t, err)
 		assert.Contains(t, err.Error(), "failed to marshal request body")
@@ -207,14 +208,14 @@ func TestSendRequest(t *testing.T) {
 		}
 
 		var response ResponseData
-		params := SendRequestParams[interface{}, ResponseData]{
+		params := httpsvc.SendRequestParams[any, ResponseData]{
 			Method: "GET",
 			URL:    server.URL + "/invalid-json",
 			Body:   nil,
 			Target: &response,
 		}
 
-		err := SendRequest(ctx, client, params)
+		err := httpsvc.SendRequest(ctx, client, params)
 
 		require.Error(t, err)
 		assert.Contains(t, err.Error(), "failed to unmarshal response")

@@ -33,7 +33,7 @@ type TaskContentUpdate struct {
 	Raw string `json:"raw"`
 }
 
-// PUT /repositories/{workspace}/{repo_slug}/pullrequests/{pull_request_id}/tasks/{task_id}.
+// UpdateTask updates a pull request task (PUT .../pullrequests/{id}/tasks/{task_id}).
 func (c *Client) UpdateTask(
 	ctx context.Context,
 	tokenProvider TokenProvider,
