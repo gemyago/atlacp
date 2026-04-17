@@ -55,10 +55,22 @@ func newRootCmd(container *dig.Container) *cobra.Command {
 	lo.Must0(cfg.BindPFlag("jsonLogs", cmd.PersistentFlags().Lookup("json-logs")))
 	lo.Must0(cfg.BindPFlag("defaultLogLevel", cmd.PersistentFlags().Lookup("log-level")))
 	lo.Must0(cfg.BindPFlag("env", cmd.PersistentFlags().Lookup("env")))
-	cmd.PersistentPreRunE = func(_ *cobra.Command, _ []string) error {
+	cmd.PersistentPreRunE = func(cmd *cobra.Command, _ []string) error {
 		err := config.Load(cfg, config.NewLoadOpts().WithEnv(cfg.GetString("env")))
 		if err != nil {
 			return err
+		}
+
+		accountsFile, err := cmd.Flags().GetString("atlassian-accounts-file")
+		if err != nil {
+			return fmt.Errorf("get atlassian-accounts-file flag: %w", err)
+		}
+		if accountsFile == "" {
+			defaultPath, pathErr := services.DefaultAccountsFilePath()
+			if pathErr != nil {
+				return fmt.Errorf("resolve default atlassian accounts file path: %w", pathErr)
+			}
+			cfg.Set("atlassian.accountsFilePath", defaultPath)
 		}
 
 		var logLevel slog.Level
