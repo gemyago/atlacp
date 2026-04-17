@@ -29,7 +29,11 @@ func TestClient_GetFileContent(t *testing.T) {
 
 		server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 			assert.Equal(t, "GET", r.Method)
-			assert.Equal(t, fmt.Sprintf("/repositories/%s/%s/src/%s/%s", username, repoSlug, commit, filePath), r.URL.Path)
+			assert.Equal(
+				t,
+				fmt.Sprintf("/repositories/%s/%s/src/%s/%s", username, repoSlug, commit, filePath),
+				r.URL.Path,
+			)
 			assert.Equal(t, "Bearer "+mockTokenProvider.TokenValue, r.Header.Get("Authorization"))
 
 			w.Header().Set("Content-Type", "text/plain")
@@ -68,7 +72,11 @@ func TestClient_GetFileContent(t *testing.T) {
 
 		server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 			assert.Equal(t, "GET", r.Method)
-			assert.Equal(t, fmt.Sprintf("/repositories/%s/%s/src/%s/%s", username, repoSlug, commit, filePath), r.URL.Path)
+			assert.Equal(
+				t,
+				fmt.Sprintf("/repositories/%s/%s/src/%s/%s", username, repoSlug, commit, filePath),
+				r.URL.Path,
+			)
 			assert.Equal(t, "Bearer "+mockTokenProvider.TokenValue, r.Header.Get("Authorization"))
 			assert.Equal(t, account, r.URL.Query().Get("account"))
 
@@ -338,7 +346,7 @@ func TestClient_GetFileContent_EdgeCases(t *testing.T) {
 
 		require.NoError(t, err)
 		require.NotNil(t, result)
-		assert.Equal(t, "", gotQuery)
+		assert.Empty(t, gotQuery)
 	})
 }
 

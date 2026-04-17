@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 	"net/url"
+	"strings"
 
 	httpservices "github.com/gemyago/atlacp/internal/services/http"
 	"github.com/gemyago/atlacp/internal/services/http/middleware"
@@ -64,11 +65,13 @@ func (c *Client) GetTicket(
 // joinStrings joins a slice of strings with commas.
 func joinStrings(items []string) string {
 	result := ""
+	var resultSb67 strings.Builder
 	for i, item := range items {
 		if i > 0 {
-			result += ","
+			resultSb67.WriteString(",")
 		}
-		result += item
+		resultSb67.WriteString(item)
 	}
+	result += resultSb67.String()
 	return result
 }

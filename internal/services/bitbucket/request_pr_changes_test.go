@@ -37,7 +37,12 @@ func TestClient_RequestPRChanges(t *testing.T) {
 
 		server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 			assert.Equal(t, "POST", r.Method)
-			expectedPath := fmt.Sprintf("/repositories/%s/%s/pullrequests/%d/request-changes", workspace, repoSlug, pullReqID)
+			expectedPath := fmt.Sprintf(
+				"/repositories/%s/%s/pullrequests/%d/request-changes",
+				workspace,
+				repoSlug,
+				pullReqID,
+			)
 			assert.Equal(t, expectedPath, r.URL.Path)
 			assert.Equal(t, "Bearer "+mockTokenProvider.TokenValue, r.Header.Get("Authorization"))
 
@@ -90,7 +95,7 @@ func TestClient_RequestPRChanges(t *testing.T) {
 
 		status, requestedAt, err := client.RequestPRChanges(t.Context(), mockTokenProvider, params)
 		require.Error(t, err)
-		assert.Equal(t, "", status)
+		assert.Empty(t, status)
 		assert.True(t, requestedAt.IsZero())
 		assert.Contains(t, err.Error(), "request changes failed")
 	})
@@ -116,7 +121,7 @@ func TestClient_RequestPRChanges(t *testing.T) {
 
 		status, requestedAt, err := client.RequestPRChanges(t.Context(), mockTokenProvider, params)
 		require.Error(t, err)
-		assert.Equal(t, "", status)
+		assert.Empty(t, status)
 		assert.True(t, requestedAt.IsZero())
 		assert.Contains(t, err.Error(), "failed to get token")
 	})

@@ -35,7 +35,7 @@ func (c *Client) ApprovePR(
 		params.RepoSlug,
 		params.PullRequestID,
 	)
-	err = httpservices.SendRequest(ctxWithAuth, c.httpClient, httpservices.SendRequestParams[interface{}, Participant]{
+	err = httpservices.SendRequest(ctxWithAuth, c.httpClient, httpservices.SendRequestParams[any, Participant]{
 		Method: "POST",
 		URL:    c.baseURL + path,
 		Target: &participant,

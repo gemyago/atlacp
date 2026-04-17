@@ -59,7 +59,10 @@ func (a *AuthenticationMiddleware) RoundTrip(req *http.Request) (*http.Response,
 
 	// If no token in context, log and pass request through unchanged
 	if !hasToken || token.Value == "" {
-		a.logger.DebugContext(req.Context(), "No authentication token found in context, passing request through unchanged")
+		a.logger.DebugContext(
+			req.Context(),
+			"No authentication token found in context, passing request through unchanged",
+		)
 		return a.transport.RoundTrip(req)
 	}
 

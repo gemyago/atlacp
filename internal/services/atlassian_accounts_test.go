@@ -193,7 +193,12 @@ func TestAtlassianAccountsRepository(t *testing.T) {
 
 			// Assert
 			require.Error(t, err, "Should error when file read fails")
-			assert.Contains(t, err.Error(), "failed to read accounts configuration", "Error should mention read failure")
+			assert.Contains(
+				t,
+				err.Error(),
+				"failed to read accounts configuration",
+				"Error should mention read failure",
+			)
 		})
 
 		t.Run("should fail when JSON parsing fails", func(t *testing.T) {
@@ -209,7 +214,12 @@ func TestAtlassianAccountsRepository(t *testing.T) {
 
 			// Assert
 			require.Error(t, err, "Should error when JSON parsing fails")
-			assert.Contains(t, err.Error(), "failed to parse accounts configuration", "Error should mention parse failure")
+			assert.Contains(
+				t,
+				err.Error(),
+				"failed to parse accounts configuration",
+				"Error should mention parse failure",
+			)
 		})
 	})
 
@@ -260,7 +270,12 @@ func TestAtlassianAccountsRepository(t *testing.T) {
 
 			// Assert
 			require.Error(t, err, "Should fail with multiple default accounts")
-			assert.Contains(t, err.Error(), "multiple default accounts defined", "Error should mention multiple defaults")
+			assert.Contains(
+				t,
+				err.Error(),
+				"multiple default accounts defined",
+				"Error should mention multiple defaults",
+			)
 		})
 
 		t.Run("should fail with no default account", func(t *testing.T) {

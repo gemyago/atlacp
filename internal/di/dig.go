@@ -11,11 +11,11 @@ import (
 // we are not creating any abstraction over it, but we do have a set of tools to make it easier to use
 
 type ConstructorWithOpts struct {
-	Constructor interface{}
+	Constructor any
 	Options     []dig.ProvideOption
 }
 
-func ProvideAll(container *dig.Container, providers ...interface{}) error {
+func ProvideAll(container *dig.Container, providers ...any) error {
 	for i, provider := range providers {
 		switch p := provider.(type) {
 		case ConstructorWithOpts:

@@ -12,7 +12,6 @@ import (
 	"github.com/gemyago/atlacp/internal/services/bitbucket"
 	"github.com/mark3labs/mcp-go/mcp"
 	"github.com/mark3labs/mcp-go/server"
-	"github.com/samber/lo"
 	"go.uber.org/dig"
 )
 
@@ -128,7 +127,7 @@ func (bc *BitbucketController) newCreatePRServerTool() server.ServerTool {
 			AccountName:  account,
 			RepoOwner:    repoOwner,
 			RepoName:     repoName,
-			Draft:        lo.ToPtr(draft),
+			Draft:        new(draft),
 		}
 
 		// Call the service to create the pull request
@@ -299,7 +298,7 @@ func (bc *BitbucketController) newUpdatePRServerTool() server.ServerTool {
 
 		var draft *bool
 		if hasDraft {
-			draft = lo.ToPtr(request.GetBool("draft", false))
+			draft = new(request.GetBool("draft", false))
 		}
 
 		// Optional parameters
@@ -558,6 +557,7 @@ func (bc *BitbucketController) newListPRTasksServerTool() server.ServerTool {
 			responseText = "No tasks found for this pull request"
 		} else {
 			responseText = fmt.Sprintf("Found %d tasks", tasks.Size)
+			var responseTextSb561 strings.Builder
 			for _, task := range tasks.Values {
 				// Get creator display name, handling nil Creator
 				var creatorName string
@@ -567,12 +567,13 @@ func (bc *BitbucketController) newListPRTasksServerTool() server.ServerTool {
 					creatorName = "unknown user"
 				}
 
-				responseText += fmt.Sprintf("\nTask #%d: [%s] %s (by %s)",
+				responseTextSb561.WriteString(fmt.Sprintf("\nTask #%d: [%s] %s (by %s)",
 					task.ID,
 					task.State,
 					task.Content.Raw,
-					creatorName)
+					creatorName))
 			}
+			responseText += responseTextSb561.String()
 		}
 
 		return mcp.NewToolResultText(responseText), nil
@@ -663,17 +664,26 @@ func (bc *BitbucketController) validateUpdateTaskParams(
 
 	taskID, err := request.RequireInt("task_id")
 	if err != nil {
-		return app.BitbucketUpdateTaskParams{}, mcp.NewToolResultErrorFromErr("Missing or invalid task_id parameter", err)
+		return app.BitbucketUpdateTaskParams{}, mcp.NewToolResultErrorFromErr(
+			"Missing or invalid task_id parameter",
+			err,
+		)
 	}
 
 	repoOwner, err := request.RequireString("repo_owner")
 	if err != nil {
-		return app.BitbucketUpdateTaskParams{}, mcp.NewToolResultErrorFromErr("Missing or invalid repo_owner parameter", err)
+		return app.BitbucketUpdateTaskParams{}, mcp.NewToolResultErrorFromErr(
+			"Missing or invalid repo_owner parameter",
+			err,
+		)
 	}
 
 	repoName, err := request.RequireString("repo_name")
 	if err != nil {
-		return app.BitbucketUpdateTaskParams{}, mcp.NewToolResultErrorFromErr("Missing or invalid repo_name parameter", err)
+		return app.BitbucketUpdateTaskParams{}, mcp.NewToolResultErrorFromErr(
+			"Missing or invalid repo_name parameter",
+			err,
+		)
 	}
 
 	// Optional parameters
@@ -965,8 +975,11 @@ func (bc *BitbucketController) newGetPRDiffServerTool() server.ServerTool {
 		mcp.WithString("account",
 			mcp.Description("Atlassian account name to use (optional, uses default if not specified)"),
 		),
-		mcp.WithString("file_paths",
-			mcp.Description("List of file paths to filter the diff (optional, multiple comma-separated values are possible)"),
+		mcp.WithString(
+			"file_paths",
+			mcp.Description(
+				"List of file paths to filter the diff (optional, multiple comma-separated values are possible)",
+			),
 		),
 		mcp.WithNumber("context_lines",
 			mcp.Description("Number of context lines to include in the diff (optional)"),
@@ -995,8 +1008,8 @@ func (bc *BitbucketController) newGetPRDiffServerTool() server.ServerTool {
 		filePathsStr := request.GetString("file_paths", "")
 		var filePaths []string
 		if filePathsStr != "" {
-			parts := strings.Split(filePathsStr, ",")
-			for _, s := range parts {
+			parts := strings.SplitSeq(filePathsStr, ",")
+			for s := range parts {
 				s = strings.TrimSpace(s)
 				if s != "" {
 					filePaths = append(filePaths, s)

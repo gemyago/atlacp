@@ -30,7 +30,7 @@ func (c *Client) GetPR(
 
 	var pullRequest PullRequest
 	path := fmt.Sprintf("/repositories/%s/%s/pullrequests/%d", params.Username, params.RepoSlug, params.PullRequestID)
-	err = httpservices.SendRequest(ctxWithAuth, c.httpClient, httpservices.SendRequestParams[interface{}, PullRequest]{
+	err = httpservices.SendRequest(ctxWithAuth, c.httpClient, httpservices.SendRequestParams[any, PullRequest]{
 		Method: "GET",
 		URL:    c.baseURL + path,
 		Target: &pullRequest,

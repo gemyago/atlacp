@@ -40,7 +40,7 @@ func (c *Client) ResolvePRComment(
 	var response CommentResolution
 	err = httpservices.SendRequest(
 		ctxWithAuth, c.httpClient,
-		httpservices.SendRequestParams[interface{}, CommentResolution]{
+		httpservices.SendRequestParams[any, CommentResolution]{
 			Method: "POST",
 			URL:    c.baseURL + path,
 			Target: &response,

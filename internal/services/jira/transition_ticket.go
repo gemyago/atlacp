@@ -10,11 +10,11 @@ import (
 
 // TransitionTicketParams contains parameters for transitioning a Jira ticket.
 type TransitionTicketParams struct {
-	Domain       string                 `json:"-"` // Jira domain (e.g., "company" in company.atlassian.net)
-	TicketKey    string                 `json:"-"` // The ticket key (e.g., "PROJECT-123")
-	TransitionID string                 `json:"-"` // The ID of the transition to perform
-	Fields       map[string]interface{} `json:"-"` // Optional fields to update during transition
-	Update       map[string]interface{} `json:"-"` // Optional updates to perform during transition
+	Domain       string         `json:"-"` // Jira domain (e.g., "company" in company.atlassian.net)
+	TicketKey    string         `json:"-"` // The ticket key (e.g., "PROJECT-123")
+	TransitionID string         `json:"-"` // The ID of the transition to perform
+	Fields       map[string]any `json:"-"` // Optional fields to update during transition
+	Update       map[string]any `json:"-"` // Optional updates to perform during transition
 }
 
 // TransitionTicket transitions a Jira ticket to a new status.
@@ -40,7 +40,7 @@ func (c *Client) TransitionTicket(
 	}
 	request.Transition.ID = params.TransitionID
 
-	sendParams := httpservices.SendRequestParams[TransitionRequest, interface{}]{
+	sendParams := httpservices.SendRequestParams[TransitionRequest, any]{
 		Method: "POST",
 		URL:    baseURL + path,
 		Body:   &request,

@@ -30,7 +30,11 @@ func TestClient_ListPullRequestTasks(t *testing.T) {
 		server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 			// Verify request details
 			assert.Equal(t, "GET", r.Method)
-			assert.Equal(t, fmt.Sprintf("/repositories/%s/%s/pullrequests/%d/tasks", workspace, repoSlug, pullReqID), r.URL.Path)
+			assert.Equal(
+				t,
+				fmt.Sprintf("/repositories/%s/%s/pullrequests/%d/tasks", workspace, repoSlug, pullReqID),
+				r.URL.Path,
+			)
 			assert.Equal(t, mockTokenProvider.TokenType+" "+mockTokenProvider.TokenValue, r.Header.Get("Authorization"))
 			assert.Equal(t, queryParam, r.URL.Query().Get("q"))
 			assert.Equal(t, sortParam, r.URL.Query().Get("sort"))
@@ -146,7 +150,11 @@ func TestClient_ListPullRequestTasks(t *testing.T) {
 		server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 			// Verify request details
 			assert.Equal(t, "GET", r.Method)
-			assert.Equal(t, fmt.Sprintf("/repositories/%s/%s/pullrequests/%d/tasks", workspace, repoSlug, pullReqID), r.URL.Path)
+			assert.Equal(
+				t,
+				fmt.Sprintf("/repositories/%s/%s/pullrequests/%d/tasks", workspace, repoSlug, pullReqID),
+				r.URL.Path,
+			)
 			assert.Empty(t, r.URL.Query().Get("q"))
 			assert.Empty(t, r.URL.Query().Get("sort"))
 			assert.Empty(t, r.URL.Query().Get("pagelen"))

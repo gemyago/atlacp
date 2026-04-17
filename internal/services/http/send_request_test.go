@@ -33,7 +33,7 @@ func TestSendRequest(t *testing.T) {
 		}
 
 		var response ResponseData
-		params := SendRequestParams[interface{}, ResponseData]{
+		params := SendRequestParams[any, ResponseData]{
 			Method: "GET",
 			URL:    server.URL + "/users/123",
 			Body:   nil,
@@ -108,7 +108,7 @@ func TestSendRequest(t *testing.T) {
 		client := server.Client()
 		ctx := t.Context()
 
-		params := SendRequestParams[interface{}, interface{}]{
+		params := SendRequestParams[any, any]{
 			Method: "DELETE",
 			URL:    server.URL + "/users/123",
 			Body:   nil,
@@ -134,7 +134,7 @@ func TestSendRequest(t *testing.T) {
 		}).CreateClient().Transport
 		ctx := t.Context()
 
-		params := SendRequestParams[interface{}, interface{}]{
+		params := SendRequestParams[any, any]{
 			Method: "GET",
 			URL:    server.URL + "/nonexistent",
 			Body:   nil,
@@ -151,7 +151,7 @@ func TestSendRequest(t *testing.T) {
 		client := &http.Client{}
 		ctx := t.Context()
 
-		params := SendRequestParams[interface{}, interface{}]{
+		params := SendRequestParams[any, any]{
 			Method: "GET",
 			URL:    "not-a-valid-url",
 			Body:   nil,
@@ -176,7 +176,7 @@ func TestSendRequest(t *testing.T) {
 			Channel: make(chan int),
 		}
 
-		params := SendRequestParams[InvalidBody, interface{}]{
+		params := SendRequestParams[InvalidBody, any]{
 			Method: "POST",
 			URL:    "http://example.com",
 			Body:   &invalidBody,
@@ -207,7 +207,7 @@ func TestSendRequest(t *testing.T) {
 		}
 
 		var response ResponseData
-		params := SendRequestParams[interface{}, ResponseData]{
+		params := SendRequestParams[any, ResponseData]{
 			Method: "GET",
 			URL:    server.URL + "/invalid-json",
 			Body:   nil,

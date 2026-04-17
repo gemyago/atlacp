@@ -51,6 +51,7 @@ type Task struct {
 // PullRequestTask represents a task on a pull request.
 type PullRequestTask struct {
 	Task
+
 	Links *Links `json:"links,omitempty"`
 }
 
@@ -67,6 +68,7 @@ type Comment struct {
 // PullRequestCommentTask represents a task related to a comment on a pull request.
 type PullRequestCommentTask struct {
 	PullRequestTask
+
 	Comment *Comment `json:"comment,omitempty"`
 }
 

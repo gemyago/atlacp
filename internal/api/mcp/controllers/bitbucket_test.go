@@ -14,7 +14,6 @@ import (
 	"github.com/gemyago/atlacp/internal/testing/mocks"
 	"github.com/go-faker/faker/v4"
 	"github.com/mark3labs/mcp-go/mcp"
-	"github.com/samber/lo"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/mock"
 	"github.com/stretchr/testify/require"
@@ -180,7 +179,11 @@ func TestBitbucketController(t *testing.T) {
 			serverTool := controller.newResolvePRCommentServerTool()
 
 			assert.Equal(t, "bitbucket_resolve_pr_comment", serverTool.Tool.Name)
-			assert.Equal(t, "Resolve a pull request comment thread in Bitbucket (no request body)", serverTool.Tool.Description)
+			assert.Equal(
+				t,
+				"Resolve a pull request comment thread in Bitbucket (no request body)",
+				serverTool.Tool.Description,
+			)
 			assert.NotNil(t, serverTool.Tool.InputSchema)
 			assert.NotNil(t, serverTool.Handler)
 		})
@@ -283,7 +286,7 @@ func TestBitbucketController(t *testing.T) {
 				request := mcp.CallToolRequest{
 					Params: mcp.CallToolParams{
 						Name: "bitbucket_create_pr",
-						Arguments: map[string]interface{}{
+						Arguments: map[string]any{
 							"title":         title,
 							"source_branch": sourceBranch,
 							"target_branch": targetBranch,
@@ -336,7 +339,7 @@ func TestBitbucketController(t *testing.T) {
 					Description:  description,
 					RepoOwner:    repoOwner,
 					RepoName:     repoName,
-					Draft:        lo.ToPtr(true), // Expect draft to be true
+					Draft:        new(true), // Expect draft to be true
 				}
 
 				prID := int(faker.RandomUnixTime()) % 1000000 // Generate a random PR ID
@@ -357,7 +360,7 @@ func TestBitbucketController(t *testing.T) {
 							Name: targetBranch,
 						},
 					},
-					Draft: lo.ToPtr(true), // PR is a draft
+					Draft: new(true), // PR is a draft
 				}
 
 				// Setup mock expectations with draft=true
@@ -377,7 +380,7 @@ func TestBitbucketController(t *testing.T) {
 				request := mcp.CallToolRequest{
 					Params: mcp.CallToolParams{
 						Name: "bitbucket_create_pr",
-						Arguments: map[string]interface{}{
+						Arguments: map[string]any{
 							"title":         title,
 							"source_branch": sourceBranch,
 							"target_branch": targetBranch,
@@ -421,7 +424,7 @@ func TestBitbucketController(t *testing.T) {
 				request := mcp.CallToolRequest{
 					Params: mcp.CallToolParams{
 						Name: "bitbucket_create_pr",
-						Arguments: map[string]interface{}{
+						Arguments: map[string]any{
 							// Missing title
 							"source_branch": "feature/" + faker.Username(),
 							"target_branch": "main",
@@ -458,7 +461,7 @@ func TestBitbucketController(t *testing.T) {
 				request := mcp.CallToolRequest{
 					Params: mcp.CallToolParams{
 						Name: "bitbucket_create_pr",
-						Arguments: map[string]interface{}{
+						Arguments: map[string]any{
 							"title": "PR-" + faker.Sentence(),
 							// Missing source_branch
 							"target_branch": "main",
@@ -495,7 +498,7 @@ func TestBitbucketController(t *testing.T) {
 				request := mcp.CallToolRequest{
 					Params: mcp.CallToolParams{
 						Name: "bitbucket_create_pr",
-						Arguments: map[string]interface{}{
+						Arguments: map[string]any{
 							"title":         "PR-" + faker.Sentence(),
 							"source_branch": "feature/" + faker.Username(),
 							// Missing target_branch
@@ -532,7 +535,7 @@ func TestBitbucketController(t *testing.T) {
 				request := mcp.CallToolRequest{
 					Params: mcp.CallToolParams{
 						Name: "bitbucket_create_pr",
-						Arguments: map[string]interface{}{
+						Arguments: map[string]any{
 							"title":         "PR-" + faker.Sentence(),
 							"source_branch": "feature/" + faker.Username(),
 							"target_branch": "main",
@@ -569,7 +572,7 @@ func TestBitbucketController(t *testing.T) {
 				request := mcp.CallToolRequest{
 					Params: mcp.CallToolParams{
 						Name: "bitbucket_create_pr",
-						Arguments: map[string]interface{}{
+						Arguments: map[string]any{
 							"title":         "PR-" + faker.Sentence(),
 							"source_branch": "feature/" + faker.Username(),
 							"target_branch": "main",
@@ -629,7 +632,7 @@ func TestBitbucketController(t *testing.T) {
 				request := mcp.CallToolRequest{
 					Params: mcp.CallToolParams{
 						Name: "bitbucket_create_pr",
-						Arguments: map[string]interface{}{
+						Arguments: map[string]any{
 							"title":         title,
 							"source_branch": sourceBranch,
 							"target_branch": targetBranch,
@@ -715,7 +718,7 @@ func TestBitbucketController(t *testing.T) {
 				request := mcp.CallToolRequest{
 					Params: mcp.CallToolParams{
 						Name: "bitbucket_read_pr",
-						Arguments: map[string]interface{}{
+						Arguments: map[string]any{
 							"pr_id":      prID,
 							"account":    accountName,
 							"repo_owner": repoOwner,
@@ -793,7 +796,7 @@ func TestBitbucketController(t *testing.T) {
 				request := mcp.CallToolRequest{
 					Params: mcp.CallToolParams{
 						Name: "bitbucket_read_pr",
-						Arguments: map[string]interface{}{
+						Arguments: map[string]any{
 							"pr_id":      prID,
 							"account":    accountName,
 							"repo_owner": repoOwner,
@@ -850,7 +853,7 @@ func TestBitbucketController(t *testing.T) {
 				request := mcp.CallToolRequest{
 					Params: mcp.CallToolParams{
 						Name: "bitbucket_read_pr",
-						Arguments: map[string]interface{}{
+						Arguments: map[string]any{
 							// Missing pr_id
 							"account":    accountName,
 							"repo_owner": repoOwner,
@@ -886,7 +889,7 @@ func TestBitbucketController(t *testing.T) {
 				request := mcp.CallToolRequest{
 					Params: mcp.CallToolParams{
 						Name: "bitbucket_read_pr",
-						Arguments: map[string]interface{}{
+						Arguments: map[string]any{
 							"pr_id":   int(faker.RandomUnixTime()) % 1000000,
 							"account": "account-" + faker.Username(),
 							// Missing repo_owner
@@ -922,7 +925,7 @@ func TestBitbucketController(t *testing.T) {
 				request := mcp.CallToolRequest{
 					Params: mcp.CallToolParams{
 						Name: "bitbucket_read_pr",
-						Arguments: map[string]interface{}{
+						Arguments: map[string]any{
 							"pr_id":      int(faker.RandomUnixTime()) % 1000000,
 							"account":    "account-" + faker.Username(),
 							"repo_owner": "workspace-" + faker.Username(),
@@ -979,7 +982,7 @@ func TestBitbucketController(t *testing.T) {
 				request := mcp.CallToolRequest{
 					Params: mcp.CallToolParams{
 						Name: "bitbucket_read_pr",
-						Arguments: map[string]interface{}{
+						Arguments: map[string]any{
 							"pr_id":      prID,
 							"account":    accountName,
 							"repo_owner": repoOwner,
@@ -1070,7 +1073,7 @@ func TestBitbucketController(t *testing.T) {
 				request := mcp.CallToolRequest{
 					Params: mcp.CallToolParams{
 						Name: "bitbucket_update_pr",
-						Arguments: map[string]interface{}{
+						Arguments: map[string]any{
 							"pr_id":       prID,
 							"account":     accountName,
 							"repo_owner":  repoOwner,
@@ -1114,7 +1117,7 @@ func TestBitbucketController(t *testing.T) {
 				request := mcp.CallToolRequest{
 					Params: mcp.CallToolParams{
 						Name: "bitbucket_update_pr",
-						Arguments: map[string]interface{}{
+						Arguments: map[string]any{
 							// Missing pr_id and repo_owner
 							"account":     accountName,
 							"repo_name":   repoName,
@@ -1151,7 +1154,7 @@ func TestBitbucketController(t *testing.T) {
 				request := mcp.CallToolRequest{
 					Params: mcp.CallToolParams{
 						Name: "bitbucket_update_pr",
-						Arguments: map[string]interface{}{
+						Arguments: map[string]any{
 							"pr_id":   int(faker.RandomUnixTime()) % 1000000,
 							"account": "account-" + faker.Username(),
 							// Missing repo_owner
@@ -1189,7 +1192,7 @@ func TestBitbucketController(t *testing.T) {
 				request := mcp.CallToolRequest{
 					Params: mcp.CallToolParams{
 						Name: "bitbucket_update_pr",
-						Arguments: map[string]interface{}{
+						Arguments: map[string]any{
 							"pr_id":      int(faker.RandomUnixTime()) % 1000000,
 							"account":    "account-" + faker.Username(),
 							"repo_owner": "workspace-" + faker.Username(),
@@ -1252,7 +1255,7 @@ func TestBitbucketController(t *testing.T) {
 				request := mcp.CallToolRequest{
 					Params: mcp.CallToolParams{
 						Name: "bitbucket_update_pr",
-						Arguments: map[string]interface{}{
+						Arguments: map[string]any{
 							"pr_id":       prID,
 							"account":     accountName,
 							"repo_owner":  repoOwner,
@@ -1291,7 +1294,7 @@ func TestBitbucketController(t *testing.T) {
 				request := mcp.CallToolRequest{
 					Params: mcp.CallToolParams{
 						Name: "bitbucket_update_pr",
-						Arguments: map[string]interface{}{
+						Arguments: map[string]any{
 							"pr_id":      prID,
 							"repo_owner": repoOwner,
 							"repo_name":  repoName,
@@ -1334,7 +1337,7 @@ func TestBitbucketController(t *testing.T) {
 					AccountName:   "account-" + faker.Username(),
 					RepoOwner:     "workspace-" + faker.Username(),
 					RepoName:      "repo-" + faker.Word(),
-					Draft:         lo.ToPtr(draft),
+					Draft:         new(draft),
 				}
 
 				// Create expected PR response with random values
@@ -1354,7 +1357,7 @@ func TestBitbucketController(t *testing.T) {
 				request := mcp.CallToolRequest{
 					Params: mcp.CallToolParams{
 						Name: "bitbucket_update_pr",
-						Arguments: map[string]interface{}{
+						Arguments: map[string]any{
 							"pr_id":      prID,
 							"account":    expectedParams.AccountName,
 							"repo_owner": expectedParams.RepoOwner,
@@ -1419,7 +1422,7 @@ func TestBitbucketController(t *testing.T) {
 				request := mcp.CallToolRequest{
 					Params: mcp.CallToolParams{
 						Name: "bitbucket_update_pr",
-						Arguments: map[string]interface{}{
+						Arguments: map[string]any{
 							"pr_id":      prID,
 							"account":    expectedParams.AccountName,
 							"repo_owner": expectedParams.RepoOwner,
@@ -1501,7 +1504,7 @@ func TestBitbucketController(t *testing.T) {
 				request := mcp.CallToolRequest{
 					Params: mcp.CallToolParams{
 						Name: "bitbucket_approve_pr",
-						Arguments: map[string]interface{}{
+						Arguments: map[string]any{
 							"pr_id":      prID,
 							"account":    accountName,
 							"repo_owner": repoOwner,
@@ -1543,7 +1546,7 @@ func TestBitbucketController(t *testing.T) {
 				request := mcp.CallToolRequest{
 					Params: mcp.CallToolParams{
 						Name: "bitbucket_approve_pr",
-						Arguments: map[string]interface{}{
+						Arguments: map[string]any{
 							// Missing pr_id and repo_name
 							"account":    accountName,
 							"repo_owner": repoOwner,
@@ -1578,7 +1581,7 @@ func TestBitbucketController(t *testing.T) {
 				request := mcp.CallToolRequest{
 					Params: mcp.CallToolParams{
 						Name: "bitbucket_approve_pr",
-						Arguments: map[string]interface{}{
+						Arguments: map[string]any{
 							"pr_id":   int(faker.RandomUnixTime()) % 1000000,
 							"account": "account-" + faker.Username(),
 							// Missing repo_owner
@@ -1614,7 +1617,7 @@ func TestBitbucketController(t *testing.T) {
 				request := mcp.CallToolRequest{
 					Params: mcp.CallToolParams{
 						Name: "bitbucket_approve_pr",
-						Arguments: map[string]interface{}{
+						Arguments: map[string]any{
 							"pr_id":      int(faker.RandomUnixTime()) % 1000000,
 							"account":    "account-" + faker.Username(),
 							"repo_owner": "workspace-" + faker.Username(),
@@ -1671,7 +1674,7 @@ func TestBitbucketController(t *testing.T) {
 				request := mcp.CallToolRequest{
 					Params: mcp.CallToolParams{
 						Name: "bitbucket_approve_pr",
-						Arguments: map[string]interface{}{
+						Arguments: map[string]any{
 							"pr_id":      prID,
 							"account":    accountName,
 							"repo_owner": repoOwner,
@@ -1747,7 +1750,7 @@ func TestBitbucketController(t *testing.T) {
 				request := mcp.CallToolRequest{
 					Params: mcp.CallToolParams{
 						Name: "bitbucket_merge_pr",
-						Arguments: map[string]interface{}{
+						Arguments: map[string]any{
 							"pr_id":               prID,
 							"account":             accountName,
 							"repo_owner":          repoOwner,
@@ -1792,7 +1795,7 @@ func TestBitbucketController(t *testing.T) {
 				request := mcp.CallToolRequest{
 					Params: mcp.CallToolParams{
 						Name: "bitbucket_merge_pr",
-						Arguments: map[string]interface{}{
+						Arguments: map[string]any{
 							"pr_id":   123,
 							"account": accountName,
 							// Missing repo_owner and repo_name
@@ -1827,7 +1830,7 @@ func TestBitbucketController(t *testing.T) {
 				request := mcp.CallToolRequest{
 					Params: mcp.CallToolParams{
 						Name: "bitbucket_merge_pr",
-						Arguments: map[string]interface{}{
+						Arguments: map[string]any{
 							"pr_id":      int(faker.RandomUnixTime()) % 1000000,
 							"account":    "account-" + faker.Username(),
 							"repo_owner": "workspace-" + faker.Username(),
@@ -1884,7 +1887,7 @@ func TestBitbucketController(t *testing.T) {
 				request := mcp.CallToolRequest{
 					Params: mcp.CallToolParams{
 						Name: "bitbucket_merge_pr",
-						Arguments: map[string]interface{}{
+						Arguments: map[string]any{
 							"pr_id":      prID,
 							"account":    accountName,
 							"repo_owner": repoOwner,
@@ -1957,7 +1960,7 @@ func TestBitbucketController(t *testing.T) {
 				request := mcp.CallToolRequest{
 					Params: mcp.CallToolParams{
 						Name: "bitbucket_merge_pr",
-						Arguments: map[string]interface{}{
+						Arguments: map[string]any{
 							"pr_id":               prID,
 							"account":             accountName,
 							"repo_owner":          repoOwner,
@@ -2082,7 +2085,7 @@ func TestBitbucketController(t *testing.T) {
 				request := mcp.CallToolRequest{
 					Params: mcp.CallToolParams{
 						Name: "bitbucket_list_pr_tasks",
-						Arguments: map[string]interface{}{
+						Arguments: map[string]any{
 							"pr_id":      prID,
 							"repo_owner": repoOwner,
 							"repo_name":  repoName,
@@ -2140,7 +2143,7 @@ func TestBitbucketController(t *testing.T) {
 				request := mcp.CallToolRequest{
 					Params: mcp.CallToolParams{
 						Name: "bitbucket_list_pr_tasks",
-						Arguments: map[string]interface{}{
+						Arguments: map[string]any{
 							"pr_id":      prID,
 							"repo_owner": repoOwner,
 							"repo_name":  repoName,
@@ -2169,7 +2172,7 @@ func TestBitbucketController(t *testing.T) {
 				request := mcp.CallToolRequest{
 					Params: mcp.CallToolParams{
 						Name: "bitbucket_list_pr_tasks",
-						Arguments: map[string]interface{}{
+						Arguments: map[string]any{
 							// Missing pr_id
 							"repo_owner": "workspace-" + faker.Username(),
 							"repo_name":  "repo-" + faker.Word(),
@@ -2205,7 +2208,7 @@ func TestBitbucketController(t *testing.T) {
 				request := mcp.CallToolRequest{
 					Params: mcp.CallToolParams{
 						Name: "bitbucket_list_pr_tasks",
-						Arguments: map[string]interface{}{
+						Arguments: map[string]any{
 							"pr_id":     int(faker.RandomUnixTime()) % 1000000,
 							"repo_name": "repo-" + faker.Word(),
 							"account":   "account-" + faker.Username(),
@@ -2241,7 +2244,7 @@ func TestBitbucketController(t *testing.T) {
 				request := mcp.CallToolRequest{
 					Params: mcp.CallToolParams{
 						Name: "bitbucket_list_pr_tasks",
-						Arguments: map[string]interface{}{
+						Arguments: map[string]any{
 							"pr_id":      int(faker.RandomUnixTime()) % 1000000,
 							"repo_owner": "workspace-" + faker.Username(),
 							"account":    "account-" + faker.Username(),
@@ -2298,7 +2301,7 @@ func TestBitbucketController(t *testing.T) {
 				request := mcp.CallToolRequest{
 					Params: mcp.CallToolParams{
 						Name: "bitbucket_list_pr_tasks",
-						Arguments: map[string]interface{}{
+						Arguments: map[string]any{
 							"pr_id":      prID,
 							"account":    accountName,
 							"repo_owner": repoOwner,
@@ -2395,7 +2398,7 @@ func TestBitbucketController(t *testing.T) {
 				request := mcp.CallToolRequest{
 					Params: mcp.CallToolParams{
 						Name: "bitbucket_update_pr_task",
-						Arguments: map[string]interface{}{
+						Arguments: map[string]any{
 							"pr_id":      prID,
 							"task_id":    taskID,
 							"repo_owner": repoOwner,
@@ -2498,7 +2501,7 @@ func TestBitbucketController(t *testing.T) {
 				request := mcp.CallToolRequest{
 					Params: mcp.CallToolParams{
 						Name: "bitbucket_update_pr_task",
-						Arguments: map[string]interface{}{
+						Arguments: map[string]any{
 							"pr_id":      prID,
 							"task_id":    taskID,
 							"repo_owner": repoOwner,
@@ -2536,7 +2539,7 @@ func TestBitbucketController(t *testing.T) {
 				request := mcp.CallToolRequest{
 					Params: mcp.CallToolParams{
 						Name: "bitbucket_update_pr_task",
-						Arguments: map[string]interface{}{
+						Arguments: map[string]any{
 							"pr_id":      123,
 							"task_id":    456,
 							"repo_owner": "workspace-abc",
@@ -2583,7 +2586,7 @@ func TestBitbucketController(t *testing.T) {
 				request := mcp.CallToolRequest{
 					Params: mcp.CallToolParams{
 						Name: "bitbucket_update_pr_task",
-						Arguments: map[string]interface{}{
+						Arguments: map[string]any{
 							"pr_id":      prID,
 							"task_id":    taskID,
 							"repo_owner": repoOwner,
@@ -2614,7 +2617,7 @@ func TestBitbucketController(t *testing.T) {
 				request := mcp.CallToolRequest{
 					Params: mcp.CallToolParams{
 						Name: "bitbucket_update_pr_task",
-						Arguments: map[string]interface{}{
+						Arguments: map[string]any{
 							// Missing pr_id
 							"task_id":    int(faker.RandomUnixTime()) % 1000000,
 							"repo_owner": "workspace-" + faker.Username(),
@@ -2650,7 +2653,7 @@ func TestBitbucketController(t *testing.T) {
 				request := mcp.CallToolRequest{
 					Params: mcp.CallToolParams{
 						Name: "bitbucket_update_pr_task",
-						Arguments: map[string]interface{}{
+						Arguments: map[string]any{
 							"pr_id":   int(faker.RandomUnixTime()) % 1000000,
 							"task_id": int(faker.RandomUnixTime()) % 1000000,
 							// Missing repo_owner
@@ -2680,7 +2683,7 @@ func TestBitbucketController(t *testing.T) {
 				request := mcp.CallToolRequest{
 					Params: mcp.CallToolParams{
 						Name: "bitbucket_update_pr_task",
-						Arguments: map[string]interface{}{
+						Arguments: map[string]any{
 							"pr_id":      int(faker.RandomUnixTime()) % 1000000,
 							"task_id":    int(faker.RandomUnixTime()) % 1000000,
 							"repo_owner": "workspace-" + faker.Username(),
@@ -2711,7 +2714,7 @@ func TestBitbucketController(t *testing.T) {
 				request := mcp.CallToolRequest{
 					Params: mcp.CallToolParams{
 						Name: "bitbucket_update_pr_task",
-						Arguments: map[string]interface{}{
+						Arguments: map[string]any{
 							"pr_id": int(faker.RandomUnixTime()) % 1000000,
 							// Missing task_id
 							"repo_owner": "workspace-" + faker.Username(),
@@ -2748,7 +2751,7 @@ func TestBitbucketController(t *testing.T) {
 				request := mcp.CallToolRequest{
 					Params: mcp.CallToolParams{
 						Name: "bitbucket_update_pr_task",
-						Arguments: map[string]interface{}{
+						Arguments: map[string]any{
 							"pr_id":      int(faker.RandomUnixTime()) % 1000000,
 							"task_id":    int(faker.RandomUnixTime()) % 1000000,
 							"repo_owner": "workspace-" + faker.Username(),
@@ -2847,7 +2850,7 @@ func TestBitbucketController(t *testing.T) {
 				request := mcp.CallToolRequest{
 					Params: mcp.CallToolParams{
 						Name: "bitbucket_list_pr_tasks",
-						Arguments: map[string]interface{}{
+						Arguments: map[string]any{
 							"pr_id":      prID,
 							"repo_owner": repoOwner,
 							"repo_name":  repoName,
@@ -2950,7 +2953,7 @@ func TestBitbucketController(t *testing.T) {
 				request := mcp.CallToolRequest{
 					Params: mcp.CallToolParams{
 						Name: "bitbucket_list_pr_tasks",
-						Arguments: map[string]interface{}{
+						Arguments: map[string]any{
 							"pr_id":      prID,
 							"repo_owner": repoOwner,
 							"repo_name":  repoName,
@@ -3037,7 +3040,7 @@ func TestBitbucketController(t *testing.T) {
 				request := mcp.CallToolRequest{
 					Params: mcp.CallToolParams{
 						Name: "bitbucket_create_pr_task",
-						Arguments: map[string]interface{}{
+						Arguments: map[string]any{
 							"pr_id":      float64(prID),
 							"content":    taskContent,
 							"repo_owner": repoOwner,
@@ -3077,7 +3080,7 @@ func TestBitbucketController(t *testing.T) {
 				request := mcp.CallToolRequest{
 					Params: mcp.CallToolParams{
 						Name: "bitbucket_create_pr_task",
-						Arguments: map[string]interface{}{
+						Arguments: map[string]any{
 							"pr_id":      123,
 							"content":    "Task: Review code formatting",
 							"repo_owner": "workspace-abc",
@@ -3108,7 +3111,7 @@ func TestBitbucketController(t *testing.T) {
 				request := mcp.CallToolRequest{
 					Params: mcp.CallToolParams{
 						Name: "bitbucket_create_pr_task",
-						Arguments: map[string]interface{}{
+						Arguments: map[string]any{
 							"pr_id":      123,
 							"content":    "Task: Review code formatting",
 							"repo_owner": "workspace-abc",
@@ -3169,7 +3172,7 @@ func TestBitbucketController(t *testing.T) {
 			request := mcp.CallToolRequest{
 				Params: mcp.CallToolParams{
 					Name: "bitbucket_request_pr_changes",
-					Arguments: map[string]interface{}{
+					Arguments: map[string]any{
 						"pr_id":      prID,
 						"repo_owner": repoOwner,
 						"repo_name":  repoName,
@@ -3245,7 +3248,7 @@ func TestBitbucketController(t *testing.T) {
 			request := mcp.CallToolRequest{
 				Params: mcp.CallToolParams{
 					Name: "bitbucket_add_pr_comment",
-					Arguments: map[string]interface{}{
+					Arguments: map[string]any{
 						"pr_id":            prID,
 						"repo_owner":       repoOwner,
 						"repo_name":        repoName,
@@ -3313,7 +3316,7 @@ func TestBitbucketController(t *testing.T) {
 			request := mcp.CallToolRequest{
 				Params: mcp.CallToolParams{
 					Name: "bitbucket_get_file_content",
-					Arguments: map[string]interface{}{
+					Arguments: map[string]any{
 						"repo_owner":  repoOwner,
 						"repo_name":   repoName,
 						"path":        filePath,
@@ -3367,7 +3370,7 @@ func TestBitbucketController(t *testing.T) {
 			request := mcp.CallToolRequest{
 				Params: mcp.CallToolParams{
 					Name: "bitbucket_get_file_content",
-					Arguments: map[string]interface{}{
+					Arguments: map[string]any{
 						"repo_owner":  repoOwner,
 						"repo_name":   repoName,
 						"path":        filePath,
@@ -3399,7 +3402,7 @@ func TestBitbucketController(t *testing.T) {
 			request := mcp.CallToolRequest{
 				Params: mcp.CallToolParams{
 					Name: "bitbucket_get_file_content",
-					Arguments: map[string]interface{}{
+					Arguments: map[string]any{
 						"repo_name":   "repo-" + faker.Word(),
 						"path":        faker.Word() + ".go",
 						"commit_hash": "main",
@@ -3433,7 +3436,7 @@ func TestBitbucketController(t *testing.T) {
 			request := mcp.CallToolRequest{
 				Params: mcp.CallToolParams{
 					Name: "bitbucket_get_file_content",
-					Arguments: map[string]interface{}{
+					Arguments: map[string]any{
 						"repo_owner": "workspace-" + faker.Username(),
 						"repo_name":  "repo-" + faker.Word(),
 						"path":       faker.Word() + ".go",
@@ -3484,7 +3487,7 @@ func TestBitbucketController(t *testing.T) {
 			request2 := mcp.CallToolRequest{
 				Params: mcp.CallToolParams{
 					Name: "bitbucket_get_pr_diff",
-					Arguments: map[string]interface{}{
+					Arguments: map[string]any{
 						"pr_id":      prID2,
 						"repo_owner": repoOwner2,
 						"repo_name":  repoName2,
@@ -3541,7 +3544,7 @@ func TestBitbucketController(t *testing.T) {
 			request := mcp.CallToolRequest{
 				Params: mcp.CallToolParams{
 					Name: "bitbucket_get_pr_diff",
-					Arguments: map[string]interface{}{
+					Arguments: map[string]any{
 						"pr_id":         prID,
 						"repo_owner":    repoOwner,
 						"repo_name":     repoName,
@@ -3582,7 +3585,7 @@ func TestBitbucketController(t *testing.T) {
 			request3 := mcp.CallToolRequest{
 				Params: mcp.CallToolParams{
 					Name: "bitbucket_get_pr_diff",
-					Arguments: map[string]interface{}{
+					Arguments: map[string]any{
 						// "pr_id" is missing
 						"repo_owner": repoOwner3,
 						"repo_name":  repoName3,
@@ -3623,7 +3626,7 @@ func TestBitbucketController(t *testing.T) {
 			request4 := mcp.CallToolRequest{
 				Params: mcp.CallToolParams{
 					Name: "bitbucket_get_pr_diff",
-					Arguments: map[string]interface{}{
+					Arguments: map[string]any{
 						"pr_id":      prID4,
 						"repo_owner": repoOwner4,
 						"repo_name":  repoName4,
@@ -3688,7 +3691,7 @@ func TestBitbucketController(t *testing.T) {
 			request := mcp.CallToolRequest{
 				Params: mcp.CallToolParams{
 					Name: "bitbucket_get_pr_diffstat",
-					Arguments: map[string]interface{}{
+					Arguments: map[string]any{
 						"pr_id":      prID,
 						"repo_owner": repoOwner,
 						"repo_name":  repoName,
@@ -3732,7 +3735,7 @@ func TestBitbucketController(t *testing.T) {
 			request := mcp.CallToolRequest{
 				Params: mcp.CallToolParams{
 					Name: "bitbucket_get_pr_diffstat",
-					Arguments: map[string]interface{}{
+					Arguments: map[string]any{
 						// "pr_id" is missing
 						"repo_owner": repoOwner,
 						"repo_name":  repoName,
@@ -3773,7 +3776,7 @@ func TestBitbucketController(t *testing.T) {
 			request := mcp.CallToolRequest{
 				Params: mcp.CallToolParams{
 					Name: "bitbucket_get_pr_diffstat",
-					Arguments: map[string]interface{}{
+					Arguments: map[string]any{
 						"pr_id":      prID,
 						"repo_owner": repoOwner,
 						"repo_name":  repoName,
@@ -3814,7 +3817,7 @@ func TestBitbucketController(t *testing.T) {
 			request := mcp.CallToolRequest{
 				Params: mcp.CallToolParams{
 					Name: "bitbucket_get_pr_diffstat",
-					Arguments: map[string]interface{}{
+					Arguments: map[string]any{
 						"pr_id":      prID,
 						"repo_owner": repoOwner,
 						"repo_name":  repoName,
@@ -3889,7 +3892,7 @@ func TestBitbucketController(t *testing.T) {
 			request := mcp.CallToolRequest{
 				Params: mcp.CallToolParams{
 					Name: "bitbucket_get_pr_diffstat",
-					Arguments: map[string]interface{}{
+					Arguments: map[string]any{
 						"pr_id":      prID,
 						"repo_owner": repoOwner,
 						"repo_name":  repoName,
@@ -3972,7 +3975,7 @@ func TestBitbucketController(t *testing.T) {
 			request := mcp.CallToolRequest{
 				Params: mcp.CallToolParams{
 					Name: "bitbucket_list_pr_comments",
-					Arguments: map[string]interface{}{
+					Arguments: map[string]any{
 						"pr_id":      prID,
 						"repo_owner": repoOwner,
 						"repo_name":  repoName,
@@ -4020,7 +4023,7 @@ func TestBitbucketController(t *testing.T) {
 			request := mcp.CallToolRequest{
 				Params: mcp.CallToolParams{
 					Name: "bitbucket_list_pr_comments",
-					Arguments: map[string]interface{}{
+					Arguments: map[string]any{
 						"pr_id":      prID,
 						"repo_owner": repoOwner,
 						"repo_name":  repoName,
@@ -4060,7 +4063,7 @@ func TestBitbucketController(t *testing.T) {
 			request := mcp.CallToolRequest{
 				Params: mcp.CallToolParams{
 					Name: "bitbucket_list_pr_comments",
-					Arguments: map[string]interface{}{
+					Arguments: map[string]any{
 						"pr_id":      prID,
 						"repo_owner": repoOwner,
 						"repo_name":  repoName,
@@ -4087,7 +4090,7 @@ func TestBitbucketController(t *testing.T) {
 			request := mcp.CallToolRequest{
 				Params: mcp.CallToolParams{
 					Name: "bitbucket_list_pr_comments",
-					Arguments: map[string]interface{}{
+					Arguments: map[string]any{
 						"repo_owner": "workspace-" + faker.Username(),
 						"repo_name":  "repo-" + faker.Word(),
 						"account":    "account-" + faker.Username(),
@@ -4148,7 +4151,7 @@ func TestBitbucketController(t *testing.T) {
 			request := mcp.CallToolRequest{
 				Params: mcp.CallToolParams{
 					Name: "bitbucket_list_pr_comments",
-					Arguments: map[string]interface{}{
+					Arguments: map[string]any{
 						"pr_id":      prID,
 						"repo_owner": repoOwner,
 						"repo_name":  repoName,
@@ -4193,7 +4196,7 @@ func TestBitbucketController(t *testing.T) {
 			request := mcp.CallToolRequest{
 				Params: mcp.CallToolParams{
 					Name: "bitbucket_list_pr_comments",
-					Arguments: map[string]interface{}{
+					Arguments: map[string]any{
 						"pr_id":      prID,
 						"repo_owner": repoOwner,
 						"repo_name":  repoName,
@@ -4239,7 +4242,7 @@ func TestBitbucketController(t *testing.T) {
 			request := mcp.CallToolRequest{
 				Params: mcp.CallToolParams{
 					Name: "bitbucket_list_pr_comments",
-					Arguments: map[string]interface{}{
+					Arguments: map[string]any{
 						"pr_id":      prID,
 						"repo_owner": repoOwner,
 						"repo_name":  repoName,
@@ -4294,7 +4297,7 @@ func TestBitbucketController(t *testing.T) {
 			request := mcp.CallToolRequest{
 				Params: mcp.CallToolParams{
 					Name: "bitbucket_resolve_pr_comment",
-					Arguments: map[string]interface{}{
+					Arguments: map[string]any{
 						"pr_id":      prID,
 						"comment_id": commentID,
 						"repo_owner": repoOwner,
@@ -4343,7 +4346,7 @@ func TestBitbucketController(t *testing.T) {
 			request := mcp.CallToolRequest{
 				Params: mcp.CallToolParams{
 					Name: "bitbucket_resolve_pr_comment",
-					Arguments: map[string]interface{}{
+					Arguments: map[string]any{
 						"pr_id":      prID,
 						"comment_id": commentID,
 						"repo_owner": repoOwner,
@@ -4368,7 +4371,7 @@ func TestBitbucketController(t *testing.T) {
 			request := mcp.CallToolRequest{
 				Params: mcp.CallToolParams{
 					Name: "bitbucket_resolve_pr_comment",
-					Arguments: map[string]interface{}{
+					Arguments: map[string]any{
 						"pr_id":      1,
 						"repo_owner": "o",
 						"repo_name":  "n",

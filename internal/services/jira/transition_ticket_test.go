@@ -44,7 +44,7 @@ func TestClient_TransitionTicket(t *testing.T) {
 		mockTokenProvider.Err = nil
 
 		// Create fields map
-		fields := map[string]interface{}{
+		fields := map[string]any{
 			"resolution": map[string]string{
 				"name": "Done",
 			},

@@ -25,6 +25,7 @@ func Test_provideConfigValue(t *testing.T) {
 
 		type configReceiver struct {
 			dig.In
+
 			IntVal   int   `name:"config.int-cfg-key"`
 			Int32Val int32 `name:"config.int-32-cfg-key"`
 		}
@@ -48,6 +49,7 @@ func Test_provideConfigValue(t *testing.T) {
 
 		type configReceiver struct {
 			dig.In
+
 			Value string `name:"config.string-cfg"`
 		}
 		container := dig.New()
@@ -63,6 +65,7 @@ func Test_provideConfigValue(t *testing.T) {
 		cfg.Set(configKey, lo.If(rand.IntN(2) == 1, true).Else(false))
 		type configReceiver struct {
 			dig.In
+
 			Value bool `name:"config.bool-cfg"`
 		}
 		container := dig.New()
@@ -78,6 +81,7 @@ func Test_provideConfigValue(t *testing.T) {
 		cfg.Set(configKey, rand.IntN(1000))
 		type configReceiver struct {
 			dig.In
+
 			Value time.Duration `name:"config.duration-cfg"`
 		}
 		container := dig.New()
