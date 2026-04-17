@@ -19,6 +19,11 @@ import (
 	"go.uber.org/dig"
 )
 
+// atlassianAccountsConfig is the JSON envelope for the accounts file ({ "accounts": [...] }).
+type atlassianAccountsConfig struct {
+	Accounts []app.AtlassianAccount `json:"accounts"`
+}
+
 // AccountsStore holds validated Atlassian accounts in memory. It can be loaded from and saved
 // to the same JSON file shape as the file-backed repository ({ "accounts": [...] }).
 // Mutations replace the in-memory list only after full re-validation; SaveToFile writes atomically.
@@ -60,11 +65,6 @@ func NewAccountsStoreWithDeps(deps AccountsStoreDeps) (*AccountsStore, error) {
 	}
 
 	return store, nil
-}
-
-// NewAccountsStore returns an empty store. Call LoadFromFile to populate it.
-func NewAccountsStore() *AccountsStore {
-	return &AccountsStore{}
 }
 
 // LoadFromFile reads JSON from path, validates with app.ValidateAtlassianAccounts,

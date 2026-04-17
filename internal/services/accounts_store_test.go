@@ -72,6 +72,44 @@ func TestAccountsStore(t *testing.T) {
 			require.NotNil(t, got)
 			assert.Equal(t, defaultAccount, *got)
 		})
+
+		t.Run("fails when file read fails because path is a directory", func(t *testing.T) {
+			tempDir := filepath.Join(t.TempDir(), "accounts.json")
+			err := os.Mkdir(tempDir, 0o700)
+			require.NoError(t, err)
+
+			store, err := NewAccountsStoreWithDeps(makeDeps(tempDir))
+			require.Error(t, err)
+			assert.Nil(t, store)
+			assert.Contains(t, err.Error(), "failed to read accounts configuration")
+		})
+
+		t.Run("fails when JSON parsing fails", func(t *testing.T) {
+			tempFile := filepath.Join(t.TempDir(), "accounts.json")
+			err := os.WriteFile(tempFile, []byte("invalid json"), 0o600)
+			require.NoError(t, err)
+
+			store, err := NewAccountsStoreWithDeps(makeDeps(tempFile))
+			require.Error(t, err)
+			assert.Nil(t, store)
+			assert.Contains(t, err.Error(), "failed to parse accounts configuration")
+		})
+
+		t.Run("rejects invalid accounts via shared validation", func(t *testing.T) {
+			invalid := []app.AtlassianAccount{
+				app.NewRandomAtlassianAccount(),
+				app.NewRandomAtlassianAccount(),
+			}
+			invalid[0].Default = false
+			invalid[1].Default = false
+
+			path := createTempAccountsFile(t, invalid)
+			store, err := NewAccountsStoreWithDeps(makeDeps(path))
+			require.Error(t, err)
+			assert.Nil(t, store)
+			assert.Contains(t, err.Error(), "invalid accounts configuration")
+			assert.Contains(t, err.Error(), "no default account specified")
+		})
 	})
 
 	t.Run("LoadFromFile and queries", func(t *testing.T) {
@@ -87,7 +125,7 @@ func TestAccountsStore(t *testing.T) {
 
 			path := createTempAccountsFile(t, []app.AtlassianAccount{other, defaultAccount})
 
-			store := NewAccountsStore()
+			store := &AccountsStore{}
 			err := store.LoadFromFile(path)
 			require.NoError(t, err)
 
@@ -103,7 +141,7 @@ func TestAccountsStore(t *testing.T) {
 		})
 
 		t.Run("returns not found when file path does not exist", func(t *testing.T) {
-			store := NewAccountsStore()
+			store := &AccountsStore{}
 			missing := filepath.Join(t.TempDir(), "missing-"+faker.Username()+".json")
 
 			err := store.LoadFromFile(missing)
@@ -112,7 +150,7 @@ func TestAccountsStore(t *testing.T) {
 		})
 
 		t.Run("fails read when path is not a regular file", func(t *testing.T) {
-			store := NewAccountsStore()
+			store := &AccountsStore{}
 			err := store.LoadFromFile(t.TempDir())
 			require.Error(t, err)
 			assert.Contains(t, err.Error(), "failed to read accounts configuration")
@@ -123,7 +161,7 @@ func TestAccountsStore(t *testing.T) {
 			err := os.WriteFile(tempFile, []byte("not json {"), 0o600)
 			require.NoError(t, err)
 
-			store := NewAccountsStore()
+			store := &AccountsStore{}
 			err = store.LoadFromFile(tempFile)
 			require.Error(t, err)
 			assert.Contains(t, err.Error(), "failed to parse accounts configuration")
@@ -132,7 +170,7 @@ func TestAccountsStore(t *testing.T) {
 		t.Run("fails validation when accounts list is empty", func(t *testing.T) {
 			path := createTempAccountsFile(t, nil)
 
-			store := NewAccountsStore()
+			store := &AccountsStore{}
 			err := store.LoadFromFile(path)
 			require.Error(t, err)
 			assert.Contains(t, err.Error(), "invalid accounts configuration")
@@ -149,7 +187,7 @@ func TestAccountsStore(t *testing.T) {
 
 			path := createTempAccountsFile(t, []app.AtlassianAccount{a, b})
 
-			store := NewAccountsStore()
+			store := &AccountsStore{}
 			err := store.LoadFromFile(path)
 			require.Error(t, err)
 			assert.Contains(t, err.Error(), "invalid accounts configuration")
@@ -162,7 +200,7 @@ func TestAccountsStore(t *testing.T) {
 
 			path := createTempAccountsFile(t, []app.AtlassianAccount{a, b})
 
-			store := NewAccountsStore()
+			store := &AccountsStore{}
 			err := store.LoadFromFile(path)
 			require.Error(t, err)
 			assert.Contains(t, err.Error(), "invalid accounts configuration")
@@ -177,7 +215,7 @@ func TestAccountsStore(t *testing.T) {
 
 			path := createTempAccountsFile(t, []app.AtlassianAccount{a, b})
 
-			store := NewAccountsStore()
+			store := &AccountsStore{}
 			err := store.LoadFromFile(path)
 			require.Error(t, err)
 			assert.Contains(t, err.Error(), "invalid accounts configuration")
@@ -188,7 +226,7 @@ func TestAccountsStore(t *testing.T) {
 			good := app.NewRandomAtlassianAccount(app.WithAtlassianAccountDefault(true))
 			goodPath := createTempAccountsFile(t, []app.AtlassianAccount{good})
 
-			store := NewAccountsStore()
+			store := &AccountsStore{}
 			require.NoError(t, store.LoadFromFile(goodPath))
 
 			badPath := createTempAccountsFile(t, nil)
@@ -203,7 +241,19 @@ func TestAccountsStore(t *testing.T) {
 
 	t.Run("GetDefaultAccount", func(t *testing.T) {
 		t.Run("returns ErrNoDefaultAccount when store is empty", func(t *testing.T) {
-			store := NewAccountsStore()
+			store := &AccountsStore{}
+			acc, err := store.GetDefaultAccount(t.Context())
+			assert.Nil(t, acc)
+			require.ErrorIs(t, err, app.ErrNoDefaultAccount)
+		})
+
+		t.Run("returns ErrNoDefaultAccount when accounts exist but none is default", func(t *testing.T) {
+			a := app.NewRandomAtlassianAccount()
+			b := app.NewRandomAtlassianAccount()
+			a.Default = false
+			b.Default = false
+
+			store := &AccountsStore{accounts: []app.AtlassianAccount{a, b}}
 			acc, err := store.GetDefaultAccount(t.Context())
 			assert.Nil(t, acc)
 			require.ErrorIs(t, err, app.ErrNoDefaultAccount)
@@ -212,12 +262,35 @@ func TestAccountsStore(t *testing.T) {
 
 	t.Run("GetAccountByName", func(t *testing.T) {
 		t.Run("returns ErrAccountNotFound when store is empty", func(t *testing.T) {
-			store := NewAccountsStore()
+			store := &AccountsStore{}
 			name := "missing-" + faker.Username()
 			acc, err := store.GetAccountByName(t.Context(), name)
 			assert.Nil(t, acc)
 			require.ErrorIs(t, err, app.ErrAccountNotFound)
 			assert.Contains(t, err.Error(), name)
+		})
+
+		t.Run("returns ErrAccountNotFound when name does not exist among loaded accounts", func(t *testing.T) {
+			defaultName := "default-" + faker.Username()
+			userName := "user-" + faker.Username()
+			botName := "bot-" + faker.Username()
+
+			defaultAccount := app.NewRandomAtlassianAccount(
+				app.WithAtlassianAccountDefault(true),
+				app.WithAtlassianAccountName(defaultName),
+			)
+			account1 := app.NewRandomAtlassianAccount(app.WithAtlassianAccountName(userName))
+			account2 := app.NewRandomAtlassianAccount(app.WithAtlassianAccountName(botName))
+
+			path := createTempAccountsFile(t, []app.AtlassianAccount{defaultAccount, account1, account2})
+			store := &AccountsStore{}
+			require.NoError(t, store.LoadFromFile(path))
+
+			nonExistentName := "nonexistent-" + faker.Username()
+			result, err := store.GetAccountByName(t.Context(), nonExistentName)
+			assert.Nil(t, result)
+			require.ErrorIs(t, err, app.ErrAccountNotFound)
+			assert.Contains(t, err.Error(), nonExistentName)
 		})
 	})
 
@@ -230,13 +303,13 @@ func TestAccountsStore(t *testing.T) {
 			)
 
 			src := createTempAccountsFile(t, []app.AtlassianAccount{acc})
-			store := NewAccountsStore()
+			store := &AccountsStore{}
 			require.NoError(t, store.LoadFromFile(src))
 
 			outPath := filepath.Join(t.TempDir(), "saved.json")
 			require.NoError(t, store.SaveToFile(outPath))
 
-			reloaded := NewAccountsStore()
+			reloaded := &AccountsStore{}
 			require.NoError(t, reloaded.LoadFromFile(outPath))
 
 			got, err := reloaded.GetDefaultAccount(t.Context())
@@ -257,7 +330,7 @@ func TestAccountsStore(t *testing.T) {
 			)
 
 			path := createTempAccountsFile(t, []app.AtlassianAccount{a, b})
-			store := NewAccountsStore()
+			store := &AccountsStore{}
 			require.NoError(t, store.LoadFromFile(path))
 
 			require.NoError(t, store.SetDefault(nameB))
@@ -276,7 +349,7 @@ func TestAccountsStore(t *testing.T) {
 			only := app.NewRandomAtlassianAccount(app.WithAtlassianAccountDefault(true))
 			path := createTempAccountsFile(t, []app.AtlassianAccount{only})
 
-			store := NewAccountsStore()
+			store := &AccountsStore{}
 			require.NoError(t, store.LoadFromFile(path))
 
 			err := store.Remove(only.Name)
@@ -292,7 +365,7 @@ func TestAccountsStore(t *testing.T) {
 		t.Run("Remove and SetDefault return ErrAccountNotFound for missing name", func(t *testing.T) {
 			acc := app.NewRandomAtlassianAccount(app.WithAtlassianAccountDefault(true))
 			path := createTempAccountsFile(t, []app.AtlassianAccount{acc})
-			store := NewAccountsStore()
+			store := &AccountsStore{}
 			require.NoError(t, store.LoadFromFile(path))
 
 			missing := "missing-" + faker.Username()
@@ -307,7 +380,7 @@ func TestAccountsStore(t *testing.T) {
 			good := app.NewRandomAtlassianAccount(app.WithAtlassianAccountDefault(true))
 			path := createTempAccountsFile(t, []app.AtlassianAccount{good})
 
-			store := NewAccountsStore()
+			store := &AccountsStore{}
 			require.NoError(t, store.LoadFromFile(path))
 
 			badUpsert := app.NewRandomAtlassianAccount(
@@ -327,14 +400,14 @@ func TestAccountsStore(t *testing.T) {
 		})
 
 		t.Run("SaveToFile rejects empty path", func(t *testing.T) {
-			store := NewAccountsStore()
+			store := &AccountsStore{}
 			err := store.SaveToFile("")
 			require.Error(t, err)
 			assert.Equal(t, "accounts save path is empty", err.Error())
 		})
 
 		t.Run("SaveToFile fails when store state is invalid", func(t *testing.T) {
-			store := NewAccountsStore()
+			store := &AccountsStore{}
 			err := store.SaveToFile(filepath.Join(t.TempDir(), "out.json"))
 			require.Error(t, err)
 			assert.Contains(t, err.Error(), "invalid accounts configuration")
@@ -343,7 +416,7 @@ func TestAccountsStore(t *testing.T) {
 		t.Run("SaveToFile fails when parent directory for temp file does not exist", func(t *testing.T) {
 			acc := app.NewRandomAtlassianAccount(app.WithAtlassianAccountDefault(true))
 			path := createTempAccountsFile(t, []app.AtlassianAccount{acc})
-			store := NewAccountsStore()
+			store := &AccountsStore{}
 			require.NoError(t, store.LoadFromFile(path))
 
 			missingParent := filepath.Join(t.TempDir(), "nope", "out.json")
@@ -359,7 +432,7 @@ func TestAccountsStore(t *testing.T) {
 				app.WithAtlassianAccountDefault(true),
 			)
 			path := createTempAccountsFile(t, []app.AtlassianAccount{first})
-			store := NewAccountsStore()
+			store := &AccountsStore{}
 			require.NoError(t, store.LoadFromFile(path))
 
 			replacement := app.NewRandomAtlassianAccount(
@@ -385,7 +458,7 @@ func TestAccountsStore(t *testing.T) {
 				app.WithAtlassianAccountDefault(false),
 			)
 			path := createTempAccountsFile(t, []app.AtlassianAccount{defAcc, extra})
-			store := NewAccountsStore()
+			store := &AccountsStore{}
 			require.NoError(t, store.LoadFromFile(path))
 
 			require.NoError(t, store.Remove(extraName))
@@ -401,7 +474,7 @@ func TestAccountsStore(t *testing.T) {
 			base := app.NewRandomAtlassianAccount(app.WithAtlassianAccountDefault(true))
 			path := createTempAccountsFile(t, []app.AtlassianAccount{base})
 
-			store := NewAccountsStore()
+			store := &AccountsStore{}
 			require.NoError(t, store.LoadFromFile(path))
 
 			const n = 32
