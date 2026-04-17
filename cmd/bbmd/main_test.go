@@ -303,21 +303,60 @@ func TestBBMD(t *testing.T) {
 			})
 			require.NoError(t, rootCmd.Execute())
 		})
-		t.Run("read without noop returns stub error", func(t *testing.T) {
-			rootCmd := setupCommands()
-			rootCmd.SilenceErrors = true
-			rootCmd.SilenceUsage = true
+		t.Run("all subcommands noop exercise DI", func(t *testing.T) {
 			logFile := filepath.Join(t.TempDir(), "bbmd-test.log")
-			rootCmd.SetArgs([]string{
-				"pr", "read",
-				"--logs-file", logFile,
-				"--repo-owner", "dummy-owner",
-				"--repo-name", "dummy-repo",
-				"--pr-id", "1",
-			})
-			gotErr := rootCmd.Execute()
-			require.Error(t, gotErr)
-			assert.ErrorContains(t, gotErr, "not yet implemented")
+			base := []string{"--noop", "--logs-file", logFile}
+			repoOnly := []string{"--repo-owner", "o", "--repo-name", "n"}
+			repoPR := []string{"--repo-owner", "o", "--repo-name", "n", "--pr-id", "1"}
+			cases := []struct {
+				name string
+				args []string
+			}{
+				{
+					name: "create",
+					args: append(
+						[]string{"pr", "create", "--title", "t", "--source-branch", "s", "--target-branch", "d"},
+						repoOnly...,
+					),
+				},
+				{name: "read", args: append([]string{"pr", "read"}, repoPR...)},
+				{
+					name: "update",
+					args: append([]string{"pr", "update", "--title", "x"}, repoPR...),
+				},
+				{name: "approve", args: append([]string{"pr", "approve"}, repoPR...)},
+				{name: "request-changes", args: append([]string{"pr", "request-changes"}, repoPR...)},
+				{name: "merge", args: append([]string{"pr", "merge"}, repoPR...)},
+				{name: "list-tasks", args: append([]string{"pr", "list-tasks"}, repoPR...)},
+				{
+					name: "create-task",
+					args: append([]string{"pr", "create-task", "--content", "c"}, repoPR...),
+				},
+				{
+					name: "update-task",
+					args: append([]string{"pr", "update-task", "--task-id", "1"}, repoPR...),
+				},
+				{name: "diffstat", args: append([]string{"pr", "diffstat"}, repoPR...)},
+				{name: "diff", args: append([]string{"pr", "diff"}, repoPR...)},
+				{
+					name: "add-comment",
+					args: append([]string{"pr", "add-comment", "--content", "hi"}, repoPR...),
+				},
+				{name: "list-comments", args: append([]string{"pr", "list-comments"}, repoPR...)},
+				{
+					name: "resolve-comment",
+					args: append([]string{"pr", "resolve-comment", "--comment-id", "1"}, repoPR...),
+				},
+			}
+			for _, tc := range cases {
+				t.Run(tc.name, func(t *testing.T) {
+					rootCmd := setupCommands()
+					rootCmd.SetOut(io.Discard)
+					rootCmd.SetErr(io.Discard)
+					rootCmd.SetArgs(append(tc.args, base...))
+					require.NoError(t, rootCmd.Execute())
+				})
+			}
 		})
 	})
 	t.Run("root", func(t *testing.T) {

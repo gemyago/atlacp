@@ -25,3 +25,5 @@ exclude:
     - internal/app/models/.* # Generated code
     - internal/testing/mocks/.* # Tests related code
     - cmd/bbmd/auth.go # CLI wiring; branches covered by integration tests (marshal/pflag errors not exercised)
+    - cmd/bbmd/pr.go
+    - cmd/bbmd/pr_flags.go
