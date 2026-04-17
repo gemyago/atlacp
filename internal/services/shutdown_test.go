@@ -15,8 +15,9 @@ import (
 )
 
 type mockShutdownHook struct {
-	name string
 	mock.Mock
+
+	name string
 }
 
 func (m *mockShutdownHook) shutdown(ctx context.Context) error {

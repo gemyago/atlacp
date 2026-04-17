@@ -15,18 +15,18 @@ type MockNow struct {
 
 var _ TimeProvider = &MockNow{}
 
+func NewMockNow() *MockNow {
+	return &MockNow{
+		value: time.UnixMilli(faker.RandomUnixTime()),
+	}
+}
+
 func (m *MockNow) SetValue(t time.Time) {
 	m.value = t
 }
 
 func (m *MockNow) Now() time.Time {
 	return m.value
-}
-
-func NewMockNow() *MockNow {
-	return &MockNow{
-		value: time.UnixMilli(faker.RandomUnixTime()),
-	}
 }
 
 func MockNowValue(p TimeProvider) time.Time {

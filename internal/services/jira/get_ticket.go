@@ -50,7 +50,7 @@ func (c *Client) GetTicket(
 	requestURL.RawQuery = query.Encode()
 
 	var ticket Ticket
-	err = httpservices.SendRequest(ctxWithAuth, c.httpClient, httpservices.SendRequestParams[interface{}, Ticket]{
+	err = httpservices.SendRequest(ctxWithAuth, c.httpClient, httpservices.SendRequestParams[any, Ticket]{
 		Method: "GET",
 		URL:    requestURL.String(),
 		Target: &ticket,

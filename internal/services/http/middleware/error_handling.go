@@ -14,6 +14,13 @@ const (
 	httpStatusServerErrorMin = 500
 )
 
+func httpErrorMessageForStatus(statusCode int, statusLine string) string {
+	if statusCode >= httpStatusServerErrorMin {
+		return fmt.Sprintf("HTTP server error (%d %s)", statusCode, statusLine)
+	}
+	return fmt.Sprintf("HTTP client error (%d %s)", statusCode, statusLine)
+}
+
 // HTTPError represents an HTTP-related error with context.
 type HTTPError struct {
 	StatusCode int
@@ -41,7 +48,7 @@ type ErrorHandlingMiddlewareDeps struct {
 	RootLogger *slog.Logger
 }
 
-// ErrorHandlingMiddleware wraps an http.RoundTripper to add generic HTTP error handling.
+// ErrorHandlingMiddleware wraps an [http.RoundTripper] to add generic HTTP error handling.
 type ErrorHandlingMiddleware struct {
 	transport http.RoundTripper
 	logger    *slog.Logger
@@ -55,7 +62,7 @@ func NewErrorHandlingMiddleware(transport http.RoundTripper, deps ErrorHandlingM
 	}
 }
 
-// RoundTrip implements http.RoundTripper interface.
+// RoundTrip implements [http.RoundTripper].
 // Handles HTTP errors by wrapping non-2xx responses and transport errors in HTTPError.
 func (e *ErrorHandlingMiddleware) RoundTrip(req *http.Request) (*http.Response, error) {
 	// Call next transport
@@ -80,12 +87,7 @@ func (e *ErrorHandlingMiddleware) RoundTrip(req *http.Request) (*http.Response, 
 
 	// Handle HTTP error status codes
 	if resp.StatusCode >= httpStatusClientErrorMin {
-		var message string
-		if resp.StatusCode >= httpStatusServerErrorMin {
-			message = fmt.Sprintf("HTTP server error (%d %s)", resp.StatusCode, resp.Status)
-		} else {
-			message = fmt.Sprintf("HTTP client error (%d %s)", resp.StatusCode, resp.Status)
-		}
+		message := httpErrorMessageForStatus(resp.StatusCode, resp.Status)
 
 		httpErr := &HTTPError{
 			StatusCode: resp.StatusCode,
@@ -100,7 +102,10 @@ func (e *ErrorHandlingMiddleware) RoundTrip(req *http.Request) (*http.Response, 
 		if resp.Body != nil {
 			bodyBytes, _ = io.ReadAll(resp.Body)
 			// Close the original body to prevent resource leaks
-			resp.Body.Close()
+			if closeErr := resp.Body.Close(); closeErr != nil {
+				e.logger.WarnContext(req.Context(), "failed to close HTTP response body before replacing reader",
+					"error", closeErr)
+			}
 			// Replace with a new reader containing the same data
 			resp.Body = io.NopCloser(bytes.NewReader(bodyBytes))
 		}

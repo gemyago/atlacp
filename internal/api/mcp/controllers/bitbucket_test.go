@@ -19,6 +19,7 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
+//nolint:gocyclo,cyclop // Nested t.Run blocks mirror the Bitbucket MCP tool surface.
 func TestBitbucketController(t *testing.T) {
 	makeMockDeps := func(t *testing.T) BitbucketControllerDeps {
 		// Create a mock bitbucketService for testing

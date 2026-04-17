@@ -26,6 +26,22 @@ type ShutdownHooks struct {
 	deps   ShutdownHooksRegistryDeps
 }
 
+type ShutdownHooksRegistryDeps struct {
+	dig.In
+
+	RootLogger *slog.Logger
+
+	// config
+	GracefulShutdownTimeout time.Duration `name:"config.gracefulShutdownTimeout"`
+}
+
+func NewShutdownHooks(deps ShutdownHooksRegistryDeps) *ShutdownHooks {
+	return &ShutdownHooks{
+		logger: deps.RootLogger.WithGroup("shutdown"),
+		deps:   deps,
+	}
+}
+
 // HasHook checks if a shutdown hook with the given name is registered.
 // Typical usage is in tests and must be carefully considered for production scenarios.
 func (h *ShutdownHooks) HasHook(name string, method any) bool {
@@ -73,21 +89,5 @@ func (h *ShutdownHooks) PerformShutdown(ctx context.Context) error {
 		return err
 	case <-ctx.Done():
 		return ctx.Err()
-	}
-}
-
-type ShutdownHooksRegistryDeps struct {
-	dig.In
-
-	RootLogger *slog.Logger
-
-	// config
-	GracefulShutdownTimeout time.Duration `name:"config.gracefulShutdownTimeout"`
-}
-
-func NewShutdownHooks(deps ShutdownHooksRegistryDeps) *ShutdownHooks {
-	return &ShutdownHooks{
-		logger: deps.RootLogger.WithGroup("shutdown"),
-		deps:   deps,
 	}
 }

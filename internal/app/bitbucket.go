@@ -45,6 +45,19 @@ func NewBitbucketService(deps BitbucketServiceDeps) *BitbucketService {
 	}
 }
 
+func validateBitbucketRepoAndPRID(repoOwner, repoName string, pullRequestID int) error {
+	if repoOwner == "" {
+		return errors.New("repository owner is required")
+	}
+	if repoName == "" {
+		return errors.New("repository name is required")
+	}
+	if pullRequestID <= 0 {
+		return errors.New("pull request ID must be positive")
+	}
+	return nil
+}
+
 // BitbucketCreatePRParams contains parameters for creating a pull request.
 type BitbucketCreatePRParams struct {
 	// Account name to use for authentication (optional, uses default if empty)
@@ -369,15 +382,8 @@ func (s *BitbucketService) ReadPR(ctx context.Context, params BitbucketReadPRPar
 		slog.String("repo", params.RepoOwner+"/"+params.RepoName),
 		slog.Int("pr_id", params.PullRequestID))
 
-	// Validate required parameters
-	if params.RepoOwner == "" {
-		return nil, errors.New("repository owner is required")
-	}
-	if params.RepoName == "" {
-		return nil, errors.New("repository name is required")
-	}
-	if params.PullRequestID <= 0 {
-		return nil, errors.New("pull request ID must be positive")
+	if err := validateBitbucketRepoAndPRID(params.RepoOwner, params.RepoName, params.PullRequestID); err != nil {
+		return nil, err
 	}
 
 	// Get token provider from auth factory
@@ -452,15 +458,8 @@ func (s *BitbucketService) ApprovePR(
 		slog.String("repo", params.RepoOwner+"/"+params.RepoName),
 		slog.Int("pr_id", params.PullRequestID))
 
-	// Validate required parameters
-	if params.RepoOwner == "" {
-		return nil, errors.New("repository owner is required")
-	}
-	if params.RepoName == "" {
-		return nil, errors.New("repository name is required")
-	}
-	if params.PullRequestID <= 0 {
-		return nil, errors.New("pull request ID must be positive")
+	if err := validateBitbucketRepoAndPRID(params.RepoOwner, params.RepoName, params.PullRequestID); err != nil {
+		return nil, err
 	}
 
 	// Get token provider from auth factory

@@ -23,15 +23,15 @@ type EchoService struct {
 	logger *slog.Logger
 }
 
+func NewEchoService(deps EchoServiceDeps) *EchoService {
+	return &EchoService{
+		logger: deps.RootLogger.WithGroup("app.echo-service"),
+	}
+}
+
 func (svc *EchoService) SendEcho(ctx context.Context, data *EchoData) (*EchoData, error) {
 	svc.logger.InfoContext(ctx, "Going to echo data", slog.String("message", data.Message))
 	return &EchoData{
 		Message: data.Message,
 	}, nil
-}
-
-func NewEchoService(deps EchoServiceDeps) *EchoService {
-	return &EchoService{
-		logger: deps.RootLogger.WithGroup("app.echo-service"),
-	}
 }

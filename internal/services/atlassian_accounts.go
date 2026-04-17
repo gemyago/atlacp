@@ -33,6 +33,8 @@ type AtlassianAccountsRepositoryDeps struct {
 }
 
 // NewAtlassianAccountsRepository creates a new Atlassian accounts repository.
+//
+//nolint:ireturn // Hides repository implementation behind app port interface.
 func NewAtlassianAccountsRepository(deps AtlassianAccountsRepositoryDeps) (app.AtlassianAccountsRepository, error) {
 	logger := deps.RootLogger.WithGroup("atlassian-accounts")
 	configPath := deps.ConfigPath

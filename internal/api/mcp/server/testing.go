@@ -7,7 +7,7 @@ import (
 	"context"
 	"fmt"
 	"io"
-	"log"
+	"log/slog"
 	"sync"
 
 	"github.com/mark3labs/mcp-go/client"
@@ -46,14 +46,9 @@ func newTestMCPServer() *testMCPServer {
 
 // Start starts the server in a goroutine. Make sure to defer Close() after Start().
 // When using NewServer(), the returned server is already started.
-func (s *testMCPServer) Start(
-	ctx context.Context,
-	mcpServer *mcpserver.MCPServer,
-) error {
-
+func (s *testMCPServer) Start(ctx context.Context, mcpServer *mcpserver.MCPServer) error {
 	s.wg.Go(func() {
-
-		logger := log.New(&s.logBuffer, "", 0)
+		logger := slog.NewLogLogger(slog.NewTextHandler(&s.logBuffer, &slog.HandlerOptions{}), slog.LevelError)
 
 		stdioServer := mcpserver.NewStdioServer(mcpServer)
 		stdioServer.SetErrorLogger(logger)

@@ -18,7 +18,7 @@ type GetTaskParams struct {
 	TaskID    int
 }
 
-// GET /repositories/{workspace}/{repo_slug}/pullrequests/{pull_request_id}/tasks/{task_id}.
+// GetTask fetches a pull request task (GET .../pullrequests/{id}/tasks/{task_id}).
 func (c *Client) GetTask(
 	ctx context.Context,
 	tokenProvider TokenProvider,

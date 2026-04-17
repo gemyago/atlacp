@@ -1,4 +1,4 @@
-package http
+package http_test
 
 import (
 	"io"
@@ -8,6 +8,7 @@ import (
 	"time"
 
 	"github.com/gemyago/atlacp/internal/diag"
+	httpsvc "github.com/gemyago/atlacp/internal/services/http"
 	"github.com/gemyago/atlacp/internal/services/http/middleware"
 	"github.com/go-faker/faker/v4"
 	"github.com/stretchr/testify/assert"
@@ -15,8 +16,8 @@ import (
 )
 
 func TestClientFactory(t *testing.T) {
-	makeMockDeps := func() ClientFactoryDeps {
-		return ClientFactoryDeps{
+	makeMockDeps := func() httpsvc.ClientFactoryDeps {
+		return httpsvc.ClientFactoryDeps{
 			RootLogger: diag.RootTestLogger(),
 		}
 	}
@@ -24,7 +25,7 @@ func TestClientFactory(t *testing.T) {
 	t.Run("should create HTTP client with all middleware enabled", func(t *testing.T) {
 		// Arrange
 		deps := makeMockDeps()
-		factory := NewClientFactory(deps)
+		factory := httpsvc.NewClientFactory(deps)
 		token := faker.Word()
 		testServer := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 			// Check for auth header
@@ -69,7 +70,7 @@ func TestClientFactory(t *testing.T) {
 	t.Run("should create HTTP client with all middleware disabled", func(t *testing.T) {
 		// Arrange
 		deps := makeMockDeps()
-		factory := NewClientFactory(deps)
+		factory := httpsvc.NewClientFactory(deps)
 		testServer := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) {
 			// Should receive request without auth header and return success
 			w.WriteHeader(http.StatusOK)
@@ -80,10 +81,10 @@ func TestClientFactory(t *testing.T) {
 
 		// Act - disable all middleware
 		client := factory.CreateClient(
-			WithAuth(false),
-			WithLogging(false),
-			WithErrorHandling(false),
-			WithTimeout(45*time.Second),
+			httpsvc.WithAuth(false),
+			httpsvc.WithLogging(false),
+			httpsvc.WithErrorHandling(false),
+			httpsvc.WithTimeout(45*time.Second),
 		)
 
 		resp, err := client.Get(testServer.URL)

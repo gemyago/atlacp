@@ -465,6 +465,10 @@ linters:
       - text: 'comment on exported \S+ \S+ should be of the form ".+"'
         source: '// ?(nolint|TODO)'
         linters: [ revive, staticcheck ]
+      # Package name matches the bounded context (outbound HTTP client); imported as httpsvc where stdlib conflicts.
+      - path: '^internal/services/http/'
+        linters: [ revive ]
+        text: 'avoid package names that conflict with Go standard library package names'
       - path: '_test\.go'
         linters:
           - bodyclose

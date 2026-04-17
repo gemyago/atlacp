@@ -36,7 +36,7 @@ type AuthenticationMiddlewareDeps struct {
 	RootLogger *slog.Logger
 }
 
-// AuthenticationMiddleware wraps an http.RoundTripper to add authentication headers.
+// AuthenticationMiddleware wraps an [http.RoundTripper] to add authentication headers.
 type AuthenticationMiddleware struct {
 	transport http.RoundTripper
 	logger    *slog.Logger
@@ -51,7 +51,7 @@ func NewAuthenticationMiddleware(transport http.RoundTripper, deps Authenticatio
 	}
 }
 
-// RoundTrip implements http.RoundTripper interface
+// RoundTrip implements [http.RoundTripper].
 // Extracts token from context and adds Authorization header.
 func (a *AuthenticationMiddleware) RoundTrip(req *http.Request) (*http.Response, error) {
 	// Extract token from context

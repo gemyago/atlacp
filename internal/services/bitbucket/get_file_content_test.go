@@ -350,7 +350,7 @@ func TestClient_GetFileContent_EdgeCases(t *testing.T) {
 	})
 }
 
-// roundTripperFunc allows inline definition of http.RoundTripper for tests.
+// roundTripperFunc allows inline definition of [http.RoundTripper] for tests.
 type roundTripperFunc func(*http.Request) (*http.Response, error)
 
 func (f roundTripperFunc) RoundTrip(r *http.Request) (*http.Response, error) {

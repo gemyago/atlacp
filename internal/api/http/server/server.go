@@ -18,6 +18,8 @@ import (
 type HTTPServerDeps struct {
 	dig.In `ignore-unexported:"true"`
 
+	*services.ShutdownHooks
+
 	RootLogger *slog.Logger
 
 	// config
@@ -32,9 +34,6 @@ type HTTPServerDeps struct {
 	// handler
 	Handler http.Handler
 
-	// services
-	*services.ShutdownHooks
-
 	// listeningSignal is an optional channel that Start will close when the server is listening.
 	// Primarily for testing.
 	listeningSignal chan<- struct{}
@@ -44,35 +43,6 @@ type HTTPServer struct {
 	httpSrv *http.Server
 	deps    HTTPServerDeps
 	logger  *slog.Logger
-}
-
-func (srv *HTTPServer) Start(ctx context.Context) error {
-	listener, err := net.Listen("tcp", srv.httpSrv.Addr)
-	if err != nil {
-		return fmt.Errorf("failed to listen on %s: %w", srv.httpSrv.Addr, err)
-	}
-
-	actualAddr := listener.Addr().String()
-	srv.logger.InfoContext(ctx, "Started http listener",
-		slog.String("addr", actualAddr),
-		slog.String("idleTimeout", srv.deps.IdleTimeout.String()),
-		slog.String("readHeaderTimeout", srv.deps.ReadHeaderTimeout.String()),
-		slog.String("readTimeout", srv.deps.ReadTimeout.String()),
-		slog.String("writeTimeout", srv.deps.WriteTimeout.String()),
-		slog.String("accessLogsLevel", srv.deps.AccessLogsLevel),
-	)
-
-	if srv.deps.listeningSignal != nil {
-		close(srv.deps.listeningSignal)
-	}
-
-	// http.Serve always returns a non-nil error.
-	// It returns http.ErrServerClosed when Shutdown or Close is called.
-	err = srv.httpSrv.Serve(listener)
-	if err != nil && !errors.Is(err, http.ErrServerClosed) {
-		return fmt.Errorf("http server Serve error: %w", err)
-	}
-	return nil
 }
 
 func buildMiddlewareChain(deps HTTPServerDeps) http.Handler {
@@ -108,7 +78,7 @@ func buildMiddlewareChain(deps HTTPServerDeps) http.Handler {
 	return chain(deps.Handler)
 }
 
-// NewHTTPServer constructor factory for general use *http.Server.
+// NewHTTPServer builds an [HTTPServer] wrapping an [http.Server] with middleware and graceful shutdown registration.
 func NewHTTPServer(deps HTTPServerDeps) *HTTPServer {
 	address := fmt.Sprintf("%s:%d", deps.Host, deps.Port)
 	srv := &http.Server{
@@ -128,4 +98,34 @@ func NewHTTPServer(deps HTTPServerDeps) *HTTPServer {
 		httpSrv: srv,
 		logger:  deps.RootLogger.WithGroup("http-server"),
 	}
+}
+
+func (srv *HTTPServer) Start(ctx context.Context) error {
+	lc := net.ListenConfig{}
+	listener, err := lc.Listen(ctx, "tcp", srv.httpSrv.Addr)
+	if err != nil {
+		return fmt.Errorf("failed to listen on %s: %w", srv.httpSrv.Addr, err)
+	}
+
+	actualAddr := listener.Addr().String()
+	srv.logger.InfoContext(ctx, "Started http listener",
+		slog.String("addr", actualAddr),
+		slog.String("idleTimeout", srv.deps.IdleTimeout.String()),
+		slog.String("readHeaderTimeout", srv.deps.ReadHeaderTimeout.String()),
+		slog.String("readTimeout", srv.deps.ReadTimeout.String()),
+		slog.String("writeTimeout", srv.deps.WriteTimeout.String()),
+		slog.String("accessLogsLevel", srv.deps.AccessLogsLevel),
+	)
+
+	if srv.deps.listeningSignal != nil {
+		close(srv.deps.listeningSignal)
+	}
+
+	// http.Serve always returns a non-nil error.
+	// It returns http.ErrServerClosed when Shutdown or Close is called.
+	err = srv.httpSrv.Serve(listener)
+	if err != nil && !errors.Is(err, http.ErrServerClosed) {
+		return fmt.Errorf("http server Serve error: %w", err)
+	}
+	return nil
 }

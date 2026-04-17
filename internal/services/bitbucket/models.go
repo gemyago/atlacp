@@ -44,7 +44,7 @@ type Task struct {
 	Content    *TaskContent `json:"content"`
 	Creator    *Account     `json:"creator"`
 	Pending    bool         `json:"pending,omitempty"`
-	ResolvedOn time.Time    `json:"resolved_on,omitempty"`
+	ResolvedOn time.Time    `json:"resolved_on,omitzero"`
 	ResolvedBy *Account     `json:"resolved_by,omitempty"`
 }
 
@@ -58,8 +58,8 @@ type PullRequestTask struct {
 // Comment represents a comment on Bitbucket.
 type Comment struct {
 	ID        int64        `json:"id,omitempty"`
-	CreatedOn time.Time    `json:"created_on,omitempty"`
-	UpdatedOn time.Time    `json:"updated_on,omitempty"`
+	CreatedOn time.Time    `json:"created_on,omitzero"`
+	UpdatedOn time.Time    `json:"updated_on,omitzero"`
 	Content   *TaskContent `json:"content,omitempty"`
 	User      *Account     `json:"user,omitempty"`
 	Pending   bool         `json:"pending,omitempty"`
@@ -82,8 +82,7 @@ type PaginatedTasks struct {
 	Values   []PullRequestCommentTask `json:"values"`
 }
 
-// DiffStatPath handles Bitbucket's "old"/"new" fields which may be a string or object.
-// CommitFile matches the Bitbucket OpenAPI "commit_file" definition.
+// CommitFile represents a file reference on a commit (OpenAPI commit_file).
 type CommitFile struct {
 	Type        string  `json:"type"`
 	Path        string  `json:"path,omitempty"`
@@ -96,13 +95,13 @@ type CommitFile struct {
 type Commit struct {
 	Hash         string         `json:"hash,omitempty"`
 	Date         string         `json:"date,omitempty"`
-	Author       interface{}    `json:"author,omitempty"`    // Could be expanded if needed
-	Committer    interface{}    `json:"committer,omitempty"` // Could be expanded if needed
+	Author       any            `json:"author,omitempty"`    // Could be expanded if needed
+	Committer    any            `json:"committer,omitempty"` // Could be expanded if needed
 	Message      string         `json:"message,omitempty"`
 	Summary      *CommitSummary `json:"summary,omitempty"`
 	Parents      []*Commit      `json:"parents,omitempty"`
-	Repository   interface{}    `json:"repository,omitempty"`   // Could be expanded if needed
-	Participants interface{}    `json:"participants,omitempty"` // Could be expanded if needed
+	Repository   any            `json:"repository,omitempty"`   // Could be expanded if needed
+	Participants any            `json:"participants,omitempty"` // Could be expanded if needed
 }
 
 // CommitSummary matches the summary object in the commit schema.
@@ -200,7 +199,7 @@ type PRComment struct {
 type CommentResolution struct {
 	Type      string    `json:"type"`
 	User      *Account  `json:"user,omitempty"`
-	CreatedOn time.Time `json:"created_on,omitempty"`
+	CreatedOn time.Time `json:"created_on,omitzero"`
 }
 
 // InlineContext represents the file and line context for inline comments.
