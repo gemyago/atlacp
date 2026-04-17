@@ -45,9 +45,9 @@ type AccountsStoreDeps struct {
 	ConfigPath string `name:"config.atlassian.accountsFilePath"`
 }
 
-// NewAccountsStoreWithDeps loads validated accounts from ConfigPath into a new store. It mirrors startup
-// behavior of the former file-backed repository: empty path and missing file fail before load; other errors
-// come from LoadFromFile.
+// NewAccountsStoreWithDeps loads validated accounts from ConfigPath into a new store. An empty path fails.
+// If the file does not exist yet, the store starts empty and a warning is logged (the file can be created
+// later via SaveToFile). Other load errors come from LoadFromFile.
 func NewAccountsStoreWithDeps(deps AccountsStoreDeps) (*AccountsStore, error) {
 	logger := deps.RootLogger.WithGroup("atlassian-accounts")
 	configPath := deps.ConfigPath
@@ -57,7 +57,9 @@ func NewAccountsStoreWithDeps(deps AccountsStoreDeps) (*AccountsStore, error) {
 	}
 
 	if _, err := os.Stat(configPath); os.IsNotExist(err) {
-		return nil, fmt.Errorf("accounts configuration file not found at %s", configPath)
+		logger.Warn("accounts configuration file not found; starting with empty store", "path", configPath)
+
+		return &AccountsStore{logger: logger}, nil
 	}
 
 	store := &AccountsStore{logger: logger}
@@ -66,6 +68,17 @@ func NewAccountsStoreWithDeps(deps AccountsStoreDeps) (*AccountsStore, error) {
 	}
 
 	return store, nil
+}
+
+// ListAccounts returns a snapshot copy of the current accounts (thread-safe).
+func (s *AccountsStore) ListAccounts() []app.AtlassianAccount {
+	s.mu.RLock()
+	defer s.mu.RUnlock()
+
+	out := make([]app.AtlassianAccount, len(s.accounts))
+	copy(out, s.accounts)
+
+	return out
 }
 
 // LoadFromFile reads JSON from path, validates with app.ValidateAtlassianAccounts,

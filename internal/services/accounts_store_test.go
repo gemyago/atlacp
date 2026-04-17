@@ -50,12 +50,12 @@ func TestAccountsStore(t *testing.T) {
 			assert.Equal(t, "accounts configuration path not specified", err.Error())
 		})
 
-		t.Run("fails when config file does not exist", func(t *testing.T) {
+		t.Run("succeeds with empty store when config file does not exist", func(t *testing.T) {
 			missing := filepath.Join(t.TempDir(), "nonexistent-"+faker.Username()+".json")
 			store, err := NewAccountsStoreWithDeps(makeDeps(missing))
-			require.Error(t, err)
-			assert.Nil(t, store)
-			assert.Contains(t, err.Error(), "not found")
+			require.NoError(t, err)
+			require.NotNil(t, store)
+			assert.Empty(t, store.ListAccounts())
 		})
 
 		t.Run("loads valid config from file", func(t *testing.T) {
@@ -109,6 +109,63 @@ func TestAccountsStore(t *testing.T) {
 			assert.Nil(t, store)
 			assert.Contains(t, err.Error(), "invalid accounts configuration")
 			assert.Contains(t, err.Error(), "no default account specified")
+		})
+	})
+
+	t.Run("ListAccounts", func(t *testing.T) {
+		t.Run("returns empty slice when no accounts loaded", func(t *testing.T) {
+			store := &AccountsStore{}
+			got := store.ListAccounts()
+			require.NotNil(t, got)
+			assert.Empty(t, got)
+		})
+
+		t.Run("returns all accounts after LoadFromFile", func(t *testing.T) {
+			defaultAccount := app.NewRandomAtlassianAccount(app.WithAtlassianAccountDefault(true))
+			other := app.NewRandomAtlassianAccount()
+			path := createTempAccountsFile(t, []app.AtlassianAccount{other, defaultAccount})
+
+			store := &AccountsStore{}
+			require.NoError(t, store.LoadFromFile(path))
+
+			got := store.ListAccounts()
+			require.Len(t, got, 2)
+			assert.Equal(t, []app.AtlassianAccount{other, defaultAccount}, got)
+		})
+
+		t.Run("returns updated list after Upsert", func(t *testing.T) {
+			initial := app.NewRandomAtlassianAccount(app.WithAtlassianAccountDefault(true))
+			path := createTempAccountsFile(t, []app.AtlassianAccount{initial})
+
+			store := &AccountsStore{}
+			require.NoError(t, store.LoadFromFile(path))
+
+			added := app.NewRandomAtlassianAccount(app.WithAtlassianAccountDefault(false))
+			require.NoError(t, store.Upsert(added))
+
+			got := store.ListAccounts()
+			require.Len(t, got, 2)
+			assert.Equal(t, []app.AtlassianAccount{initial, added}, got)
+		})
+
+		t.Run("snapshot is independent of later mutations", func(t *testing.T) {
+			acc := app.NewRandomAtlassianAccount(app.WithAtlassianAccountDefault(true))
+			path := createTempAccountsFile(t, []app.AtlassianAccount{acc})
+
+			store := &AccountsStore{}
+			require.NoError(t, store.LoadFromFile(path))
+
+			snapshot := store.ListAccounts()
+			require.Len(t, snapshot, 1)
+
+			replacement := app.NewRandomAtlassianAccount(
+				app.WithAtlassianAccountName(acc.Name),
+				app.WithAtlassianAccountDefault(true),
+			)
+			require.NoError(t, store.Upsert(replacement))
+
+			assert.Equal(t, []app.AtlassianAccount{acc}, snapshot)
+			assert.Equal(t, replacement, store.ListAccounts()[0])
 		})
 	})
 
