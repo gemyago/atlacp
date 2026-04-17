@@ -4,7 +4,7 @@
 
 ## Overview
 
-Shared Atlassian account validation was moved to `app.ValidateAtlassianAccounts` and reused by the file-backed repository. An `AccountsStore` type was added under `internal/services` for mutex-protected load, query, mutation, and optional atomic JSON persistence using the same on-disk envelope as before. Documentation is limited to code comments; the store is not wired into DI in this phase.
+Shared Atlassian account validation was moved to `app.ValidateAtlassianAccounts` and reused by the file-backed repository. An `AccountsStore` type was added under `internal/services` for mutex-protected load, query, mutation, and optional atomic JSON persistence using the same on-disk envelope as before. Documentation is limited to code comments. **Follow-up:** the store is now the sole implementation behind `app.AtlassianAccountsRepository` via DI; see [plan-accounts-store-di.md](../accounts-store-di/plan-accounts-store-di.md) and [implementation-summary.md](../accounts-store-di/implementation-summary.md) in `accounts-store-di`.
 
 ## Tasks
 
@@ -22,7 +22,7 @@ Implemented `Upsert`, `Remove`, and `SetDefault` on `AccountsStore` with full-re
 
 ### Task 1.4: Documentation touchpoint (code comments only)
 
-Added a file-level doc comment on `internal/services/accounts_store.go` describing `AccountsStore`: in-memory handling of validated Atlassian accounts, optional JSON persistence aligned with the existing file envelope, and that the type is not registered in application dependency injection (construct it directly until wiring exists).
+Added a file-level doc comment on `internal/services/accounts_store.go` describing `AccountsStore` (in-memory handling, optional JSON persistence). That comment was later refreshed when the store was wired as `AtlassianAccountsRepository`; see the `accounts-store-di` docs linked in the overview above.
 
 ## Deviations & notes
 

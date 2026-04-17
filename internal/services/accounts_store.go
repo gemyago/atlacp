@@ -1,7 +1,8 @@
-// AccountsStore (defined below) provides in-memory management of validated Atlassian accounts
-// with optional JSON file persistence (load/save using the same {"accounts":[...]} envelope as
-// the file-backed repository). This standalone component is not registered in application
-// dependency injection; construct it directly where needed until wiring is added.
+// AccountsStore (types below) holds validated Atlassian accounts in memory with optional JSON
+// persistence (same {"accounts":[...]} envelope as the former file-backed repository). Production
+// wiring registers NewAccountsStoreWithDeps in the services DI graph and exposes *AccountsStore as
+// app.AtlassianAccountsRepository (see register.go). Tests may use &AccountsStore{} or LoadFromFile
+// without the full constructor.
 
 package services
 
