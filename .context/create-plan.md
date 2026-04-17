@@ -2,14 +2,16 @@
 
 ## Goal
 
-To guide an AI assistant in creating a detailed plan of the work in Markdown format, based on an initial user prompt. The plan should be clear, actionable, and suitable for a junior developer to understand and implement the required change.
+AI must follow this instruction to create a detailed plan of the work in Markdown format, based on an initial user prompt. The plan should be clear, actionable, and suitable for a junior developer to understand and implement the required change.
+
+AI must only create the plan. Implementation is a separate process.
 
 ## Process
 
 1.  **Receive Initial Prompt:** The user provides a brief description or request for a new feature or functionality, optionally referencing existing document
 2.  **Do Research:** Before creating the plan, the AI *must* do the research of the codebase to gather sufficient detail. The goal is to understand the "what", "why" and most important **how** of the requested work.
 3.  **Generate Plan:** Based on the initial prompt and the research, generate the plan using the structure outlined below.
-4.  **Save the Plan:** Save the generated document as `plan-[feature-name].md` inside the `/doc/implementation/[feature-name]` directory (relevant to the module).
+4.  **Save the Plan:** Save the generated document as `plan-[feature-name].md` inside the `/docs/implementation/[feature-name]` directory (relevant to the module or root if change is global).
 
 ## Research Areas (Examples)
 
@@ -63,9 +65,11 @@ Important notes:
 
 Last task must always be the following:
 ```markdown
-**Task X.X: Compress implementation summaries**
+**Compress implementation summaries**
 - Follow [compress-implementation-summaries.md](/.context/compress-implementation-summaries.md) to compress the implementation summaries.
 ```
+
+> **Important:** Do NOT use a numbered `Task X.X:` heading for this step. It must be a non-numbered trailer so the orchestrator does not treat it as an atomic task and does not produce a `completed-task-*.md` summary file for it.
 
 ## Target Audience
 
@@ -74,11 +78,11 @@ Assume the primary reader of the Plan is a **junior developer**. Therefore, requ
 ## Output
 
 *   **Format:** Markdown (`.md`)
-*   **Location:** `/doc/implementation/[feature-name]` (relevant to the module)
+*   **Location:** `docss/implementation/[feature-name]/` under the module root or global docs folder
 *   **Filename:** `plan-[feature-name].md`
 
 ## Final instructions
 
-1. Do NOT start implementing the Plan
+1. **DO NOT** start implementing the Plan
 2. Do the research as stated
 3. Avoid asking questions unless there is a **very** strong reason
