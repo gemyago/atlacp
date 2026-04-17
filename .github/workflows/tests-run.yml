@@ -19,7 +19,11 @@ jobs:
     - name: Setup golangci-lint
       uses: golangci/golangci-lint-action@v9
       with:
+        install-only: true
         version-file: .golangci-version
+
+    - name: Run Lint
+      run: make lint
 
     - name: Run Tests
       run: make test
