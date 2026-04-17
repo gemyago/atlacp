@@ -7,13 +7,12 @@ tmp
 test.log
 bbmd.log
 .venv
+openspec/
 
-# Ignore MCP configs for now
-.cursor/mcp.json
-.kilocode/mcp.json
-.continue/mcpServers/
-
-# Ignore Gemini configs for now
+# Ignore agents configs for now
+.cursor/
+.kilocode/
+.continue/
 .gemini
 
 # Ignore some examples
