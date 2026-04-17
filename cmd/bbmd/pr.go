@@ -45,36 +45,40 @@ func writeJSON(cmd *cobra.Command, v any) error {
 	return nil
 }
 
+type prCreateOpts struct {
+	Title          string
+	SourceBranch   string
+	TargetBranch   string
+	RepoOwner      string
+	RepoName       string
+	Description    string
+	Account        string
+}
+
 func newPRCreateCmd(container *dig.Container) *cobra.Command {
+	var opts prCreateOpts
 	cmd := &cobra.Command{
 		Use:   "create",
 		Short: "Create a pull request",
 		RunE: func(cmd *cobra.Command, _ []string) error {
-			title, _ := cmd.Flags().GetString("title")
-			sourceBranch, _ := cmd.Flags().GetString("source-branch")
-			targetBranch, _ := cmd.Flags().GetString("target-branch")
-			repoOwner, _ := cmd.Flags().GetString("repo-owner")
-			repoName, _ := cmd.Flags().GetString("repo-name")
-			description, _ := cmd.Flags().GetString("description")
-			account, _ := cmd.Flags().GetString("account")
 			return runPRCreate(cmd, container, app.BitbucketCreatePRParams{
-				Title:        title,
-				SourceBranch: sourceBranch,
-				DestBranch:   targetBranch,
-				RepoOwner:    repoOwner,
-				RepoName:     repoName,
-				Description:  description,
-				AccountName:  account,
+				Title:        opts.Title,
+				SourceBranch: opts.SourceBranch,
+				DestBranch:   opts.TargetBranch,
+				RepoOwner:    opts.RepoOwner,
+				RepoName:     opts.RepoName,
+				Description:  opts.Description,
+				AccountName:  opts.Account,
 			})
 		},
 	}
-	cmd.Flags().String("title", "", "Pull request title")
-	cmd.Flags().String("source-branch", "", "Source branch name")
-	cmd.Flags().String("target-branch", "", "Target branch name")
-	cmd.Flags().String("repo-owner", "", "Repository owner (workspace)")
-	cmd.Flags().String("repo-name", "", "Repository name (slug)")
-	cmd.Flags().String("description", "", "Pull request description")
-	cmd.Flags().String("account", "", "Atlassian account name (optional)")
+	cmd.Flags().StringVar(&opts.Title, "title", "", "Pull request title")
+	cmd.Flags().StringVar(&opts.SourceBranch, "source-branch", "", "Source branch name")
+	cmd.Flags().StringVar(&opts.TargetBranch, "target-branch", "", "Target branch name")
+	cmd.Flags().StringVar(&opts.RepoOwner, "repo-owner", "", "Repository owner (workspace)")
+	cmd.Flags().StringVar(&opts.RepoName, "repo-name", "", "Repository name (slug)")
+	cmd.Flags().StringVar(&opts.Description, "description", "", "Pull request description")
+	cmd.Flags().StringVar(&opts.Account, "account", "", "Atlassian account name (optional)")
 	_ = cmd.MarkFlagRequired("title")
 	_ = cmd.MarkFlagRequired("source-branch")
 	_ = cmd.MarkFlagRequired("target-branch")
@@ -97,14 +101,11 @@ func runPRCreate(cmd *cobra.Command, container *dig.Container, params app.Bitbuc
 }
 
 func newPRReadCmd(container *dig.Container) *cobra.Command {
+	var core prCoreIDs
 	cmd := &cobra.Command{
 		Use:   "read",
 		Short: "Get pull request details",
 		RunE: func(cmd *cobra.Command, _ []string) error {
-			core, err := parsePRCoreFlags(cmd)
-			if err != nil {
-				return err
-			}
 			return runPRRead(cmd, container, app.BitbucketReadPRParams{
 				RepoOwner:     core.RepoOwner,
 				RepoName:      core.RepoName,
@@ -113,7 +114,7 @@ func newPRReadCmd(container *dig.Container) *cobra.Command {
 			})
 		},
 	}
-	bindPRCoreFlags(cmd)
+	bindPRCoreFlags(cmd, &core)
 	requirePRCoreFlags(cmd)
 	return cmd
 }
@@ -132,14 +133,16 @@ func runPRRead(cmd *cobra.Command, container *dig.Container, params app.Bitbucke
 }
 
 func newPRUpdateCmd(container *dig.Container) *cobra.Command {
+	var core prCoreIDs
+	var upd struct {
+		Title       string
+		Description string
+		Draft       bool
+	}
 	cmd := &cobra.Command{
 		Use:   "update",
 		Short: "Update pull request title, description, or draft state",
 		RunE: func(cmd *cobra.Command, _ []string) error {
-			core, err := parsePRCoreFlags(cmd)
-			if err != nil {
-				return err
-			}
 			params := app.BitbucketUpdatePRParams{
 				RepoOwner:     core.RepoOwner,
 				RepoName:      core.RepoName,
@@ -147,25 +150,23 @@ func newPRUpdateCmd(container *dig.Container) *cobra.Command {
 				AccountName:   core.Account,
 			}
 			if cmd.Flags().Changed("title") {
-				title, _ := cmd.Flags().GetString("title")
-				params.Title = title
+				params.Title = upd.Title
 			}
 			if cmd.Flags().Changed("description") {
-				desc, _ := cmd.Flags().GetString("description")
-				params.Description = desc
+				params.Description = upd.Description
 			}
 			if cmd.Flags().Changed("draft") {
-				draft, _ := cmd.Flags().GetBool("draft")
-				params.Draft = &draft
+				d := upd.Draft
+				params.Draft = &d
 			}
 			return runPRUpdate(cmd, container, params)
 		},
 	}
-	bindPRCoreFlags(cmd)
+	bindPRCoreFlags(cmd, &core)
 	requirePRCoreFlags(cmd)
-	cmd.Flags().String("title", "", "Updated title")
-	cmd.Flags().String("description", "", "Updated description")
-	cmd.Flags().Bool("draft", false, "Set draft state")
+	cmd.Flags().StringVar(&upd.Title, "title", "", "Updated title")
+	cmd.Flags().StringVar(&upd.Description, "description", "", "Updated description")
+	cmd.Flags().BoolVar(&upd.Draft, "draft", false, "Set draft state")
 	return cmd
 }
 
@@ -183,14 +184,11 @@ func runPRUpdate(cmd *cobra.Command, container *dig.Container, params app.Bitbuc
 }
 
 func newPRApproveCmd(container *dig.Container) *cobra.Command {
+	var core prCoreIDs
 	cmd := &cobra.Command{
 		Use:   "approve",
 		Short: "Approve a pull request",
 		RunE: func(cmd *cobra.Command, _ []string) error {
-			core, err := parsePRCoreFlags(cmd)
-			if err != nil {
-				return err
-			}
 			return runPRApprove(cmd, container, app.BitbucketApprovePRParams{
 				RepoOwner:     core.RepoOwner,
 				RepoName:      core.RepoName,
@@ -199,7 +197,7 @@ func newPRApproveCmd(container *dig.Container) *cobra.Command {
 			})
 		},
 	}
-	bindPRCoreFlags(cmd)
+	bindPRCoreFlags(cmd, &core)
 	requirePRCoreFlags(cmd)
 	return cmd
 }
@@ -218,14 +216,11 @@ func runPRApprove(cmd *cobra.Command, container *dig.Container, params app.Bitbu
 }
 
 func newPRRequestChangesCmd(container *dig.Container) *cobra.Command {
+	var core prCoreIDs
 	cmd := &cobra.Command{
 		Use:   "request-changes",
 		Short: "Remove approval / request changes on a pull request",
 		RunE: func(cmd *cobra.Command, _ []string) error {
-			core, err := parsePRCoreFlags(cmd)
-			if err != nil {
-				return err
-			}
 			return runPRRequestChanges(
 				cmd,
 				container,
@@ -238,7 +233,7 @@ func newPRRequestChangesCmd(container *dig.Container) *cobra.Command {
 			)
 		},
 	}
-	bindPRCoreFlags(cmd)
+	bindPRCoreFlags(cmd, &core)
 	requirePRCoreFlags(cmd)
 	return cmd
 }
@@ -264,15 +259,12 @@ func runPRRequestChanges(
 }
 
 func newPRMergeCmd(container *dig.Container) *cobra.Command {
+	var core prCoreIDs
+	var strategy string
 	cmd := &cobra.Command{
 		Use:   "merge",
 		Short: "Merge a pull request",
 		RunE: func(cmd *cobra.Command, _ []string) error {
-			core, err := parsePRCoreFlags(cmd)
-			if err != nil {
-				return err
-			}
-			strategy, _ := cmd.Flags().GetString("strategy")
 			return runPRMerge(cmd, container, app.BitbucketMergePRParams{
 				RepoOwner:     core.RepoOwner,
 				RepoName:      core.RepoName,
@@ -282,9 +274,9 @@ func newPRMergeCmd(container *dig.Container) *cobra.Command {
 			})
 		},
 	}
-	bindPRCoreFlags(cmd)
+	bindPRCoreFlags(cmd, &core)
 	requirePRCoreFlags(cmd)
-	cmd.Flags().String("strategy", "", "Merge strategy: merge_commit, squash, or fast_forward")
+	cmd.Flags().StringVar(&strategy, "strategy", "", "Merge strategy: merge_commit, squash, or fast_forward")
 	return cmd
 }
 
@@ -302,14 +294,11 @@ func runPRMerge(cmd *cobra.Command, container *dig.Container, params app.Bitbuck
 }
 
 func newPRListTasksCmd(container *dig.Container) *cobra.Command {
+	var core prCoreIDs
 	cmd := &cobra.Command{
 		Use:   "list-tasks",
 		Short: "List tasks on a pull request",
 		RunE: func(cmd *cobra.Command, _ []string) error {
-			core, err := parsePRCoreFlags(cmd)
-			if err != nil {
-				return err
-			}
 			return runPRListTasks(cmd, container, app.BitbucketListTasksParams{
 				RepoOwner:     core.RepoOwner,
 				RepoName:      core.RepoName,
@@ -318,7 +307,7 @@ func newPRListTasksCmd(container *dig.Container) *cobra.Command {
 			})
 		},
 	}
-	bindPRCoreFlags(cmd)
+	bindPRCoreFlags(cmd, &core)
 	requirePRCoreFlags(cmd)
 	return cmd
 }
@@ -337,33 +326,32 @@ func runPRListTasks(cmd *cobra.Command, container *dig.Container, params app.Bit
 }
 
 func newPRCreateTaskCmd(container *dig.Container) *cobra.Command {
+	var core prCoreIDs
+	var taskCreate struct {
+		Content   string
+		CommentID int64
+	}
 	cmd := &cobra.Command{
 		Use:   "create-task",
 		Short: "Create a task on a pull request",
 		RunE: func(cmd *cobra.Command, _ []string) error {
-			core, err := parsePRCoreFlags(cmd)
-			if err != nil {
-				return err
-			}
-			content, _ := cmd.Flags().GetString("content")
-			commentID, _ := cmd.Flags().GetInt64("comment-id")
 			params := app.BitbucketCreateTaskParams{
 				RepoOwner:     core.RepoOwner,
 				RepoName:      core.RepoName,
 				PullRequestID: core.PRID,
-				Content:       content,
+				Content:       taskCreate.Content,
 				AccountName:   core.Account,
 			}
 			if cmd.Flags().Changed("comment-id") {
-				params.CommentID = commentID
+				params.CommentID = taskCreate.CommentID
 			}
 			return runPRCreateTask(cmd, container, params)
 		},
 	}
-	bindPRCoreFlags(cmd)
+	bindPRCoreFlags(cmd, &core)
 	requirePRCoreFlags(cmd)
-	cmd.Flags().String("content", "", "Task content")
-	cmd.Flags().Int64("comment-id", 0, "Optional comment ID to associate with the task")
+	cmd.Flags().StringVar(&taskCreate.Content, "content", "", "Task content")
+	cmd.Flags().Int64Var(&taskCreate.CommentID, "comment-id", 0, "Optional comment ID to associate with the task")
 	_ = cmd.MarkFlagRequired("content")
 	return cmd
 }
@@ -382,38 +370,37 @@ func runPRCreateTask(cmd *cobra.Command, container *dig.Container, params app.Bi
 }
 
 func newPRUpdateTaskCmd(container *dig.Container) *cobra.Command {
+	var core prCoreIDs
+	var taskUpd struct {
+		TaskID  int
+		Content string
+		State   string
+	}
 	cmd := &cobra.Command{
 		Use:   "update-task",
 		Short: "Update a task on a pull request",
 		RunE: func(cmd *cobra.Command, _ []string) error {
-			core, err := parsePRCoreFlags(cmd)
-			if err != nil {
-				return err
-			}
-			taskID, _ := cmd.Flags().GetInt("task-id")
 			params := app.BitbucketUpdateTaskParams{
 				RepoOwner:     core.RepoOwner,
 				RepoName:      core.RepoName,
 				PullRequestID: core.PRID,
-				TaskID:        taskID,
+				TaskID:        taskUpd.TaskID,
 				AccountName:   core.Account,
 			}
 			if cmd.Flags().Changed("content") {
-				content, _ := cmd.Flags().GetString("content")
-				params.Content = content
+				params.Content = taskUpd.Content
 			}
 			if cmd.Flags().Changed("state") {
-				state, _ := cmd.Flags().GetString("state")
-				params.State = state
+				params.State = taskUpd.State
 			}
 			return runPRUpdateTask(cmd, container, params)
 		},
 	}
-	bindPRCoreFlags(cmd)
+	bindPRCoreFlags(cmd, &core)
 	requirePRCoreFlags(cmd)
-	cmd.Flags().Int("task-id", 0, "Task ID")
-	cmd.Flags().String("content", "", "Updated task content")
-	cmd.Flags().String("state", "", "Task state: RESOLVED or UNRESOLVED")
+	cmd.Flags().IntVar(&taskUpd.TaskID, "task-id", 0, "Task ID")
+	cmd.Flags().StringVar(&taskUpd.Content, "content", "", "Updated task content")
+	cmd.Flags().StringVar(&taskUpd.State, "state", "", "Task state: RESOLVED or UNRESOLVED")
 	_ = cmd.MarkFlagRequired("task-id")
 	return cmd
 }
@@ -432,14 +419,11 @@ func runPRUpdateTask(cmd *cobra.Command, container *dig.Container, params app.Bi
 }
 
 func newPRDiffStatCmd(container *dig.Container) *cobra.Command {
+	var core prCoreIDs
 	cmd := &cobra.Command{
 		Use:   "diffstat",
 		Short: "List changed files summary for a pull request",
 		RunE: func(cmd *cobra.Command, _ []string) error {
-			core, err := parsePRCoreFlags(cmd)
-			if err != nil {
-				return err
-			}
 			return runPRDiffStat(cmd, container, app.BitbucketGetPRDiffStatParams{
 				RepoOwner:     core.RepoOwner,
 				RepoName:      core.RepoName,
@@ -448,7 +432,7 @@ func newPRDiffStatCmd(container *dig.Container) *cobra.Command {
 			})
 		},
 	}
-	bindPRCoreFlags(cmd)
+	bindPRCoreFlags(cmd, &core)
 	requirePRCoreFlags(cmd)
 	return cmd
 }
@@ -467,35 +451,35 @@ func runPRDiffStat(cmd *cobra.Command, container *dig.Container, params app.Bitb
 }
 
 func newPRDiffCmd(container *dig.Container) *cobra.Command {
+	var core prCoreIDs
+	var diffOpts struct {
+		Path    string
+		Context int
+	}
 	cmd := &cobra.Command{
 		Use:   "diff",
 		Short: "Get raw diff text for a pull request",
 		RunE: func(cmd *cobra.Command, _ []string) error {
-			core, err := parsePRCoreFlags(cmd)
-			if err != nil {
-				return err
-			}
-			pathStr, _ := cmd.Flags().GetString("path")
 			params := app.BitbucketGetPRDiffParams{
 				RepoOwner:     core.RepoOwner,
 				RepoName:      core.RepoName,
 				PullRequestID: core.PRID,
 				AccountName:   core.Account,
 			}
-			if pathStr != "" {
-				params.FilePaths = []string{pathStr}
+			if diffOpts.Path != "" {
+				params.FilePaths = []string{diffOpts.Path}
 			}
 			if cmd.Flags().Changed("context") {
-				ctxLines, _ := cmd.Flags().GetInt("context")
+				ctxLines := diffOpts.Context
 				params.ContextLines = &ctxLines
 			}
 			return runPRDiff(cmd, container, params)
 		},
 	}
-	bindPRCoreFlags(cmd)
+	bindPRCoreFlags(cmd, &core)
 	requirePRCoreFlags(cmd)
-	cmd.Flags().String("path", "", "Optional file path to scope the diff")
-	cmd.Flags().Int("context", 0, "Optional number of context lines")
+	cmd.Flags().StringVar(&diffOpts.Path, "path", "", "Optional file path to scope the diff")
+	cmd.Flags().IntVar(&diffOpts.Context, "context", 0, "Optional number of context lines")
 	return cmd
 }
 
@@ -515,37 +499,36 @@ func runPRDiff(cmd *cobra.Command, container *dig.Container, params app.Bitbucke
 }
 
 func newPRAddCommentCmd(container *dig.Container) *cobra.Command {
+	var core prCoreIDs
+	var cmt struct {
+		Content  string
+		FilePath string
+		Line     int
+	}
 	cmd := &cobra.Command{
 		Use:   "add-comment",
 		Short: "Post a comment on a pull request (general or inline)",
 		RunE: func(cmd *cobra.Command, _ []string) error {
-			core, err := parsePRCoreFlags(cmd)
-			if err != nil {
-				return err
-			}
-			content, _ := cmd.Flags().GetString("content")
-			filePath, _ := cmd.Flags().GetString("file-path")
 			params := app.BitbucketAddPRCommentParams{
 				RepoOwner:     core.RepoOwner,
 				RepoName:      core.RepoName,
 				PullRequestID: core.PRID,
-				Content:       content,
-				FilePath:      filePath,
+				Content:       cmt.Content,
+				FilePath:      cmt.FilePath,
 				AccountName:   core.Account,
 			}
 			if cmd.Flags().Changed("line") {
-				line, _ := cmd.Flags().GetInt("line")
-				params.LineFrom = line
-				params.LineTo = line
+				params.LineFrom = cmt.Line
+				params.LineTo = cmt.Line
 			}
 			return runPRAddComment(cmd, container, params)
 		},
 	}
-	bindPRCoreFlags(cmd)
+	bindPRCoreFlags(cmd, &core)
 	requirePRCoreFlags(cmd)
-	cmd.Flags().String("content", "", "Comment content (raw)")
-	cmd.Flags().String("file-path", "", "File path for inline comments")
-	cmd.Flags().Int("line", 0, "Line number for inline comments (sets from/to)")
+	cmd.Flags().StringVar(&cmt.Content, "content", "", "Comment content (raw)")
+	cmd.Flags().StringVar(&cmt.FilePath, "file-path", "", "File path for inline comments")
+	cmd.Flags().IntVar(&cmt.Line, "line", 0, "Line number for inline comments (sets from/to)")
 	_ = cmd.MarkFlagRequired("content")
 	return cmd
 }
@@ -567,15 +550,12 @@ func runPRAddComment(cmd *cobra.Command, container *dig.Container, params app.Bi
 }
 
 func newPRListCommentsCmd(container *dig.Container) *cobra.Command {
+	var core prCoreIDs
+	var includeResolved bool
 	cmd := &cobra.Command{
 		Use:   "list-comments",
 		Short: "List comments on a pull request",
 		RunE: func(cmd *cobra.Command, _ []string) error {
-			core, err := parsePRCoreFlags(cmd)
-			if err != nil {
-				return err
-			}
-			includeResolved, _ := cmd.Flags().GetBool("include-resolved")
 			return runPRListComments(
 				cmd,
 				container,
@@ -589,9 +569,9 @@ func newPRListCommentsCmd(container *dig.Container) *cobra.Command {
 			)
 		},
 	}
-	bindPRCoreFlags(cmd)
+	bindPRCoreFlags(cmd, &core)
 	requirePRCoreFlags(cmd)
-	cmd.Flags().Bool("include-resolved", false, "Include resolved comments in the output")
+	cmd.Flags().BoolVar(&includeResolved, "include-resolved", false, "Include resolved comments in the output")
 	return cmd
 }
 
@@ -623,15 +603,12 @@ func runPRListComments(
 }
 
 func newPRResolveCommentCmd(container *dig.Container) *cobra.Command {
+	var core prCoreIDs
+	var commentID int64
 	cmd := &cobra.Command{
 		Use:   "resolve-comment",
 		Short: "Resolve a pull request comment thread",
 		RunE: func(cmd *cobra.Command, _ []string) error {
-			core, err := parsePRCoreFlags(cmd)
-			if err != nil {
-				return err
-			}
-			commentID, _ := cmd.Flags().GetInt64("comment-id")
 			return runPRResolveComment(cmd, container, app.BitbucketResolvePRCommentParams{
 				RepoOwner:     core.RepoOwner,
 				RepoName:      core.RepoName,
@@ -641,9 +618,9 @@ func newPRResolveCommentCmd(container *dig.Container) *cobra.Command {
 			})
 		},
 	}
-	bindPRCoreFlags(cmd)
+	bindPRCoreFlags(cmd, &core)
 	requirePRCoreFlags(cmd)
-	cmd.Flags().Int64("comment-id", 0, "Comment ID")
+	cmd.Flags().Int64Var(&commentID, "comment-id", 0, "Comment ID")
 	_ = cmd.MarkFlagRequired("comment-id")
 	return cmd
 }

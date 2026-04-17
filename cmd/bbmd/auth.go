@@ -24,6 +24,13 @@ func newAuthCmd(container *dig.Container) *cobra.Command {
 	return auth
 }
 
+type authAddOpts struct {
+	Name       string
+	Default    bool
+	TokenType  string
+	TokenValue string
+}
+
 func newAuthStatusCmd(container *dig.Container) *cobra.Command {
 	return &cobra.Command{
 		Use:   "status",
@@ -35,44 +42,47 @@ func newAuthStatusCmd(container *dig.Container) *cobra.Command {
 }
 
 func newAuthAddCmd(container *dig.Container) *cobra.Command {
+	var opts authAddOpts
 	cmd := &cobra.Command{
 		Use:   "add",
 		Short: "Add or replace an account",
-		RunE: func(c *cobra.Command, _ []string) error {
-			return runAuthAdd(container, c)
+		RunE: func(_ *cobra.Command, _ []string) error {
+			return runAuthAdd(container, opts)
 		},
 	}
-	cmd.Flags().String("name", "", "Account name")
-	cmd.Flags().Bool("default", false, "Mark this account as the default")
-	cmd.Flags().String("token-type", "Bearer", "Token type (e.g. Bearer)")
-	cmd.Flags().String("token-value", "", "Token value")
+	cmd.Flags().StringVar(&opts.Name, "name", "", "Account name")
+	cmd.Flags().BoolVar(&opts.Default, "default", false, "Mark this account as the default")
+	cmd.Flags().StringVar(&opts.TokenType, "token-type", "Bearer", "Token type (e.g. Bearer)")
+	cmd.Flags().StringVar(&opts.TokenValue, "token-value", "", "Token value")
 	_ = cmd.MarkFlagRequired("name")
 	_ = cmd.MarkFlagRequired("token-value")
 	return cmd
 }
 
 func newAuthRemoveCmd(container *dig.Container) *cobra.Command {
+	var name string
 	cmd := &cobra.Command{
 		Use:   "remove",
 		Short: "Remove an account by name",
-		RunE: func(c *cobra.Command, _ []string) error {
-			return runAuthRemove(container, c)
+		RunE: func(_ *cobra.Command, _ []string) error {
+			return runAuthRemove(container, name)
 		},
 	}
-	cmd.Flags().String("name", "", "Account name")
+	cmd.Flags().StringVar(&name, "name", "", "Account name")
 	_ = cmd.MarkFlagRequired("name")
 	return cmd
 }
 
 func newAuthSetDefaultCmd(container *dig.Container) *cobra.Command {
+	var name string
 	cmd := &cobra.Command{
 		Use:   "set-default",
 		Short: "Set the default account by name",
-		RunE: func(c *cobra.Command, _ []string) error {
-			return runAuthSetDefault(container, c)
+		RunE: func(_ *cobra.Command, _ []string) error {
+			return runAuthSetDefault(container, name)
 		},
 	}
-	cmd.Flags().String("name", "", "Account name")
+	cmd.Flags().StringVar(&name, "name", "", "Account name")
 	_ = cmd.MarkFlagRequired("name")
 	return cmd
 }
@@ -137,29 +147,13 @@ func redactTokenValue(s string) string {
 	return s[:4] + "***" + s[len(s)-4:]
 }
 
-func runAuthAdd(container *dig.Container, cmd *cobra.Command) error {
-	name, err := cmd.Flags().GetString("name")
-	if err != nil {
-		return fmt.Errorf("get name flag: %w", err)
-	}
-	isDefault, err := cmd.Flags().GetBool("default")
-	if err != nil {
-		return fmt.Errorf("get default flag: %w", err)
-	}
-	tokenType, err := cmd.Flags().GetString("token-type")
-	if err != nil {
-		return fmt.Errorf("get token-type flag: %w", err)
-	}
-	tokenValue, err := cmd.Flags().GetString("token-value")
-	if err != nil {
-		return fmt.Errorf("get token-value flag: %w", err)
-	}
+func runAuthAdd(container *dig.Container, opts authAddOpts) error {
 	account := app.AtlassianAccount{
-		Name:    name,
-		Default: isDefault,
+		Name:    opts.Name,
+		Default: opts.Default,
 		Bitbucket: &app.AtlassianToken{
-			Type:  tokenType,
-			Value: tokenValue,
+			Type:  opts.TokenType,
+			Value: opts.TokenValue,
 		},
 	}
 	return container.Invoke(func(store *services.AccountsStore) error {
@@ -176,11 +170,7 @@ func runAuthAdd(container *dig.Container, cmd *cobra.Command) error {
 	})
 }
 
-func runAuthRemove(container *dig.Container, cmd *cobra.Command) error {
-	name, err := cmd.Flags().GetString("name")
-	if err != nil {
-		return fmt.Errorf("get name flag: %w", err)
-	}
+func runAuthRemove(container *dig.Container, name string) error {
 	return container.Invoke(func(store *services.AccountsStore) error {
 		if noop {
 			return nil
@@ -195,11 +185,7 @@ func runAuthRemove(container *dig.Container, cmd *cobra.Command) error {
 	})
 }
 
-func runAuthSetDefault(container *dig.Container, cmd *cobra.Command) error {
-	name, err := cmd.Flags().GetString("name")
-	if err != nil {
-		return fmt.Errorf("get name flag: %w", err)
-	}
+func runAuthSetDefault(container *dig.Container, name string) error {
 	return container.Invoke(func(store *services.AccountsStore) error {
 		if noop {
 			return nil

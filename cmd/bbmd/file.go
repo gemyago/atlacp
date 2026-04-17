@@ -15,30 +15,34 @@ func newFileCmd(container *dig.Container) *cobra.Command {
 	return file
 }
 
+type fileContentOpts struct {
+	RepoOwner string
+	RepoName  string
+	Commit    string
+	Path      string
+	Account   string
+}
+
 func newFileContentCmd(container *dig.Container) *cobra.Command {
+	var opts fileContentOpts
 	cmd := &cobra.Command{
 		Use:   "content",
 		Short: "Get file content at a commit",
 		RunE: func(cmd *cobra.Command, _ []string) error {
-			repoOwner, _ := cmd.Flags().GetString("repo-owner")
-			repoName, _ := cmd.Flags().GetString("repo-name")
-			commit, _ := cmd.Flags().GetString("commit")
-			path, _ := cmd.Flags().GetString("path")
-			account, _ := cmd.Flags().GetString("account")
 			return runFileContent(cmd, container, app.BitbucketGetFileContentParams{
-				AccountName: account,
-				RepoOwner:   repoOwner,
-				RepoName:    repoName,
-				Commit:      commit,
-				Path:        path,
+				AccountName: opts.Account,
+				RepoOwner:   opts.RepoOwner,
+				RepoName:    opts.RepoName,
+				Commit:      opts.Commit,
+				Path:        opts.Path,
 			})
 		},
 	}
-	cmd.Flags().String("repo-owner", "", "Repository owner (workspace)")
-	cmd.Flags().String("repo-name", "", "Repository name (slug)")
-	cmd.Flags().String("commit", "", "Commit hash")
-	cmd.Flags().String("path", "", "File path in the repository")
-	cmd.Flags().String("account", "", "Atlassian account name (optional)")
+	cmd.Flags().StringVar(&opts.RepoOwner, "repo-owner", "", "Repository owner (workspace)")
+	cmd.Flags().StringVar(&opts.RepoName, "repo-name", "", "Repository name (slug)")
+	cmd.Flags().StringVar(&opts.Commit, "commit", "", "Commit hash")
+	cmd.Flags().StringVar(&opts.Path, "path", "", "File path in the repository")
+	cmd.Flags().StringVar(&opts.Account, "account", "", "Atlassian account name (optional)")
 	_ = cmd.MarkFlagRequired("repo-owner")
 	_ = cmd.MarkFlagRequired("repo-name")
 	_ = cmd.MarkFlagRequired("commit")
