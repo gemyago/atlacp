@@ -48,6 +48,7 @@ type AccountsStoreDeps struct {
 // NewAccountsStoreWithDeps loads validated accounts from ConfigPath into a new store. An empty path fails.
 // If the file does not exist yet, the store starts empty and a warning is logged (the file can be created
 // later via SaveToFile). Other load errors come from LoadFromFile.
+// The parent directory of ConfigPath must already exist; production CLIs prepare it before DI.
 func NewAccountsStoreWithDeps(deps AccountsStoreDeps) (*AccountsStore, error) {
 	logger := deps.RootLogger.WithGroup("atlassian-accounts")
 	configPath := deps.ConfigPath
@@ -228,6 +229,7 @@ func (s *AccountsStore) SetDefault(name string) error {
 
 // SaveToFile writes the current accounts to path as JSON ({ "accounts": [...] }) using a
 // temporary file in the same directory followed by rename so the target file is not left partial.
+// The parent directory of path must already exist; production entry points prepare it when wiring config.
 func (s *AccountsStore) SaveToFile(path string) error {
 	if path == "" {
 		return errors.New("accounts save path is empty")

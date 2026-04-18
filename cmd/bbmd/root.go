@@ -4,6 +4,7 @@ import (
 	"errors"
 	"fmt"
 	"log/slog"
+	"path/filepath"
 
 	"github.com/gemyago/atlacp/internal/app"
 	"github.com/gemyago/atlacp/internal/config"
@@ -12,6 +13,7 @@ import (
 	"github.com/gemyago/atlacp/internal/services"
 	"github.com/samber/lo"
 	"github.com/spf13/cobra"
+	"github.com/spf13/viper"
 	"go.uber.org/dig"
 )
 
@@ -19,6 +21,27 @@ type rootCommandParams struct {
 	Noop                     bool
 	ResolvedAccountsFilePath string
 	LogsOutputFile           string
+}
+
+func prepareBBMDAccountsFilePath(cfg *viper.Viper, rootParams *rootCommandParams, accountsFile string) error {
+	pathResolver := services.NewAccountsFilePathResolver()
+	var resolved string
+	if accountsFile == "" {
+		defaultPath, pathErr := pathResolver.DefaultPath()
+		if pathErr != nil {
+			return fmt.Errorf("resolve default atlassian accounts file path: %w", pathErr)
+		}
+		resolved = defaultPath
+		cfg.Set("atlassian.accountsFilePath", defaultPath)
+	} else {
+		resolved = filepath.Clean(accountsFile)
+		cfg.Set("atlassian.accountsFilePath", resolved)
+	}
+	rootParams.ResolvedAccountsFilePath = resolved
+	if mkdirErr := pathResolver.EnsureParentDirsForFile(resolved); mkdirErr != nil {
+		return fmt.Errorf("ensure atlassian accounts file parent directories: %w", mkdirErr)
+	}
+	return nil
 }
 
 func newRootCmd(container *dig.Container, rootParams *rootCommandParams) *cobra.Command {
@@ -72,15 +95,8 @@ func newRootCmd(container *dig.Container, rootParams *rootCommandParams) *cobra.
 		if err != nil {
 			return fmt.Errorf("get atlassian-accounts-file flag: %w", err)
 		}
-		if accountsFile == "" {
-			defaultPath, pathErr := services.DefaultAccountsFilePath()
-			if pathErr != nil {
-				return fmt.Errorf("resolve default atlassian accounts file path: %w", pathErr)
-			}
-			rootParams.ResolvedAccountsFilePath = defaultPath
-			cfg.Set("atlassian.accountsFilePath", defaultPath)
-		} else {
-			rootParams.ResolvedAccountsFilePath = accountsFile
+		if prepErr := prepareBBMDAccountsFilePath(cfg, rootParams, accountsFile); prepErr != nil {
+			return prepErr
 		}
 
 		var logLevel slog.Level

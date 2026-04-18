@@ -470,16 +470,22 @@ func TestAccountsStore(t *testing.T) {
 			assert.Contains(t, err.Error(), "invalid accounts configuration")
 		})
 
-		t.Run("SaveToFile fails when parent directory for temp file does not exist", func(t *testing.T) {
+		t.Run("SaveToFile round-trips to nested path when parent dirs prepared", func(t *testing.T) {
 			acc := app.NewRandomAtlassianAccount(app.WithAtlassianAccountDefault(true))
 			path := createTempAccountsFile(t, []app.AtlassianAccount{acc})
 			store := &AccountsStore{}
 			require.NoError(t, store.LoadFromFile(path))
 
-			missingParent := filepath.Join(t.TempDir(), "nope", "out.json")
-			err := store.SaveToFile(missingParent)
-			require.Error(t, err)
-			assert.Contains(t, err.Error(), "failed to create temp file")
+			base := t.TempDir()
+			outPath := filepath.Join(base, "deep", "nested", "accounts.json")
+			require.NoError(t, NewAccountsFilePathResolver().EnsureParentDirsForFile(outPath))
+			require.NoError(t, store.SaveToFile(outPath))
+
+			reloaded := &AccountsStore{}
+			require.NoError(t, reloaded.LoadFromFile(outPath))
+			got, err := reloaded.GetDefaultAccount(t.Context())
+			require.NoError(t, err)
+			assert.Equal(t, acc, *got)
 		})
 
 		t.Run("Upsert replaces existing account by name", func(t *testing.T) {
