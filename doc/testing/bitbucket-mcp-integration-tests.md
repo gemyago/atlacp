@@ -28,15 +28,7 @@ It should be assumed that below is already prepared by the user:
    - A default account - assume it is named "user" if not otherwise mentioned
    - A secondary account named "bot"
 
-### SSH Troubleshooting notes (for user ONLY)
-
-```bash
-# See which ssh key is used
-ssh -T git@bitbucket.org
-```
-
-If wrong key is used, define section for bitbucket explicitly: `Host bitbucket.org\n....`. 
-If you have wildcard ssh key, negate bitbucket from it: `Host * !bitbucket.org\n....`
+For Git/SSH issues point the user on the [SSH troubleshooting](./README.md#ssh-troubleshooting). Don't read or do anything about it yourself, report and halt.
 
 ## Working with the repository
 
