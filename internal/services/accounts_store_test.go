@@ -503,6 +503,45 @@ func TestAccountsStore(t *testing.T) {
 			assert.Equal(t, replacement, *got)
 		})
 
+		t.Run("Upsert on empty store sets default when sole account has Default false", func(t *testing.T) {
+			acc := app.NewRandomAtlassianAccount(app.WithAtlassianAccountDefault(false))
+			store := &AccountsStore{}
+			require.NoError(t, store.Upsert(acc))
+
+			got := store.ListAccounts()
+			require.Len(t, got, 1)
+			want := acc
+			want.Default = true
+			assert.Equal(t, want, got[0])
+
+			def, err := store.GetDefaultAccount(t.Context())
+			require.NoError(t, err)
+			assert.True(t, def.Default)
+		})
+
+		t.Run("Upsert second account with Default false keeps first as sole default", func(t *testing.T) {
+			name1 := "first-" + faker.Username()
+			name2 := "second-" + faker.Username()
+			first := app.NewRandomAtlassianAccount(
+				app.WithAtlassianAccountDefault(false),
+				app.WithAtlassianAccountName(name1),
+			)
+			store := &AccountsStore{}
+			require.NoError(t, store.Upsert(first))
+
+			second := app.NewRandomAtlassianAccount(
+				app.WithAtlassianAccountDefault(false),
+				app.WithAtlassianAccountName(name2),
+			)
+			require.NoError(t, store.Upsert(second))
+
+			require.Len(t, store.ListAccounts(), 2)
+			def, err := store.GetDefaultAccount(t.Context())
+			require.NoError(t, err)
+			assert.Equal(t, name1, def.Name)
+			assert.True(t, def.Default)
+		})
+
 		t.Run("Remove drops a non-default account and keeps validation", func(t *testing.T) {
 			defName := "def-" + faker.Username()
 			extraName := "extra-" + faker.Username()

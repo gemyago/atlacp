@@ -159,6 +159,12 @@ func (s *AccountsStore) Upsert(account app.AtlassianAccount) error {
 		next = append(next, account)
 	}
 
+	// Exactly one account must be the default for validation. Callers adding the first account
+	// (e.g. `bbmd auth add` without `--default`) often omit the flag; treat the sole account as default.
+	if len(next) == 1 && !next[0].Default {
+		next[0].Default = true
+	}
+
 	if validateErr := app.ValidateAtlassianAccounts(next); validateErr != nil {
 		return fmt.Errorf("invalid accounts configuration: %w", validateErr)
 	}

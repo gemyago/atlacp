@@ -50,6 +50,35 @@ func TestBBMD(t *testing.T) {
 			require.NoError(t, rootCmd.Execute())
 			assert.JSONEq(t, "[]", strings.TrimSpace(stdout.String()))
 		})
+		t.Run("add first account without --default persists and marks default", func(t *testing.T) {
+			dir := t.TempDir()
+			accountsPath := filepath.Join(dir, "accounts.json")
+			logFile := filepath.Join(dir, "bbmd.log")
+			base := []string{"--logs-file", logFile, "--atlassian-accounts-file", accountsPath}
+
+			add := setupCommands()
+			add.SetOut(io.Discard)
+			add.SetErr(io.Discard)
+			add.SetArgs(append([]string{
+				"auth", "add",
+				"--name", "solo",
+				"--token-value", "zzzzzzzzzzzzzzzz",
+			}, base...))
+			require.NoError(t, add.Execute())
+
+			var st bytes.Buffer
+			stCmd := setupCommands()
+			stCmd.SetOut(&st)
+			stCmd.SetErr(io.Discard)
+			stCmd.SetArgs(append([]string{"auth", "status"}, base...))
+			require.NoError(t, stCmd.Execute())
+
+			var rows []map[string]any
+			require.NoError(t, json.Unmarshal(bytes.TrimSpace(st.Bytes()), &rows))
+			require.Len(t, rows, 1)
+			assert.Equal(t, "solo", rows[0]["name"])
+			assert.Equal(t, true, rows[0]["default"])
+		})
 		t.Run("status redacts jira token from file", func(t *testing.T) {
 			dir := t.TempDir()
 			accountsPath := filepath.Join(dir, "accounts.json")
