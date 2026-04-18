@@ -27,7 +27,7 @@ Use this when `git push` or `git pull` against Bitbucket fails with permission o
 
 ```bash
 # See which ssh key is used
-ssh -T git@bitbucket.org
+ssh -v -T git@bitbucket.org
 ```
 
 If the wrong key is used, define a section for Bitbucket explicitly in `~/.ssh/config`, for example: `Host bitbucket.org` with `IdentityFile` and related settings.
