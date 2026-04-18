@@ -1,8 +1,6 @@
 package main
 
 import (
-	"encoding/json"
-	"fmt"
 	"time"
 
 	"github.com/gemyago/atlacp/internal/app"
@@ -32,17 +30,6 @@ func newPRCmd(container *dig.Container, rootParams *rootCommandParams) *cobra.Co
 		newPRResolveCommentCmd(container, rootParams),
 	)
 	return pr
-}
-
-func writeJSON(cmd *cobra.Command, v any) error {
-	data, err := json.MarshalIndent(v, "", "  ")
-	if err != nil {
-		return fmt.Errorf("marshal JSON: %w", err)
-	}
-	if _, werr := fmt.Fprintln(cmd.OutOrStdout(), string(data)); werr != nil {
-		return fmt.Errorf("write JSON: %w", werr)
-	}
-	return nil
 }
 
 type prCreateOpts struct {
