@@ -159,6 +159,52 @@ func TestExecAndWrite(t *testing.T) {
 	})
 }
 
+func TestExecNoOutput(t *testing.T) {
+	t.Parallel()
+
+	t.Run("noop skips run", func(t *testing.T) {
+		t.Parallel()
+		param := faker.Sentence()
+		cmd := &cobra.Command{}
+		called := false
+		deps := execDeps{RootLogger: diag.RootTestLogger()}
+		err := execNoOutput(cmd, deps, &rootCommandParams{Noop: true}, param, func(_ context.Context, _ string) error {
+			called = true
+			return errors.New(faker.Sentence())
+		})
+		require.NoError(t, err)
+		assert.False(t, called)
+	})
+
+	t.Run("success runs handler", func(t *testing.T) {
+		t.Parallel()
+		want := faker.Sentence()
+		cmd := &cobra.Command{}
+		cmd.SetContext(t.Context())
+		deps := execDeps{RootLogger: diag.RootTestLogger()}
+		var got string
+		err := execNoOutput(cmd, deps, &rootCommandParams{}, want, func(ctx context.Context, p string) error {
+			assert.Equal(t, want, p)
+			assert.Equal(t, cmd.Context(), ctx)
+			got = p
+			return nil
+		})
+		require.NoError(t, err)
+		assert.Equal(t, want, got)
+	})
+
+	t.Run("handler error propagates", func(t *testing.T) {
+		t.Parallel()
+		cmd := &cobra.Command{}
+		wantErr := errors.New(faker.Sentence())
+		deps := execDeps{RootLogger: diag.RootTestLogger()}
+		err := execNoOutput(cmd, deps, &rootCommandParams{}, struct{}{}, func(_ context.Context, _ struct{}) error {
+			return wantErr
+		})
+		require.ErrorIs(t, err, wantErr)
+	})
+}
+
 type errWriter struct {
 	err error
 }

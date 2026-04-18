@@ -1,12 +1,47 @@
 package main
 
 import (
+	"context"
 	"time"
 
 	"github.com/gemyago/atlacp/internal/app"
+	"github.com/gemyago/atlacp/internal/services/bitbucket"
 	"github.com/spf13/cobra"
 	"go.uber.org/dig"
 )
+
+type prRequestChangesOut struct {
+	Status    string    `json:"status"`
+	UpdatedOn time.Time `json:"updated_on"`
+}
+
+type prDiffOut struct {
+	Diff string `json:"diff"`
+}
+
+type prAddCommentOut struct {
+	CommentID int64  `json:"comment_id"`
+	Content   string `json:"content"`
+}
+
+type prListCommentsCLI struct {
+	Params          app.BitbucketListPRCommentsParams
+	IncludeResolved bool
+}
+
+// applyPRCommentsResolvedFilter drops resolved comments when includeResolved is false.
+func applyPRCommentsResolvedFilter(result *app.BitbucketListPRCommentsResult, includeResolved bool) {
+	if includeResolved || result == nil {
+		return
+	}
+	filtered := make([]app.BitbucketPRComment, 0, len(result.Values))
+	for _, c := range result.Values {
+		if !c.Resolved {
+			filtered = append(filtered, c)
+		}
+	}
+	result.Values = filtered
+}
 
 func newPRCmd(container *dig.Container, rootParams *rootCommandParams) *cobra.Command {
 	pr := &cobra.Command{
@@ -80,15 +115,12 @@ func runPRCreate(
 	rootParams *rootCommandParams,
 	params app.BitbucketCreatePRParams,
 ) error {
-	return container.Invoke(func(svc *app.BitbucketService) error {
-		if rootParams.Noop {
-			return nil
-		}
-		result, err := svc.CreatePR(cmd.Context(), params)
-		if err != nil {
-			return err
-		}
-		return writeJSON(cmd, result)
+	return container.Invoke(func(deps execDeps, svc *app.BitbucketService) error {
+		return execAndWrite(cmd, deps, execArgs[app.BitbucketCreatePRParams, *bitbucket.PullRequest]{
+			rootParams: rootParams,
+			params:     params,
+			target:     svc.CreatePR,
+		})
 	})
 }
 
@@ -117,15 +149,12 @@ func runPRRead(
 	rootParams *rootCommandParams,
 	params app.BitbucketReadPRParams,
 ) error {
-	return container.Invoke(func(svc *app.BitbucketService) error {
-		if rootParams.Noop {
-			return nil
-		}
-		result, err := svc.ReadPR(cmd.Context(), params)
-		if err != nil {
-			return err
-		}
-		return writeJSON(cmd, result)
+	return container.Invoke(func(deps execDeps, svc *app.BitbucketService) error {
+		return execAndWrite(cmd, deps, execArgs[app.BitbucketReadPRParams, *bitbucket.PullRequest]{
+			rootParams: rootParams,
+			params:     params,
+			target:     svc.ReadPR,
+		})
 	})
 }
 
@@ -173,15 +202,12 @@ func runPRUpdate(
 	rootParams *rootCommandParams,
 	params app.BitbucketUpdatePRParams,
 ) error {
-	return container.Invoke(func(svc *app.BitbucketService) error {
-		if rootParams.Noop {
-			return nil
-		}
-		result, err := svc.UpdatePR(cmd.Context(), params)
-		if err != nil {
-			return err
-		}
-		return writeJSON(cmd, result)
+	return container.Invoke(func(deps execDeps, svc *app.BitbucketService) error {
+		return execAndWrite(cmd, deps, execArgs[app.BitbucketUpdatePRParams, *bitbucket.PullRequest]{
+			rootParams: rootParams,
+			params:     params,
+			target:     svc.UpdatePR,
+		})
 	})
 }
 
@@ -210,15 +236,12 @@ func runPRApprove(
 	rootParams *rootCommandParams,
 	params app.BitbucketApprovePRParams,
 ) error {
-	return container.Invoke(func(svc *app.BitbucketService) error {
-		if rootParams.Noop {
-			return nil
-		}
-		result, err := svc.ApprovePR(cmd.Context(), params)
-		if err != nil {
-			return err
-		}
-		return writeJSON(cmd, result)
+	return container.Invoke(func(deps execDeps, svc *app.BitbucketService) error {
+		return execAndWrite(cmd, deps, execArgs[app.BitbucketApprovePRParams, *bitbucket.Participant]{
+			rootParams: rootParams,
+			params:     params,
+			target:     svc.ApprovePR,
+		})
 	})
 }
 
@@ -252,18 +275,18 @@ func runPRRequestChanges(
 	rootParams *rootCommandParams,
 	params app.BitbucketRequestPRChangesParams,
 ) error {
-	return container.Invoke(func(svc *app.BitbucketService) error {
-		if rootParams.Noop {
-			return nil
-		}
-		status, updatedOn, err := svc.RequestPRChanges(cmd.Context(), params)
-		if err != nil {
-			return err
-		}
-		return writeJSON(cmd, struct {
-			Status    string    `json:"status"`
-			UpdatedOn time.Time `json:"updated_on"`
-		}{Status: status, UpdatedOn: updatedOn})
+	return container.Invoke(func(deps execDeps, svc *app.BitbucketService) error {
+		return execAndWrite(cmd, deps, execArgs[app.BitbucketRequestPRChangesParams, prRequestChangesOut]{
+			rootParams: rootParams,
+			params:     params,
+			target: func(ctx context.Context, p app.BitbucketRequestPRChangesParams) (prRequestChangesOut, error) {
+				status, updatedOn, err := svc.RequestPRChanges(ctx, p)
+				if err != nil {
+					return prRequestChangesOut{}, err
+				}
+				return prRequestChangesOut{Status: status, UpdatedOn: updatedOn}, nil
+			},
+		})
 	})
 }
 
@@ -295,15 +318,12 @@ func runPRMerge(
 	rootParams *rootCommandParams,
 	params app.BitbucketMergePRParams,
 ) error {
-	return container.Invoke(func(svc *app.BitbucketService) error {
-		if rootParams.Noop {
-			return nil
-		}
-		result, err := svc.MergePR(cmd.Context(), params)
-		if err != nil {
-			return err
-		}
-		return writeJSON(cmd, result)
+	return container.Invoke(func(deps execDeps, svc *app.BitbucketService) error {
+		return execAndWrite(cmd, deps, execArgs[app.BitbucketMergePRParams, *bitbucket.PullRequest]{
+			rootParams: rootParams,
+			params:     params,
+			target:     svc.MergePR,
+		})
 	})
 }
 
@@ -332,15 +352,12 @@ func runPRListTasks(
 	rootParams *rootCommandParams,
 	params app.BitbucketListTasksParams,
 ) error {
-	return container.Invoke(func(svc *app.BitbucketService) error {
-		if rootParams.Noop {
-			return nil
-		}
-		result, err := svc.ListTasks(cmd.Context(), params)
-		if err != nil {
-			return err
-		}
-		return writeJSON(cmd, result)
+	return container.Invoke(func(deps execDeps, svc *app.BitbucketService) error {
+		return execAndWrite(cmd, deps, execArgs[app.BitbucketListTasksParams, *bitbucket.PaginatedTasks]{
+			rootParams: rootParams,
+			params:     params,
+			target:     svc.ListTasks,
+		})
 	})
 }
 
@@ -381,15 +398,12 @@ func runPRCreateTask(
 	rootParams *rootCommandParams,
 	params app.BitbucketCreateTaskParams,
 ) error {
-	return container.Invoke(func(svc *app.BitbucketService) error {
-		if rootParams.Noop {
-			return nil
-		}
-		result, err := svc.CreateTask(cmd.Context(), params)
-		if err != nil {
-			return err
-		}
-		return writeJSON(cmd, result)
+	return container.Invoke(func(deps execDeps, svc *app.BitbucketService) error {
+		return execAndWrite(cmd, deps, execArgs[app.BitbucketCreateTaskParams, *bitbucket.PullRequestCommentTask]{
+			rootParams: rootParams,
+			params:     params,
+			target:     svc.CreateTask,
+		})
 	})
 }
 
@@ -435,15 +449,12 @@ func runPRUpdateTask(
 	rootParams *rootCommandParams,
 	params app.BitbucketUpdateTaskParams,
 ) error {
-	return container.Invoke(func(svc *app.BitbucketService) error {
-		if rootParams.Noop {
-			return nil
-		}
-		result, err := svc.UpdateTask(cmd.Context(), params)
-		if err != nil {
-			return err
-		}
-		return writeJSON(cmd, result)
+	return container.Invoke(func(deps execDeps, svc *app.BitbucketService) error {
+		return execAndWrite(cmd, deps, execArgs[app.BitbucketUpdateTaskParams, *bitbucket.PullRequestCommentTask]{
+			rootParams: rootParams,
+			params:     params,
+			target:     svc.UpdateTask,
+		})
 	})
 }
 
@@ -472,15 +483,12 @@ func runPRDiffStat(
 	rootParams *rootCommandParams,
 	params app.BitbucketGetPRDiffStatParams,
 ) error {
-	return container.Invoke(func(svc *app.BitbucketService) error {
-		if rootParams.Noop {
-			return nil
-		}
-		result, err := svc.GetPRDiffStat(cmd.Context(), params)
-		if err != nil {
-			return err
-		}
-		return writeJSON(cmd, result)
+	return container.Invoke(func(deps execDeps, svc *app.BitbucketService) error {
+		return execAndWrite(cmd, deps, execArgs[app.BitbucketGetPRDiffStatParams, *app.PaginatedDiffStat]{
+			rootParams: rootParams,
+			params:     params,
+			target:     svc.GetPRDiffStat,
+		})
 	})
 }
 
@@ -523,17 +531,18 @@ func runPRDiff(
 	rootParams *rootCommandParams,
 	params app.BitbucketGetPRDiffParams,
 ) error {
-	return container.Invoke(func(svc *app.BitbucketService) error {
-		if rootParams.Noop {
-			return nil
-		}
-		result, err := svc.GetPRDiff(cmd.Context(), params)
-		if err != nil {
-			return err
-		}
-		return writeJSON(cmd, struct {
-			Diff string `json:"diff"`
-		}{Diff: result})
+	return container.Invoke(func(deps execDeps, svc *app.BitbucketService) error {
+		return execAndWrite(cmd, deps, execArgs[app.BitbucketGetPRDiffParams, prDiffOut]{
+			rootParams: rootParams,
+			params:     params,
+			target: func(ctx context.Context, p app.BitbucketGetPRDiffParams) (prDiffOut, error) {
+				s, err := svc.GetPRDiff(ctx, p)
+				if err != nil {
+					return prDiffOut{}, err
+				}
+				return prDiffOut{Diff: s}, nil
+			},
+		})
 	})
 }
 
@@ -578,18 +587,18 @@ func runPRAddComment(
 	rootParams *rootCommandParams,
 	params app.BitbucketAddPRCommentParams,
 ) error {
-	return container.Invoke(func(svc *app.BitbucketService) error {
-		if rootParams.Noop {
-			return nil
-		}
-		commentID, text, err := svc.AddPRComment(cmd.Context(), params)
-		if err != nil {
-			return err
-		}
-		return writeJSON(cmd, struct {
-			CommentID int64  `json:"comment_id"`
-			Content   string `json:"content"`
-		}{CommentID: commentID, Content: text})
+	return container.Invoke(func(deps execDeps, svc *app.BitbucketService) error {
+		return execAndWrite(cmd, deps, execArgs[app.BitbucketAddPRCommentParams, prAddCommentOut]{
+			rootParams: rootParams,
+			params:     params,
+			target: func(ctx context.Context, p app.BitbucketAddPRCommentParams) (prAddCommentOut, error) {
+				id, text, err := svc.AddPRComment(ctx, p)
+				if err != nil {
+					return prAddCommentOut{}, err
+				}
+				return prAddCommentOut{CommentID: id, Content: text}, nil
+			},
+		})
 	})
 }
 
@@ -604,13 +613,15 @@ func newPRListCommentsCmd(container *dig.Container, rootParams *rootCommandParam
 				cmd,
 				container,
 				rootParams,
-				app.BitbucketListPRCommentsParams{
-					RepoOwner:     core.RepoOwner,
-					RepoName:      core.RepoName,
-					PullRequestID: core.PRID,
-					AccountName:   core.Account,
+				prListCommentsCLI{
+					Params: app.BitbucketListPRCommentsParams{
+						RepoOwner:     core.RepoOwner,
+						RepoName:      core.RepoName,
+						PullRequestID: core.PRID,
+						AccountName:   core.Account,
+					},
+					IncludeResolved: includeResolved,
 				},
-				includeResolved,
 			)
 		},
 	}
@@ -624,27 +635,21 @@ func runPRListComments(
 	cmd *cobra.Command,
 	container *dig.Container,
 	rootParams *rootCommandParams,
-	params app.BitbucketListPRCommentsParams,
-	includeResolved bool,
+	cli prListCommentsCLI,
 ) error {
-	return container.Invoke(func(svc *app.BitbucketService) error {
-		if rootParams.Noop {
-			return nil
-		}
-		result, err := svc.ListPRComments(cmd.Context(), params)
-		if err != nil {
-			return err
-		}
-		if !includeResolved && result != nil {
-			filtered := make([]app.BitbucketPRComment, 0, len(result.Values))
-			for _, c := range result.Values {
-				if !c.Resolved {
-					filtered = append(filtered, c)
+	return container.Invoke(func(deps execDeps, svc *app.BitbucketService) error {
+		return execAndWrite(cmd, deps, execArgs[prListCommentsCLI, *app.BitbucketListPRCommentsResult]{
+			rootParams: rootParams,
+			params:     cli,
+			target: func(ctx context.Context, p prListCommentsCLI) (*app.BitbucketListPRCommentsResult, error) {
+				result, err := svc.ListPRComments(ctx, p.Params)
+				if err != nil {
+					return nil, err
 				}
-			}
-			result.Values = filtered
-		}
-		return writeJSON(cmd, result)
+				applyPRCommentsResolvedFilter(result, p.IncludeResolved)
+				return result, nil
+			},
+		})
 	})
 }
 
@@ -677,14 +682,11 @@ func runPRResolveComment(
 	rootParams *rootCommandParams,
 	params app.BitbucketResolvePRCommentParams,
 ) error {
-	return container.Invoke(func(svc *app.BitbucketService) error {
-		if rootParams.Noop {
-			return nil
-		}
-		result, err := svc.ResolvePRComment(cmd.Context(), params)
-		if err != nil {
-			return err
-		}
-		return writeJSON(cmd, result)
+	return container.Invoke(func(deps execDeps, svc *app.BitbucketService) error {
+		return execAndWrite(cmd, deps, execArgs[app.BitbucketResolvePRCommentParams, *bitbucket.CommentResolution]{
+			rootParams: rootParams,
+			params:     params,
+			target:     svc.ResolvePRComment,
+		})
 	})
 }

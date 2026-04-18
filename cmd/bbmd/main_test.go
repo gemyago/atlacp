@@ -96,7 +96,7 @@ func TestBBMD(t *testing.T) {
 			})
 			err := rootCmd.Execute()
 			require.Error(t, err)
-			assert.ErrorContains(t, err, "write auth status")
+			assert.ErrorContains(t, err, "write JSON")
 		})
 		t.Run("mutating commands persist and status redacts", func(t *testing.T) {
 			dir := t.TempDir()
@@ -274,6 +274,99 @@ func TestBBMD(t *testing.T) {
 			require.Error(t, err)
 			assert.ErrorContains(t, err, "save accounts")
 		})
+		t.Run("remove returns error when account not found", func(t *testing.T) {
+			dir := t.TempDir()
+			accountsPath := filepath.Join(dir, "accounts.json")
+			logFile := filepath.Join(dir, "bbmd.log")
+			add := setupCommands()
+			add.SetOut(io.Discard)
+			add.SetErr(io.Discard)
+			add.SetArgs([]string{
+				"auth", "add",
+				"--name", "only",
+				"--default",
+				"--token-value", "zzzzzzzzzzzzzzzz",
+				"--logs-file", logFile,
+				"--atlassian-accounts-file", accountsPath,
+			})
+			require.NoError(t, add.Execute())
+
+			rm := setupCommands()
+			rm.SilenceErrors = true
+			rm.SetOut(io.Discard)
+			rm.SetErr(io.Discard)
+			rm.SetArgs([]string{
+				"auth", "remove",
+				"--name", "missing",
+				"--logs-file", logFile,
+				"--atlassian-accounts-file", accountsPath,
+			})
+			err := rm.Execute()
+			require.Error(t, err)
+		})
+		t.Run("set-default returns error when account not found", func(t *testing.T) {
+			dir := t.TempDir()
+			accountsPath := filepath.Join(dir, "accounts.json")
+			logFile := filepath.Join(dir, "bbmd.log")
+			add := setupCommands()
+			add.SetOut(io.Discard)
+			add.SetErr(io.Discard)
+			add.SetArgs([]string{
+				"auth", "add",
+				"--name", "only",
+				"--default",
+				"--token-value", "zzzzzzzzzzzzzzzz",
+				"--logs-file", logFile,
+				"--atlassian-accounts-file", accountsPath,
+			})
+			require.NoError(t, add.Execute())
+
+			sd := setupCommands()
+			sd.SilenceErrors = true
+			sd.SetOut(io.Discard)
+			sd.SetErr(io.Discard)
+			sd.SetArgs([]string{
+				"auth", "set-default",
+				"--name", "missing",
+				"--logs-file", logFile,
+				"--atlassian-accounts-file", accountsPath,
+			})
+			err := sd.Execute()
+			require.Error(t, err)
+		})
+		t.Run("add returns error when upsert validation fails", func(t *testing.T) {
+			dir := t.TempDir()
+			accountsPath := filepath.Join(dir, "accounts.json")
+			logFile := filepath.Join(dir, "bbmd.log")
+			add1 := setupCommands()
+			add1.SetOut(io.Discard)
+			add1.SetErr(io.Discard)
+			add1.SetArgs([]string{
+				"auth", "add",
+				"--name", "a1",
+				"--default",
+				"--token-value", "zzzzzzzzzzzzzzzz",
+				"--logs-file", logFile,
+				"--atlassian-accounts-file", accountsPath,
+			})
+			require.NoError(t, add1.Execute())
+
+			add2 := setupCommands()
+			add2.SilenceErrors = true
+			add2.SetOut(io.Discard)
+			add2.SetErr(io.Discard)
+			add2.SetArgs([]string{
+				"auth", "add",
+				"--name", "a2",
+				"--default",
+				"--token-value", "yyyyyyyyyyyyyyyy",
+				"--logs-file", logFile,
+				"--atlassian-accounts-file", accountsPath,
+			})
+			err := add2.Execute()
+			require.Error(t, err)
+			assert.ErrorContains(t, err, "invalid accounts configuration")
+		})
 	})
 	t.Run("pr", func(t *testing.T) {
 		t.Run("read noop exercises DI", func(t *testing.T) {
@@ -322,7 +415,12 @@ func TestBBMD(t *testing.T) {
 				{name: "read", args: append([]string{"pr", "read"}, repoPR...)},
 				{
 					name: "update",
-					args: append([]string{"pr", "update", "--title", "x"}, repoPR...),
+					args: append([]string{
+						"pr", "update",
+						"--title", "x",
+						"--description", "d",
+						"--draft",
+					}, repoPR...),
 				},
 				{name: "approve", args: append([]string{"pr", "approve"}, repoPR...)},
 				{name: "request-changes", args: append([]string{"pr", "request-changes"}, repoPR...)},
@@ -330,19 +428,22 @@ func TestBBMD(t *testing.T) {
 				{name: "list-tasks", args: append([]string{"pr", "list-tasks"}, repoPR...)},
 				{
 					name: "create-task",
-					args: append([]string{"pr", "create-task", "--content", "c"}, repoPR...),
+					args: append([]string{"pr", "create-task", "--content", "c", "--comment-id", "9"}, repoPR...),
 				},
 				{
 					name: "update-task",
-					args: append([]string{"pr", "update-task", "--task-id", "1"}, repoPR...),
+					args: append([]string{"pr", "update-task", "--task-id", "1", "--content", "u"}, repoPR...),
 				},
 				{name: "diffstat", args: append([]string{"pr", "diffstat"}, repoPR...)},
-				{name: "diff", args: append([]string{"pr", "diff"}, repoPR...)},
+				{
+					name: "diff",
+					args: append([]string{"pr", "diff", "--path", "a.go", "--context", "2"}, repoPR...),
+				},
 				{
 					name: "add-comment",
-					args: append([]string{"pr", "add-comment", "--content", "hi"}, repoPR...),
+					args: append([]string{"pr", "add-comment", "--content", "hi", "--line", "10"}, repoPR...),
 				},
-				{name: "list-comments", args: append([]string{"pr", "list-comments"}, repoPR...)},
+				{name: "list-comments", args: append([]string{"pr", "list-comments", "--include-resolved"}, repoPR...)},
 				{
 					name: "resolve-comment",
 					args: append([]string{"pr", "resolve-comment", "--comment-id", "1"}, repoPR...),

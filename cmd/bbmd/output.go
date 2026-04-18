@@ -48,3 +48,18 @@ func execAndWrite[TParams any, TResult any](
 	}
 	return writeJSON(cmd, result)
 }
+
+// execNoOutput runs a side-effect-only handler when not in noop mode (no JSON stdout).
+func execNoOutput[TParams any](
+	cmd *cobra.Command,
+	deps execDeps,
+	rootParams *rootCommandParams,
+	params TParams,
+	run func(ctx context.Context, p TParams) error,
+) error {
+	if rootParams.Noop {
+		deps.RootLogger.Info("noop: skipping execution", "command", cmd.Name())
+		return nil
+	}
+	return run(cmd.Context(), params)
+}

@@ -1,7 +1,7 @@
 package main
 
 import (
-	"encoding/json"
+	"context"
 	"fmt"
 
 	"github.com/gemyago/atlacp/internal/app"
@@ -46,8 +46,8 @@ func newAuthAddCmd(container *dig.Container, rootParams *rootCommandParams) *cob
 	cmd := &cobra.Command{
 		Use:   "add",
 		Short: "Add or replace an account",
-		RunE: func(_ *cobra.Command, _ []string) error {
-			return runAuthAdd(container, rootParams, opts)
+		RunE: func(cmd *cobra.Command, _ []string) error {
+			return runAuthAdd(cmd, container, rootParams, opts)
 		},
 	}
 	cmd.Flags().StringVar(&opts.Name, "name", "", "Account name")
@@ -64,8 +64,8 @@ func newAuthRemoveCmd(container *dig.Container, rootParams *rootCommandParams) *
 	cmd := &cobra.Command{
 		Use:   "remove",
 		Short: "Remove an account by name",
-		RunE: func(_ *cobra.Command, _ []string) error {
-			return runAuthRemove(container, rootParams, name)
+		RunE: func(cmd *cobra.Command, _ []string) error {
+			return runAuthRemove(cmd, container, rootParams, name)
 		},
 	}
 	cmd.Flags().StringVar(&name, "name", "", "Account name")
@@ -78,8 +78,8 @@ func newAuthSetDefaultCmd(container *dig.Container, rootParams *rootCommandParam
 	cmd := &cobra.Command{
 		Use:   "set-default",
 		Short: "Set the default account by name",
-		RunE: func(_ *cobra.Command, _ []string) error {
-			return runAuthSetDefault(container, rootParams, name)
+		RunE: func(cmd *cobra.Command, _ []string) error {
+			return runAuthSetDefault(cmd, container, rootParams, name)
 		},
 	}
 	cmd.Flags().StringVar(&name, "name", "", "Account name")
@@ -101,23 +101,19 @@ type authStatusToken struct {
 }
 
 func runAuthStatus(cmd *cobra.Command, container *dig.Container, rootParams *rootCommandParams) error {
-	return container.Invoke(func(store *services.AccountsStore) error {
-		if rootParams.Noop {
-			return nil
-		}
-		raw := store.ListAccounts()
-		out := make([]authStatusAccount, 0, len(raw))
-		for _, a := range raw {
-			out = append(out, redactAccountForStatus(a))
-		}
-		data, marshalErr := json.MarshalIndent(out, "", "  ")
-		if marshalErr != nil {
-			return fmt.Errorf("marshal auth status: %w", marshalErr)
-		}
-		if _, writeErr := fmt.Fprintln(cmd.OutOrStdout(), string(data)); writeErr != nil {
-			return fmt.Errorf("write auth status: %w", writeErr)
-		}
-		return nil
+	return container.Invoke(func(deps execDeps, store *services.AccountsStore) error {
+		return execAndWrite(cmd, deps, execArgs[struct{}, []authStatusAccount]{
+			rootParams: rootParams,
+			params:     struct{}{},
+			target: func(_ context.Context, _ struct{}) ([]authStatusAccount, error) {
+				raw := store.ListAccounts()
+				out := make([]authStatusAccount, 0, len(raw))
+				for _, a := range raw {
+					out = append(out, redactAccountForStatus(a))
+				}
+				return out, nil
+			},
+		})
 	})
 }
 
@@ -147,55 +143,52 @@ func redactTokenValue(s string) string {
 	return s[:4] + "***" + s[len(s)-4:]
 }
 
-func runAuthAdd(container *dig.Container, rootParams *rootCommandParams, opts authAddOpts) error {
-	account := app.AtlassianAccount{
-		Name:    opts.Name,
-		Default: opts.Default,
-		Bitbucket: &app.AtlassianToken{
-			Type:  opts.TokenType,
-			Value: opts.TokenValue,
-		},
-	}
-	return container.Invoke(func(store *services.AccountsStore) error {
-		if rootParams.Noop {
+func runAuthAdd(cmd *cobra.Command, container *dig.Container, rootParams *rootCommandParams, opts authAddOpts) error {
+	return container.Invoke(func(deps execDeps, store *services.AccountsStore) error {
+		return execNoOutput(cmd, deps, rootParams, opts, func(_ context.Context, o authAddOpts) error {
+			account := app.AtlassianAccount{
+				Name:    o.Name,
+				Default: o.Default,
+				Bitbucket: &app.AtlassianToken{
+					Type:  o.TokenType,
+					Value: o.TokenValue,
+				},
+			}
+			if upsertErr := store.Upsert(account); upsertErr != nil {
+				return upsertErr
+			}
+			if saveErr := store.SaveToFile(rootParams.ResolvedAccountsFilePath); saveErr != nil {
+				return fmt.Errorf("save accounts: %w", saveErr)
+			}
 			return nil
-		}
-		if upsertErr := store.Upsert(account); upsertErr != nil {
-			return upsertErr
-		}
-		if saveErr := store.SaveToFile(rootParams.ResolvedAccountsFilePath); saveErr != nil {
-			return fmt.Errorf("save accounts: %w", saveErr)
-		}
-		return nil
+		})
 	})
 }
 
-func runAuthRemove(container *dig.Container, rootParams *rootCommandParams, name string) error {
-	return container.Invoke(func(store *services.AccountsStore) error {
-		if rootParams.Noop {
+func runAuthRemove(cmd *cobra.Command, container *dig.Container, rootParams *rootCommandParams, name string) error {
+	return container.Invoke(func(deps execDeps, store *services.AccountsStore) error {
+		return execNoOutput(cmd, deps, rootParams, name, func(_ context.Context, n string) error {
+			if removeErr := store.Remove(n); removeErr != nil {
+				return removeErr
+			}
+			if saveErr := store.SaveToFile(rootParams.ResolvedAccountsFilePath); saveErr != nil {
+				return fmt.Errorf("save accounts: %w", saveErr)
+			}
 			return nil
-		}
-		if removeErr := store.Remove(name); removeErr != nil {
-			return removeErr
-		}
-		if saveErr := store.SaveToFile(rootParams.ResolvedAccountsFilePath); saveErr != nil {
-			return fmt.Errorf("save accounts: %w", saveErr)
-		}
-		return nil
+		})
 	})
 }
 
-func runAuthSetDefault(container *dig.Container, rootParams *rootCommandParams, name string) error {
-	return container.Invoke(func(store *services.AccountsStore) error {
-		if rootParams.Noop {
+func runAuthSetDefault(cmd *cobra.Command, container *dig.Container, rootParams *rootCommandParams, name string) error {
+	return container.Invoke(func(deps execDeps, store *services.AccountsStore) error {
+		return execNoOutput(cmd, deps, rootParams, name, func(_ context.Context, n string) error {
+			if setErr := store.SetDefault(n); setErr != nil {
+				return setErr
+			}
+			if saveErr := store.SaveToFile(rootParams.ResolvedAccountsFilePath); saveErr != nil {
+				return fmt.Errorf("save accounts: %w", saveErr)
+			}
 			return nil
-		}
-		if setErr := store.SetDefault(name); setErr != nil {
-			return setErr
-		}
-		if saveErr := store.SaveToFile(rootParams.ResolvedAccountsFilePath); saveErr != nil {
-			return fmt.Errorf("save accounts: %w", saveErr)
-		}
-		return nil
+		})
 	})
 }
