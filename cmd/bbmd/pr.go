@@ -2,6 +2,7 @@ package main
 
 import (
 	"context"
+	"fmt"
 	"time"
 
 	"github.com/gemyago/atlacp/internal/app"
@@ -605,10 +606,17 @@ func runPRAddComment(
 func newPRListCommentsCmd(container *dig.Container, rootParams *rootCommandParams) *cobra.Command {
 	var core prCoreIDs
 	var includeResolved bool
+	var page, pagelen int
 	cmd := &cobra.Command{
 		Use:   "list-comments",
 		Short: "List comments on a pull request",
 		RunE: func(cmd *cobra.Command, _ []string) error {
+			if cmd.Flags().Changed("page") && page < 0 {
+				return fmt.Errorf("invalid --page: must be non-negative, got %d", page)
+			}
+			if cmd.Flags().Changed("pagelen") && pagelen < 0 {
+				return fmt.Errorf("invalid --pagelen: must be non-negative, got %d", pagelen)
+			}
 			return runPRListComments(
 				cmd,
 				container,
@@ -619,6 +627,8 @@ func newPRListCommentsCmd(container *dig.Container, rootParams *rootCommandParam
 						RepoName:      core.RepoName,
 						PullRequestID: core.PRID,
 						AccountName:   core.Account,
+						Page:          page,
+						PageLen:       pagelen,
 					},
 					IncludeResolved: includeResolved,
 				},
@@ -628,6 +638,8 @@ func newPRListCommentsCmd(container *dig.Container, rootParams *rootCommandParam
 	bindPRCoreFlags(cmd, &core)
 	requirePRCoreFlags(cmd)
 	cmd.Flags().BoolVar(&includeResolved, "include-resolved", false, "Include resolved comments in the output")
+	cmd.Flags().IntVar(&page, "page", 0, "Page number to retrieve (optional, defaults to first page when omitted)")
+	cmd.Flags().IntVar(&pagelen, "pagelen", 0, "Number of comments per page (optional, defaults to 100)")
 	return cmd
 }
 

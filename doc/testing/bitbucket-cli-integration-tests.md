@@ -112,7 +112,6 @@ Use a timestamp format for any repo-local results file (e.g. `results-20230615-1
 
 - **`pr create`**: there is **no `--draft` flag** on create. To obtain a draft PR for Test 4, either create a PR then run **`bbmd pr update --draft`** (see Test 4), or treat draft-on-create as out of scope until a flag exists.
 - **`pr merge`**: supports **`--strategy`** (`merge_commit`, `squash`, `fast_forward`). **Merge message** and **close source branch** are not exposed as flags; rely on Bitbucket defaults or perform branch cleanup in git (tests already delete the branch locally).
-- **`pr list-comments`**: the service layer supports pagination, but **`bbmd` does not expose `page` / `pagelen` flags**. **Test 6 (pagination)** is **not executable via `bbmd`** until those flags exist — use the MCP test or the Bitbucket API directly; see Test 6.
 
 ---
 
@@ -375,13 +374,57 @@ Update the report per [Test Results Reporting](#test-results-reporting).
 
 ## Test 6: PR Comments Pagination
 
-This test matches the MCP doc’s pagination scenarios (`page`, `pagelen`, full iteration).
+This test matches the MCP doc’s pagination scenarios (`page`, `pagelen`, full iteration). Use **`bbmd pr list-comments`** with optional **`--page`** and **`--pagelen`** (same semantics as the MCP tool: omit both for defaults; default page size is 100 at the app layer).
 
-**`bbmd pr list-comments` currently exposes only `--include-resolved`** — not `page` or `pagelen`. The underlying app supports pagination, but until CLI flags exist, this test is:
+### Steps
 
-**N/A (CLI)** — run Test 6 via [`bitbucket-mcp-integration-tests.md`](./bitbucket-mcp-integration-tests.md) or extend `bbmd` with pagination flags and then update this section.
+1. **Setup test environment** — same as [MCP Test 6](./bitbucket-mcp-integration-tests.md#test-6-pr-comments-pagination) step 1: branch `feature/pr-comments-pagination-test-{timestamp}`, test file update, commit, push.
 
-Optional partial check without pagination: `bbmd pr list-comments` after posting 20+ comments and confirm bulk listing only.
+2. **Create a Pull Request**
+
+   ```bash
+   bbmd pr create \
+     --title "PR Comments Pagination Test {timestamp}" \
+     --source-branch "feature/pr-comments-pagination-test-{timestamp}" \
+     --target-branch "main" \
+     --repo-owner "<workspace>" \
+     --repo-name "<slug>" \
+     --description "This is an automated PR comments pagination test (Test 6)"
+   ```
+
+   Save the PR id.
+
+3. **Post 20+ comments** — use `bbmd pr add-comment` repeatedly (general and inline), same counts as the MCP doc (15+ general, 5+ inline). Track comment IDs from JSON output.
+
+4. **List with default pagination** — no `--page` or `--pagelen`:
+
+   ```bash
+   bbmd pr list-comments --repo-owner "<workspace>" --repo-name "<slug>" --pr-id <PR_ID>
+   ```
+
+   Verify JSON: `size` ≥ 20, `pagelen` is 100, `page` is 1, and all comments appear on one page when under the default limit.
+
+5. **Small page size** — first page only:
+
+   ```bash
+   bbmd pr list-comments --repo-owner "<workspace>" --repo-name "<slug>" --pr-id <PR_ID> --pagelen 5
+   ```
+
+   Verify: five items in `values`, `pagelen` 5, `page` 1, `next` present, `size` ≥ 20.
+
+6. **Second page**:
+
+   ```bash
+   bbmd pr list-comments --repo-owner "<workspace>" --repo-name "<slug>" --pr-id <PR_ID> --pagelen 5 --page 2
+   ```
+
+   Verify: five items, `page` 2, comment IDs differ from step 5’s first page.
+
+7. **Iterate all pages** — repeat with `--pagelen 5` and `--page` 1, 2, … until `next` is absent (or use a short shell loop). Collect all comment IDs; total must match `size` from the first paginated response; set must equal IDs from step 3 with no duplicates.
+
+8. **Clean up** — `bbmd pr approve`, `bbmd pr merge --strategy squash`, checkout `main`, pull, delete branch (same as other tests).
+
+Update the report per [Test Results Reporting](#test-results-reporting).
 
 ---
 

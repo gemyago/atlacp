@@ -472,7 +472,15 @@ func TestBBMD(t *testing.T) {
 					name: "add-comment",
 					args: append([]string{"pr", "add-comment", "--content", "hi", "--line", "10"}, repoPR...),
 				},
-				{name: "list-comments", args: append([]string{"pr", "list-comments", "--include-resolved"}, repoPR...)},
+				{
+					name: "list-comments",
+					args: append([]string{
+						"pr", "list-comments",
+						"--include-resolved",
+						"--page", "2",
+						"--pagelen", "5",
+					}, repoPR...),
+				},
 				{
 					name: "resolve-comment",
 					args: append([]string{"pr", "resolve-comment", "--comment-id", "1"}, repoPR...),
@@ -487,6 +495,36 @@ func TestBBMD(t *testing.T) {
 					require.NoError(t, rootCmd.Execute())
 				})
 			}
+		})
+		t.Run("list-comments help documents pagination flags", func(t *testing.T) {
+			var buf bytes.Buffer
+			rootCmd := setupCommands()
+			rootCmd.SetOut(&buf)
+			rootCmd.SetErr(io.Discard)
+			rootCmd.SetArgs([]string{"pr", "list-comments", "--help"})
+			require.NoError(t, rootCmd.Execute())
+			out := buf.String()
+			assert.Contains(t, out, "--page")
+			assert.Contains(t, out, "--pagelen")
+		})
+		t.Run("list-comments rejects negative page", func(t *testing.T) {
+			rootCmd := setupCommands()
+			rootCmd.SilenceErrors = true
+			rootCmd.SetOut(io.Discard)
+			rootCmd.SetErr(io.Discard)
+			logFile := filepath.Join(t.TempDir(), "bbmd-test.log")
+			rootCmd.SetArgs([]string{
+				"pr", "list-comments",
+				"--noop",
+				"--logs-file", logFile,
+				"--repo-owner", "o",
+				"--repo-name", "n",
+				"--pr-id", "1",
+				"--page", "-1",
+			})
+			err := rootCmd.Execute()
+			require.Error(t, err)
+			assert.ErrorContains(t, err, "invalid --page")
 		})
 	})
 	t.Run("file", func(t *testing.T) {

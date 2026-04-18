@@ -288,7 +288,7 @@ Add `bbmd.log`.
   - `diffstat`: `--repo-owner` (req), `--repo-name` (req), `--pr-id` (req)
   - `diff`: `--repo-owner` (req), `--repo-name` (req), `--pr-id` (req), `--path`, `--context` (int)
   - `add-comment`: `--repo-owner` (req), `--repo-name` (req), `--pr-id` (req), `--content` (req), `--file-path`, `--line` (int), `--account`
-  - `list-comments`: `--repo-owner` (req), `--repo-name` (req), `--pr-id` (req), `--include-resolved` (bool)
+  - `list-comments`: `--repo-owner` (req), `--repo-name` (req), `--pr-id` (req), `--include-resolved` (bool), `--page` (int, optional), `--pagelen` (int, optional)
   - `resolve-comment`: `--repo-owner` (req), `--repo-name` (req), `--pr-id` (req), `--comment-id` (req, int)
 - After the noop check: call the service method, marshal result to `json.MarshalIndent`, write to `os.Stdout`
 - Expand `main_test.go` to smoke-test `pr read --noop --repo-owner x --repo-name x --pr-id 1` to confirm DI is valid
