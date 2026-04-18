@@ -10,26 +10,26 @@ import (
 	"go.uber.org/dig"
 )
 
-func newPRCmd(container *dig.Container) *cobra.Command {
+func newPRCmd(container *dig.Container, rootParams *rootCommandParams) *cobra.Command {
 	pr := &cobra.Command{
 		Use:   "pr",
 		Short: "Bitbucket pull request operations",
 	}
 	pr.AddCommand(
-		newPRCreateCmd(container),
-		newPRReadCmd(container),
-		newPRUpdateCmd(container),
-		newPRApproveCmd(container),
-		newPRRequestChangesCmd(container),
-		newPRMergeCmd(container),
-		newPRListTasksCmd(container),
-		newPRCreateTaskCmd(container),
-		newPRUpdateTaskCmd(container),
-		newPRDiffStatCmd(container),
-		newPRDiffCmd(container),
-		newPRAddCommentCmd(container),
-		newPRListCommentsCmd(container),
-		newPRResolveCommentCmd(container),
+		newPRCreateCmd(container, rootParams),
+		newPRReadCmd(container, rootParams),
+		newPRUpdateCmd(container, rootParams),
+		newPRApproveCmd(container, rootParams),
+		newPRRequestChangesCmd(container, rootParams),
+		newPRMergeCmd(container, rootParams),
+		newPRListTasksCmd(container, rootParams),
+		newPRCreateTaskCmd(container, rootParams),
+		newPRUpdateTaskCmd(container, rootParams),
+		newPRDiffStatCmd(container, rootParams),
+		newPRDiffCmd(container, rootParams),
+		newPRAddCommentCmd(container, rootParams),
+		newPRListCommentsCmd(container, rootParams),
+		newPRResolveCommentCmd(container, rootParams),
 	)
 	return pr
 }
@@ -46,22 +46,22 @@ func writeJSON(cmd *cobra.Command, v any) error {
 }
 
 type prCreateOpts struct {
-	Title          string
-	SourceBranch   string
-	TargetBranch   string
-	RepoOwner      string
-	RepoName       string
-	Description    string
-	Account        string
+	Title        string
+	SourceBranch string
+	TargetBranch string
+	RepoOwner    string
+	RepoName     string
+	Description  string
+	Account      string
 }
 
-func newPRCreateCmd(container *dig.Container) *cobra.Command {
+func newPRCreateCmd(container *dig.Container, rootParams *rootCommandParams) *cobra.Command {
 	var opts prCreateOpts
 	cmd := &cobra.Command{
 		Use:   "create",
 		Short: "Create a pull request",
 		RunE: func(cmd *cobra.Command, _ []string) error {
-			return runPRCreate(cmd, container, app.BitbucketCreatePRParams{
+			return runPRCreate(cmd, container, rootParams, app.BitbucketCreatePRParams{
 				Title:        opts.Title,
 				SourceBranch: opts.SourceBranch,
 				DestBranch:   opts.TargetBranch,
@@ -87,9 +87,14 @@ func newPRCreateCmd(container *dig.Container) *cobra.Command {
 	return cmd
 }
 
-func runPRCreate(cmd *cobra.Command, container *dig.Container, params app.BitbucketCreatePRParams) error {
+func runPRCreate(
+	cmd *cobra.Command,
+	container *dig.Container,
+	rootParams *rootCommandParams,
+	params app.BitbucketCreatePRParams,
+) error {
 	return container.Invoke(func(svc *app.BitbucketService) error {
-		if noop {
+		if rootParams.Noop {
 			return nil
 		}
 		result, err := svc.CreatePR(cmd.Context(), params)
@@ -100,13 +105,13 @@ func runPRCreate(cmd *cobra.Command, container *dig.Container, params app.Bitbuc
 	})
 }
 
-func newPRReadCmd(container *dig.Container) *cobra.Command {
+func newPRReadCmd(container *dig.Container, rootParams *rootCommandParams) *cobra.Command {
 	var core prCoreIDs
 	cmd := &cobra.Command{
 		Use:   "read",
 		Short: "Get pull request details",
 		RunE: func(cmd *cobra.Command, _ []string) error {
-			return runPRRead(cmd, container, app.BitbucketReadPRParams{
+			return runPRRead(cmd, container, rootParams, app.BitbucketReadPRParams{
 				RepoOwner:     core.RepoOwner,
 				RepoName:      core.RepoName,
 				PullRequestID: core.PRID,
@@ -119,9 +124,14 @@ func newPRReadCmd(container *dig.Container) *cobra.Command {
 	return cmd
 }
 
-func runPRRead(cmd *cobra.Command, container *dig.Container, params app.BitbucketReadPRParams) error {
+func runPRRead(
+	cmd *cobra.Command,
+	container *dig.Container,
+	rootParams *rootCommandParams,
+	params app.BitbucketReadPRParams,
+) error {
 	return container.Invoke(func(svc *app.BitbucketService) error {
-		if noop {
+		if rootParams.Noop {
 			return nil
 		}
 		result, err := svc.ReadPR(cmd.Context(), params)
@@ -132,7 +142,7 @@ func runPRRead(cmd *cobra.Command, container *dig.Container, params app.Bitbucke
 	})
 }
 
-func newPRUpdateCmd(container *dig.Container) *cobra.Command {
+func newPRUpdateCmd(container *dig.Container, rootParams *rootCommandParams) *cobra.Command {
 	var core prCoreIDs
 	var upd struct {
 		Title       string
@@ -159,7 +169,7 @@ func newPRUpdateCmd(container *dig.Container) *cobra.Command {
 				d := upd.Draft
 				params.Draft = &d
 			}
-			return runPRUpdate(cmd, container, params)
+			return runPRUpdate(cmd, container, rootParams, params)
 		},
 	}
 	bindPRCoreFlags(cmd, &core)
@@ -170,9 +180,14 @@ func newPRUpdateCmd(container *dig.Container) *cobra.Command {
 	return cmd
 }
 
-func runPRUpdate(cmd *cobra.Command, container *dig.Container, params app.BitbucketUpdatePRParams) error {
+func runPRUpdate(
+	cmd *cobra.Command,
+	container *dig.Container,
+	rootParams *rootCommandParams,
+	params app.BitbucketUpdatePRParams,
+) error {
 	return container.Invoke(func(svc *app.BitbucketService) error {
-		if noop {
+		if rootParams.Noop {
 			return nil
 		}
 		result, err := svc.UpdatePR(cmd.Context(), params)
@@ -183,13 +198,13 @@ func runPRUpdate(cmd *cobra.Command, container *dig.Container, params app.Bitbuc
 	})
 }
 
-func newPRApproveCmd(container *dig.Container) *cobra.Command {
+func newPRApproveCmd(container *dig.Container, rootParams *rootCommandParams) *cobra.Command {
 	var core prCoreIDs
 	cmd := &cobra.Command{
 		Use:   "approve",
 		Short: "Approve a pull request",
 		RunE: func(cmd *cobra.Command, _ []string) error {
-			return runPRApprove(cmd, container, app.BitbucketApprovePRParams{
+			return runPRApprove(cmd, container, rootParams, app.BitbucketApprovePRParams{
 				RepoOwner:     core.RepoOwner,
 				RepoName:      core.RepoName,
 				PullRequestID: core.PRID,
@@ -202,9 +217,14 @@ func newPRApproveCmd(container *dig.Container) *cobra.Command {
 	return cmd
 }
 
-func runPRApprove(cmd *cobra.Command, container *dig.Container, params app.BitbucketApprovePRParams) error {
+func runPRApprove(
+	cmd *cobra.Command,
+	container *dig.Container,
+	rootParams *rootCommandParams,
+	params app.BitbucketApprovePRParams,
+) error {
 	return container.Invoke(func(svc *app.BitbucketService) error {
-		if noop {
+		if rootParams.Noop {
 			return nil
 		}
 		result, err := svc.ApprovePR(cmd.Context(), params)
@@ -215,7 +235,7 @@ func runPRApprove(cmd *cobra.Command, container *dig.Container, params app.Bitbu
 	})
 }
 
-func newPRRequestChangesCmd(container *dig.Container) *cobra.Command {
+func newPRRequestChangesCmd(container *dig.Container, rootParams *rootCommandParams) *cobra.Command {
 	var core prCoreIDs
 	cmd := &cobra.Command{
 		Use:   "request-changes",
@@ -224,6 +244,7 @@ func newPRRequestChangesCmd(container *dig.Container) *cobra.Command {
 			return runPRRequestChanges(
 				cmd,
 				container,
+				rootParams,
 				app.BitbucketRequestPRChangesParams{
 					RepoOwner:     core.RepoOwner,
 					RepoName:      core.RepoName,
@@ -241,10 +262,11 @@ func newPRRequestChangesCmd(container *dig.Container) *cobra.Command {
 func runPRRequestChanges(
 	cmd *cobra.Command,
 	container *dig.Container,
+	rootParams *rootCommandParams,
 	params app.BitbucketRequestPRChangesParams,
 ) error {
 	return container.Invoke(func(svc *app.BitbucketService) error {
-		if noop {
+		if rootParams.Noop {
 			return nil
 		}
 		status, updatedOn, err := svc.RequestPRChanges(cmd.Context(), params)
@@ -258,14 +280,14 @@ func runPRRequestChanges(
 	})
 }
 
-func newPRMergeCmd(container *dig.Container) *cobra.Command {
+func newPRMergeCmd(container *dig.Container, rootParams *rootCommandParams) *cobra.Command {
 	var core prCoreIDs
 	var strategy string
 	cmd := &cobra.Command{
 		Use:   "merge",
 		Short: "Merge a pull request",
 		RunE: func(cmd *cobra.Command, _ []string) error {
-			return runPRMerge(cmd, container, app.BitbucketMergePRParams{
+			return runPRMerge(cmd, container, rootParams, app.BitbucketMergePRParams{
 				RepoOwner:     core.RepoOwner,
 				RepoName:      core.RepoName,
 				PullRequestID: core.PRID,
@@ -280,9 +302,14 @@ func newPRMergeCmd(container *dig.Container) *cobra.Command {
 	return cmd
 }
 
-func runPRMerge(cmd *cobra.Command, container *dig.Container, params app.BitbucketMergePRParams) error {
+func runPRMerge(
+	cmd *cobra.Command,
+	container *dig.Container,
+	rootParams *rootCommandParams,
+	params app.BitbucketMergePRParams,
+) error {
 	return container.Invoke(func(svc *app.BitbucketService) error {
-		if noop {
+		if rootParams.Noop {
 			return nil
 		}
 		result, err := svc.MergePR(cmd.Context(), params)
@@ -293,13 +320,13 @@ func runPRMerge(cmd *cobra.Command, container *dig.Container, params app.Bitbuck
 	})
 }
 
-func newPRListTasksCmd(container *dig.Container) *cobra.Command {
+func newPRListTasksCmd(container *dig.Container, rootParams *rootCommandParams) *cobra.Command {
 	var core prCoreIDs
 	cmd := &cobra.Command{
 		Use:   "list-tasks",
 		Short: "List tasks on a pull request",
 		RunE: func(cmd *cobra.Command, _ []string) error {
-			return runPRListTasks(cmd, container, app.BitbucketListTasksParams{
+			return runPRListTasks(cmd, container, rootParams, app.BitbucketListTasksParams{
 				RepoOwner:     core.RepoOwner,
 				RepoName:      core.RepoName,
 				PullRequestID: core.PRID,
@@ -312,9 +339,14 @@ func newPRListTasksCmd(container *dig.Container) *cobra.Command {
 	return cmd
 }
 
-func runPRListTasks(cmd *cobra.Command, container *dig.Container, params app.BitbucketListTasksParams) error {
+func runPRListTasks(
+	cmd *cobra.Command,
+	container *dig.Container,
+	rootParams *rootCommandParams,
+	params app.BitbucketListTasksParams,
+) error {
 	return container.Invoke(func(svc *app.BitbucketService) error {
-		if noop {
+		if rootParams.Noop {
 			return nil
 		}
 		result, err := svc.ListTasks(cmd.Context(), params)
@@ -325,7 +357,7 @@ func runPRListTasks(cmd *cobra.Command, container *dig.Container, params app.Bit
 	})
 }
 
-func newPRCreateTaskCmd(container *dig.Container) *cobra.Command {
+func newPRCreateTaskCmd(container *dig.Container, rootParams *rootCommandParams) *cobra.Command {
 	var core prCoreIDs
 	var taskCreate struct {
 		Content   string
@@ -345,7 +377,7 @@ func newPRCreateTaskCmd(container *dig.Container) *cobra.Command {
 			if cmd.Flags().Changed("comment-id") {
 				params.CommentID = taskCreate.CommentID
 			}
-			return runPRCreateTask(cmd, container, params)
+			return runPRCreateTask(cmd, container, rootParams, params)
 		},
 	}
 	bindPRCoreFlags(cmd, &core)
@@ -356,9 +388,14 @@ func newPRCreateTaskCmd(container *dig.Container) *cobra.Command {
 	return cmd
 }
 
-func runPRCreateTask(cmd *cobra.Command, container *dig.Container, params app.BitbucketCreateTaskParams) error {
+func runPRCreateTask(
+	cmd *cobra.Command,
+	container *dig.Container,
+	rootParams *rootCommandParams,
+	params app.BitbucketCreateTaskParams,
+) error {
 	return container.Invoke(func(svc *app.BitbucketService) error {
-		if noop {
+		if rootParams.Noop {
 			return nil
 		}
 		result, err := svc.CreateTask(cmd.Context(), params)
@@ -369,7 +406,7 @@ func runPRCreateTask(cmd *cobra.Command, container *dig.Container, params app.Bi
 	})
 }
 
-func newPRUpdateTaskCmd(container *dig.Container) *cobra.Command {
+func newPRUpdateTaskCmd(container *dig.Container, rootParams *rootCommandParams) *cobra.Command {
 	var core prCoreIDs
 	var taskUpd struct {
 		TaskID  int
@@ -393,7 +430,7 @@ func newPRUpdateTaskCmd(container *dig.Container) *cobra.Command {
 			if cmd.Flags().Changed("state") {
 				params.State = taskUpd.State
 			}
-			return runPRUpdateTask(cmd, container, params)
+			return runPRUpdateTask(cmd, container, rootParams, params)
 		},
 	}
 	bindPRCoreFlags(cmd, &core)
@@ -405,9 +442,14 @@ func newPRUpdateTaskCmd(container *dig.Container) *cobra.Command {
 	return cmd
 }
 
-func runPRUpdateTask(cmd *cobra.Command, container *dig.Container, params app.BitbucketUpdateTaskParams) error {
+func runPRUpdateTask(
+	cmd *cobra.Command,
+	container *dig.Container,
+	rootParams *rootCommandParams,
+	params app.BitbucketUpdateTaskParams,
+) error {
 	return container.Invoke(func(svc *app.BitbucketService) error {
-		if noop {
+		if rootParams.Noop {
 			return nil
 		}
 		result, err := svc.UpdateTask(cmd.Context(), params)
@@ -418,13 +460,13 @@ func runPRUpdateTask(cmd *cobra.Command, container *dig.Container, params app.Bi
 	})
 }
 
-func newPRDiffStatCmd(container *dig.Container) *cobra.Command {
+func newPRDiffStatCmd(container *dig.Container, rootParams *rootCommandParams) *cobra.Command {
 	var core prCoreIDs
 	cmd := &cobra.Command{
 		Use:   "diffstat",
 		Short: "List changed files summary for a pull request",
 		RunE: func(cmd *cobra.Command, _ []string) error {
-			return runPRDiffStat(cmd, container, app.BitbucketGetPRDiffStatParams{
+			return runPRDiffStat(cmd, container, rootParams, app.BitbucketGetPRDiffStatParams{
 				RepoOwner:     core.RepoOwner,
 				RepoName:      core.RepoName,
 				PullRequestID: core.PRID,
@@ -437,9 +479,14 @@ func newPRDiffStatCmd(container *dig.Container) *cobra.Command {
 	return cmd
 }
 
-func runPRDiffStat(cmd *cobra.Command, container *dig.Container, params app.BitbucketGetPRDiffStatParams) error {
+func runPRDiffStat(
+	cmd *cobra.Command,
+	container *dig.Container,
+	rootParams *rootCommandParams,
+	params app.BitbucketGetPRDiffStatParams,
+) error {
 	return container.Invoke(func(svc *app.BitbucketService) error {
-		if noop {
+		if rootParams.Noop {
 			return nil
 		}
 		result, err := svc.GetPRDiffStat(cmd.Context(), params)
@@ -450,7 +497,7 @@ func runPRDiffStat(cmd *cobra.Command, container *dig.Container, params app.Bitb
 	})
 }
 
-func newPRDiffCmd(container *dig.Container) *cobra.Command {
+func newPRDiffCmd(container *dig.Container, rootParams *rootCommandParams) *cobra.Command {
 	var core prCoreIDs
 	var diffOpts struct {
 		Path    string
@@ -473,7 +520,7 @@ func newPRDiffCmd(container *dig.Container) *cobra.Command {
 				ctxLines := diffOpts.Context
 				params.ContextLines = &ctxLines
 			}
-			return runPRDiff(cmd, container, params)
+			return runPRDiff(cmd, container, rootParams, params)
 		},
 	}
 	bindPRCoreFlags(cmd, &core)
@@ -483,9 +530,14 @@ func newPRDiffCmd(container *dig.Container) *cobra.Command {
 	return cmd
 }
 
-func runPRDiff(cmd *cobra.Command, container *dig.Container, params app.BitbucketGetPRDiffParams) error {
+func runPRDiff(
+	cmd *cobra.Command,
+	container *dig.Container,
+	rootParams *rootCommandParams,
+	params app.BitbucketGetPRDiffParams,
+) error {
 	return container.Invoke(func(svc *app.BitbucketService) error {
-		if noop {
+		if rootParams.Noop {
 			return nil
 		}
 		result, err := svc.GetPRDiff(cmd.Context(), params)
@@ -498,7 +550,7 @@ func runPRDiff(cmd *cobra.Command, container *dig.Container, params app.Bitbucke
 	})
 }
 
-func newPRAddCommentCmd(container *dig.Container) *cobra.Command {
+func newPRAddCommentCmd(container *dig.Container, rootParams *rootCommandParams) *cobra.Command {
 	var core prCoreIDs
 	var cmt struct {
 		Content  string
@@ -521,7 +573,7 @@ func newPRAddCommentCmd(container *dig.Container) *cobra.Command {
 				params.LineFrom = cmt.Line
 				params.LineTo = cmt.Line
 			}
-			return runPRAddComment(cmd, container, params)
+			return runPRAddComment(cmd, container, rootParams, params)
 		},
 	}
 	bindPRCoreFlags(cmd, &core)
@@ -533,9 +585,14 @@ func newPRAddCommentCmd(container *dig.Container) *cobra.Command {
 	return cmd
 }
 
-func runPRAddComment(cmd *cobra.Command, container *dig.Container, params app.BitbucketAddPRCommentParams) error {
+func runPRAddComment(
+	cmd *cobra.Command,
+	container *dig.Container,
+	rootParams *rootCommandParams,
+	params app.BitbucketAddPRCommentParams,
+) error {
 	return container.Invoke(func(svc *app.BitbucketService) error {
-		if noop {
+		if rootParams.Noop {
 			return nil
 		}
 		commentID, text, err := svc.AddPRComment(cmd.Context(), params)
@@ -549,7 +606,7 @@ func runPRAddComment(cmd *cobra.Command, container *dig.Container, params app.Bi
 	})
 }
 
-func newPRListCommentsCmd(container *dig.Container) *cobra.Command {
+func newPRListCommentsCmd(container *dig.Container, rootParams *rootCommandParams) *cobra.Command {
 	var core prCoreIDs
 	var includeResolved bool
 	cmd := &cobra.Command{
@@ -559,6 +616,7 @@ func newPRListCommentsCmd(container *dig.Container) *cobra.Command {
 			return runPRListComments(
 				cmd,
 				container,
+				rootParams,
 				app.BitbucketListPRCommentsParams{
 					RepoOwner:     core.RepoOwner,
 					RepoName:      core.RepoName,
@@ -578,11 +636,12 @@ func newPRListCommentsCmd(container *dig.Container) *cobra.Command {
 func runPRListComments(
 	cmd *cobra.Command,
 	container *dig.Container,
+	rootParams *rootCommandParams,
 	params app.BitbucketListPRCommentsParams,
 	includeResolved bool,
 ) error {
 	return container.Invoke(func(svc *app.BitbucketService) error {
-		if noop {
+		if rootParams.Noop {
 			return nil
 		}
 		result, err := svc.ListPRComments(cmd.Context(), params)
@@ -602,14 +661,14 @@ func runPRListComments(
 	})
 }
 
-func newPRResolveCommentCmd(container *dig.Container) *cobra.Command {
+func newPRResolveCommentCmd(container *dig.Container, rootParams *rootCommandParams) *cobra.Command {
 	var core prCoreIDs
 	var commentID int64
 	cmd := &cobra.Command{
 		Use:   "resolve-comment",
 		Short: "Resolve a pull request comment thread",
 		RunE: func(cmd *cobra.Command, _ []string) error {
-			return runPRResolveComment(cmd, container, app.BitbucketResolvePRCommentParams{
+			return runPRResolveComment(cmd, container, rootParams, app.BitbucketResolvePRCommentParams{
 				RepoOwner:     core.RepoOwner,
 				RepoName:      core.RepoName,
 				PullRequestID: core.PRID,
@@ -628,10 +687,11 @@ func newPRResolveCommentCmd(container *dig.Container) *cobra.Command {
 func runPRResolveComment(
 	cmd *cobra.Command,
 	container *dig.Container,
+	rootParams *rootCommandParams,
 	params app.BitbucketResolvePRCommentParams,
 ) error {
 	return container.Invoke(func(svc *app.BitbucketService) error {
-		if noop {
+		if rootParams.Noop {
 			return nil
 		}
 		result, err := svc.ResolvePRComment(cmd.Context(), params)

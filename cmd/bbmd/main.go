@@ -9,8 +9,7 @@ import (
 
 func setupCommands() *cobra.Command {
 	container := dig.New()
-	rootCmd := newRootCmd(container)
-	return rootCmd
+	return newRootCmd(container, new(rootCommandParams{LogsOutputFile: "bbmd.log"}))
 }
 
 func main() { // coverage-ignore

@@ -10,16 +10,16 @@ import (
 	"go.uber.org/dig"
 )
 
-func newAuthCmd(container *dig.Container) *cobra.Command {
+func newAuthCmd(container *dig.Container, rootParams *rootCommandParams) *cobra.Command {
 	auth := &cobra.Command{
 		Use:   "auth",
 		Short: "Atlassian account management",
 	}
 	auth.AddCommand(
-		newAuthStatusCmd(container),
-		newAuthAddCmd(container),
-		newAuthRemoveCmd(container),
-		newAuthSetDefaultCmd(container),
+		newAuthStatusCmd(container, rootParams),
+		newAuthAddCmd(container, rootParams),
+		newAuthRemoveCmd(container, rootParams),
+		newAuthSetDefaultCmd(container, rootParams),
 	)
 	return auth
 }
@@ -31,23 +31,23 @@ type authAddOpts struct {
 	TokenValue string
 }
 
-func newAuthStatusCmd(container *dig.Container) *cobra.Command {
+func newAuthStatusCmd(container *dig.Container, rootParams *rootCommandParams) *cobra.Command {
 	return &cobra.Command{
 		Use:   "status",
 		Short: "List configured accounts (tokens partially redacted)",
 		RunE: func(cmd *cobra.Command, _ []string) error {
-			return runAuthStatus(cmd, container)
+			return runAuthStatus(cmd, container, rootParams)
 		},
 	}
 }
 
-func newAuthAddCmd(container *dig.Container) *cobra.Command {
+func newAuthAddCmd(container *dig.Container, rootParams *rootCommandParams) *cobra.Command {
 	var opts authAddOpts
 	cmd := &cobra.Command{
 		Use:   "add",
 		Short: "Add or replace an account",
 		RunE: func(_ *cobra.Command, _ []string) error {
-			return runAuthAdd(container, opts)
+			return runAuthAdd(container, rootParams, opts)
 		},
 	}
 	cmd.Flags().StringVar(&opts.Name, "name", "", "Account name")
@@ -59,13 +59,13 @@ func newAuthAddCmd(container *dig.Container) *cobra.Command {
 	return cmd
 }
 
-func newAuthRemoveCmd(container *dig.Container) *cobra.Command {
+func newAuthRemoveCmd(container *dig.Container, rootParams *rootCommandParams) *cobra.Command {
 	var name string
 	cmd := &cobra.Command{
 		Use:   "remove",
 		Short: "Remove an account by name",
 		RunE: func(_ *cobra.Command, _ []string) error {
-			return runAuthRemove(container, name)
+			return runAuthRemove(container, rootParams, name)
 		},
 	}
 	cmd.Flags().StringVar(&name, "name", "", "Account name")
@@ -73,13 +73,13 @@ func newAuthRemoveCmd(container *dig.Container) *cobra.Command {
 	return cmd
 }
 
-func newAuthSetDefaultCmd(container *dig.Container) *cobra.Command {
+func newAuthSetDefaultCmd(container *dig.Container, rootParams *rootCommandParams) *cobra.Command {
 	var name string
 	cmd := &cobra.Command{
 		Use:   "set-default",
 		Short: "Set the default account by name",
 		RunE: func(_ *cobra.Command, _ []string) error {
-			return runAuthSetDefault(container, name)
+			return runAuthSetDefault(container, rootParams, name)
 		},
 	}
 	cmd.Flags().StringVar(&name, "name", "", "Account name")
@@ -100,9 +100,9 @@ type authStatusToken struct {
 	Value string `json:"value"`
 }
 
-func runAuthStatus(cmd *cobra.Command, container *dig.Container) error {
+func runAuthStatus(cmd *cobra.Command, container *dig.Container, rootParams *rootCommandParams) error {
 	return container.Invoke(func(store *services.AccountsStore) error {
-		if noop {
+		if rootParams.Noop {
 			return nil
 		}
 		raw := store.ListAccounts()
@@ -147,7 +147,7 @@ func redactTokenValue(s string) string {
 	return s[:4] + "***" + s[len(s)-4:]
 }
 
-func runAuthAdd(container *dig.Container, opts authAddOpts) error {
+func runAuthAdd(container *dig.Container, rootParams *rootCommandParams, opts authAddOpts) error {
 	account := app.AtlassianAccount{
 		Name:    opts.Name,
 		Default: opts.Default,
@@ -157,43 +157,43 @@ func runAuthAdd(container *dig.Container, opts authAddOpts) error {
 		},
 	}
 	return container.Invoke(func(store *services.AccountsStore) error {
-		if noop {
+		if rootParams.Noop {
 			return nil
 		}
 		if upsertErr := store.Upsert(account); upsertErr != nil {
 			return upsertErr
 		}
-		if saveErr := store.SaveToFile(resolvedAccountsFilePath); saveErr != nil {
+		if saveErr := store.SaveToFile(rootParams.ResolvedAccountsFilePath); saveErr != nil {
 			return fmt.Errorf("save accounts: %w", saveErr)
 		}
 		return nil
 	})
 }
 
-func runAuthRemove(container *dig.Container, name string) error {
+func runAuthRemove(container *dig.Container, rootParams *rootCommandParams, name string) error {
 	return container.Invoke(func(store *services.AccountsStore) error {
-		if noop {
+		if rootParams.Noop {
 			return nil
 		}
 		if removeErr := store.Remove(name); removeErr != nil {
 			return removeErr
 		}
-		if saveErr := store.SaveToFile(resolvedAccountsFilePath); saveErr != nil {
+		if saveErr := store.SaveToFile(rootParams.ResolvedAccountsFilePath); saveErr != nil {
 			return fmt.Errorf("save accounts: %w", saveErr)
 		}
 		return nil
 	})
 }
 
-func runAuthSetDefault(container *dig.Container, name string) error {
+func runAuthSetDefault(container *dig.Container, rootParams *rootCommandParams, name string) error {
 	return container.Invoke(func(store *services.AccountsStore) error {
-		if noop {
+		if rootParams.Noop {
 			return nil
 		}
 		if setErr := store.SetDefault(name); setErr != nil {
 			return setErr
 		}
-		if saveErr := store.SaveToFile(resolvedAccountsFilePath); saveErr != nil {
+		if saveErr := store.SaveToFile(rootParams.ResolvedAccountsFilePath); saveErr != nil {
 			return fmt.Errorf("save accounts: %w", saveErr)
 		}
 		return nil

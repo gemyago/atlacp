@@ -6,12 +6,12 @@ import (
 	"go.uber.org/dig"
 )
 
-func newFileCmd(container *dig.Container) *cobra.Command {
+func newFileCmd(container *dig.Container, rootParams *rootCommandParams) *cobra.Command {
 	file := &cobra.Command{
 		Use:   "file",
 		Short: "Bitbucket file operations",
 	}
-	file.AddCommand(newFileContentCmd(container))
+	file.AddCommand(newFileContentCmd(container, rootParams))
 	return file
 }
 
@@ -23,13 +23,13 @@ type fileContentOpts struct {
 	Account   string
 }
 
-func newFileContentCmd(container *dig.Container) *cobra.Command {
+func newFileContentCmd(container *dig.Container, rootParams *rootCommandParams) *cobra.Command {
 	var opts fileContentOpts
 	cmd := &cobra.Command{
 		Use:   "content",
 		Short: "Get file content at a commit",
 		RunE: func(cmd *cobra.Command, _ []string) error {
-			return runFileContent(cmd, container, app.BitbucketGetFileContentParams{
+			return runFileContent(cmd, container, rootParams, app.BitbucketGetFileContentParams{
 				AccountName: opts.Account,
 				RepoOwner:   opts.RepoOwner,
 				RepoName:    opts.RepoName,
@@ -50,9 +50,14 @@ func newFileContentCmd(container *dig.Container) *cobra.Command {
 	return cmd
 }
 
-func runFileContent(cmd *cobra.Command, container *dig.Container, params app.BitbucketGetFileContentParams) error {
+func runFileContent(
+	cmd *cobra.Command,
+	container *dig.Container,
+	rootParams *rootCommandParams,
+	params app.BitbucketGetFileContentParams,
+) error {
 	return container.Invoke(func(svc *app.BitbucketService) error {
-		if noop {
+		if rootParams.Noop {
 			return nil
 		}
 		result, err := svc.GetFileContent(cmd.Context(), params)

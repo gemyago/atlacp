@@ -15,15 +15,13 @@ import (
 	"go.uber.org/dig"
 )
 
-//nolint:gochecknoglobals // root --noop shared by all bbmd executors
-var noop bool
+type rootCommandParams struct {
+	Noop                     bool
+	ResolvedAccountsFilePath string
+	LogsOutputFile           string
+}
 
-//nolint:gochecknoglobals // set in PersistentPreRunE for auth SaveToFile
-var resolvedAccountsFilePath string
-
-func newRootCmd(container *dig.Container) *cobra.Command {
-	logsOutputFile := "bbmd.log"
-
+func newRootCmd(container *dig.Container, rootParams *rootCommandParams) *cobra.Command {
 	cmd := &cobra.Command{
 		Use:   "bbmd",
 		Short: "Bitbucket CLI — direct access to Bitbucket and account operations",
@@ -31,7 +29,7 @@ func newRootCmd(container *dig.Container) *cobra.Command {
 	cmd.SilenceUsage = true
 	cmd.PersistentFlags().StringP("log-level", "l", "", "Produce logs with given level. Default is env specific.")
 	cmd.PersistentFlags().StringVar(
-		&logsOutputFile,
+		&rootParams.LogsOutputFile,
 		"logs-file",
 		"bbmd.log",
 		"Write logs to this file (default bbmd.log in the current directory).",
@@ -54,7 +52,7 @@ func newRootCmd(container *dig.Container) *cobra.Command {
 		"Path to the Atlassian accounts file.",
 	)
 	cmd.PersistentFlags().BoolVar(
-		&noop,
+		&rootParams.Noop,
 		"noop",
 		false,
 		"Dry-run: wire dependencies and skip real Bitbucket/account side effects.",
@@ -79,10 +77,10 @@ func newRootCmd(container *dig.Container) *cobra.Command {
 			if pathErr != nil {
 				return fmt.Errorf("resolve default atlassian accounts file path: %w", pathErr)
 			}
-			resolvedAccountsFilePath = defaultPath
+			rootParams.ResolvedAccountsFilePath = defaultPath
 			cfg.Set("atlassian.accountsFilePath", defaultPath)
 		} else {
-			resolvedAccountsFilePath = accountsFile
+			rootParams.ResolvedAccountsFilePath = accountsFile
 		}
 
 		var logLevel slog.Level
@@ -94,7 +92,7 @@ func newRootCmd(container *dig.Container) *cobra.Command {
 			diag.NewRootLoggerOpts().
 				WithJSONLogs(cfg.GetBool("jsonLogs")).
 				WithLogLevel(logLevel).
-				WithOptionalOutputFile(logsOutputFile),
+				WithOptionalOutputFile(rootParams.LogsOutputFile),
 		)
 
 		err = errors.Join(
@@ -112,9 +110,9 @@ func newRootCmd(container *dig.Container) *cobra.Command {
 	}
 
 	cmd.AddCommand(
-		newPRCmd(container),
-		newFileCmd(container),
-		newAuthCmd(container),
+		newPRCmd(container, rootParams),
+		newFileCmd(container, rootParams),
+		newAuthCmd(container, rootParams),
 	)
 
 	return cmd
