@@ -2,6 +2,7 @@ package main
 
 import (
 	"github.com/gemyago/atlacp/internal/app"
+	"github.com/gemyago/atlacp/internal/services/bitbucket"
 	"github.com/spf13/cobra"
 	"go.uber.org/dig"
 )
@@ -56,14 +57,14 @@ func runFileContent(
 	rootParams *rootCommandParams,
 	params app.BitbucketGetFileContentParams,
 ) error {
-	return container.Invoke(func(svc *app.BitbucketService) error {
-		if rootParams.Noop {
-			return nil
-		}
-		result, err := svc.GetFileContent(cmd.Context(), params)
-		if err != nil {
-			return err
-		}
-		return writeJSON(cmd, result)
+	return container.Invoke(func(execDeps execDeps, svc *app.BitbucketService) error {
+		return execAndWrite(
+			cmd,
+			execDeps,
+			execArgs[app.BitbucketGetFileContentParams, *bitbucket.FileContentResult]{
+				rootParams: rootParams,
+				params:     params,
+				target:     svc.GetFileContent,
+			})
 	})
 }

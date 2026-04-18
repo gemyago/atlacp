@@ -31,4 +31,3 @@ exclude:
     - cmd/bbmd/auth.go # CLI wiring; branches covered by integration tests (marshal/pflag errors not exercised)
     - cmd/bbmd/pr.go
     - cmd/bbmd/pr_flags.go
-    - cmd/bbmd/file.go
