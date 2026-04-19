@@ -6,8 +6,6 @@ import (
 	"log/slog"
 	"path/filepath"
 
-	"github.com/gemyago/atlacp/internal/api/mcp/controllers"
-	"github.com/gemyago/atlacp/internal/api/mcp/server"
 	"github.com/gemyago/atlacp/internal/app"
 	"github.com/gemyago/atlacp/internal/config"
 	"github.com/gemyago/atlacp/internal/di"
@@ -19,7 +17,13 @@ import (
 	"go.uber.org/dig"
 )
 
-func prepareMCPAccountsFilePath(cfg *viper.Viper, accountsFile string) error {
+type rootCommandParams struct {
+	Noop                     bool
+	ResolvedAccountsFilePath string
+	LogsOutputFile           string
+}
+
+func prepareBBMDAccountsFilePath(cfg *viper.Viper, rootParams *rootCommandParams, accountsFile string) error {
 	pathResolver := services.NewAccountsFilePathResolver()
 	var resolved string
 	if accountsFile == "" {
@@ -33,27 +37,25 @@ func prepareMCPAccountsFilePath(cfg *viper.Viper, accountsFile string) error {
 		resolved = filepath.Clean(accountsFile)
 		cfg.Set("atlassian.accountsFilePath", resolved)
 	}
+	rootParams.ResolvedAccountsFilePath = resolved
 	if mkdirErr := pathResolver.EnsureParentDirsForFile(resolved); mkdirErr != nil {
 		return fmt.Errorf("ensure atlassian accounts file parent directories: %w", mkdirErr)
 	}
 	return nil
 }
 
-func newRootCmd(container *dig.Container) *cobra.Command {
-	logsOutputFile := ""
-
+func newRootCmd(container *dig.Container, rootParams *rootCommandParams) *cobra.Command {
 	cmd := &cobra.Command{
-		Use:   "mcp",
-		Short: "MCP (Model Context Protocol) server command",
-		Long:  "Start MCP server with stdio or HTTP transport for providing tools to MCP clients",
+		Use:   "bbmd",
+		Short: "Bitbucket CLI — direct access to Bitbucket and account operations",
 	}
 	cmd.SilenceUsage = true
 	cmd.PersistentFlags().StringP("log-level", "l", "", "Produce logs with given level. Default is env specific.")
 	cmd.PersistentFlags().StringVar(
-		&logsOutputFile,
+		&rootParams.LogsOutputFile,
 		"logs-file",
-		"",
-		"Produce logs to file instead of stdout. Used for tests only.",
+		"bbmd.log",
+		"Write logs to this file (default bbmd.log in the current directory).",
 	)
 	cmd.PersistentFlags().Bool(
 		"json-logs",
@@ -72,6 +74,12 @@ func newRootCmd(container *dig.Container) *cobra.Command {
 		"",
 		"Path to the Atlassian accounts file.",
 	)
+	cmd.PersistentFlags().BoolVar(
+		&rootParams.Noop,
+		"noop",
+		false,
+		"Dry-run: wire dependencies and skip real Bitbucket/account side effects.",
+	)
 	cfg := config.New()
 	lo.Must0(cfg.BindPFlag("atlassian.accountsFilePath", cmd.PersistentFlags().Lookup("atlassian-accounts-file")))
 	lo.Must0(cfg.BindPFlag("jsonLogs", cmd.PersistentFlags().Lookup("json-logs")))
@@ -87,7 +95,7 @@ func newRootCmd(container *dig.Container) *cobra.Command {
 		if err != nil {
 			return fmt.Errorf("get atlassian-accounts-file flag: %w", err)
 		}
-		if prepErr := prepareMCPAccountsFilePath(cfg, accountsFile); prepErr != nil {
+		if prepErr := prepareBBMDAccountsFilePath(cfg, rootParams, accountsFile); prepErr != nil {
 			return prepErr
 		}
 
@@ -100,24 +108,13 @@ func newRootCmd(container *dig.Container) *cobra.Command {
 			diag.NewRootLoggerOpts().
 				WithJSONLogs(cfg.GetBool("jsonLogs")).
 				WithLogLevel(logLevel).
-				WithOptionalOutputFile(logsOutputFile),
+				WithOptionalOutputFile(rootParams.LogsOutputFile),
 		)
 
 		err = errors.Join(
 			config.Provide(container, cfg),
-
-			// app layer
 			app.Register(container),
-
-			// services
 			services.Register(container),
-
-			// mcp components
-			controllers.Register(container),
-			di.ProvideAll(container,
-				server.NewMCPServer,
-			),
-
 			di.ProvideAll(container,
 				di.ProvideValue(rootLogger),
 			),
@@ -127,5 +124,12 @@ func newRootCmd(container *dig.Container) *cobra.Command {
 			If(err != nil, fmt.Errorf("failed to inject dependencies: %w", err)).
 			Else(nil)
 	}
+
+	cmd.AddCommand(
+		newPRCmd(container, rootParams),
+		newFileCmd(container, rootParams),
+		newAuthCmd(container, rootParams),
+	)
+
 	return cmd
 }

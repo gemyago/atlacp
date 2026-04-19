@@ -14,10 +14,11 @@ Given the following Bitbucket repository `<file system path to the repository>`,
 ### Execution model (mandatory, no exceptions)
 
 - **Tests always run in sub-agents.** Every numbered test (Test 1, Test 2, …) **must** be executed **only** inside a **separate delegated sub-agent** (e.g. Cursor Task tool or equivalent). The orchestrator **must not** run that test’s git commands, Bitbucket MCP calls, or any step that mutates the integration repo or Bitbucket state.
+- **Sequential execution across tests.** All tests share the **same** integration repository clone: they race if run **in parallel** (concurrent sub-agents or terminals) on `git checkout`, `main`, pushes, and shared paths. When running more than one test, the orchestrator **must** run them **one after another**—wait until the sub-agent for Test *N* has fully finished before spawning the sub-agent for the next test. (Parallelism is **not** allowed for the suite; only isolation per test via sub-agents.)
 - **No waiver.** This rule applies if the user asks for one test, “just Test N”, “first test only”, or the full suite. Convenience, speed, or “single coherent thread” are **not** reasons to run test steps in the orchestrator.
 - **Orchestrator-only work is allowed** (and encouraged where useful): planning order, spawning sub-agents, passing repo path / `repo_owner` / `repo_name` / test id, **verification that does not execute the test** (e.g. confirming sub-agents have MCP, merging `tmp/integration-tests-*.md` from outputs, summarizing pass/fail). The orchestrator does **not** substitute for a sub-agent when executing a test.
-- **Why sub-agents**: isolates failures, avoids mixing state between tests, and matches parallelization and review expectations.
-- **Orchestrator responsibilities**: confirm Bitbucket MCP is available to sub-agents; launch one sub-agent per test to run; collect outputs and produce the final report.
+- **Why sub-agents**: isolates failures, avoids mixing shell/MCP steps for different tests in one thread, and matches review expectations. This is **not** permission to run multiple tests in parallel on the same repo.
+- **Orchestrator responsibilities**: confirm Bitbucket MCP is available to sub-agents; when running multiple tests, launch sub-agents **sequentially** (wait for each to complete before the next); collect outputs and produce the final report.
 - **Sub-agent responsibilities**: perform **all** shell work in the provided repo path and **all** `bitbucket_*` MCP calls for **that test only**; write/update the workspace results file for that test’s steps; return a concise pass/fail summary and PR ids to the orchestrator.
 
 ## Prerequisites done by the user
@@ -28,15 +29,7 @@ It should be assumed that below is already prepared by the user:
    - A default account - assume it is named "user" if not otherwise mentioned
    - A secondary account named "bot"
 
-### SSH Troubleshooting notes (for user ONLY)
-
-```bash
-# See which ssh key is used
-ssh -T git@bitbucket.org
-```
-
-If wrong key is used, define section for bitbucket explicitly: `Host bitbucket.org\n....`. 
-If you have wildcard ssh key, negate bitbucket from it: `Host * !bitbucket.org\n....`
+For Git/SSH issues point the user on the [SSH troubleshooting](./README.md#ssh-troubleshooting). Don't read or do anything about it yourself, report and halt.
 
 ## Working with the repository
 
@@ -491,7 +484,7 @@ As an AI assistant, when asked to run integration tests using this document, fol
 
 1. Confirm the ATLACP Bitbucket MCP tools are available **to sub-agents** (sub-agents need the same MCP access as the parent; if a sub-agent cannot call MCP, **do not** run the test in the orchestrator—report that limitation to the user instead).
 2. **Strict rule:** **Every** test’s executable steps run **only** in a dedicated sub-agent. The orchestrator may verify prerequisites, merge reports, and summarize; it **must not** run git or `bitbucket_*` calls for a test’s procedure in the main thread.
-3. **For each test** you are asked to run: **spawn a dedicated sub-agent** and pass it the Bitbucket repo filesystem path, `repo_owner` / `repo_name` (from `git remote show origin` if needed), and the test number.
+3. **For each test** you are asked to run: **spawn a dedicated sub-agent** and pass it the Bitbucket repo filesystem path, `repo_owner` / `repo_name` (from `git remote show origin` if needed), and the test number. If running more than one test, **do not** spawn sub-agents in parallel—**wait** for one test’s sub-agent to finish before starting the next (same repo; see [Execution model](#execution-model-mandatory-no-exceptions)).
 4. Follow each test’s steps **inside that test’s sub-agent** exactly as written.
 5. Document the results as you progress (orchestrator merges sub-agent outputs into `tmp/integration-tests-*.md` as appropriate).
 6. Report the results as per [Test Results Reporting](#test-results-reporting) at the end of the process.

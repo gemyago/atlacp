@@ -12,7 +12,7 @@ func (fn timeProviderFn) Now() time.Time {
 	return fn()
 }
 
-//nolint:ireturn // TimeProvider is the clock port; implementation stays a small function type.
+//nolint:ireturn // clock port; concrete type is unexported func wrapper
 func NewTimeProvider() TimeProvider {
 	return timeProviderFn(time.Now)
 }

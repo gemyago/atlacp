@@ -20,8 +20,8 @@ func TestBitbucketService(t *testing.T) {
 	// Helper function to create mock dependencies
 	makeMockDeps := func(t *testing.T) BitbucketServiceDeps {
 		return BitbucketServiceDeps{
-			Client:      NewMockbitbucketClient(t),
-			AuthFactory: NewMockbitbucketAuthFactory(t),
+			Client:      newMockbitbucketClient(t),
+			AuthFactory: newMockbitbucketAuthFactory(t),
 			RootLogger:  diag.RootTestLogger(),
 		}
 	}
@@ -30,8 +30,8 @@ func TestBitbucketService(t *testing.T) {
 		t.Run("successfully creates pull request with default account", func(t *testing.T) {
 			// Arrange
 			deps := makeMockDeps(t)
-			mockClient := mocks.GetMock[*MockbitbucketClient](t, deps.Client)
-			mockAuth := mocks.GetMock[*MockbitbucketAuthFactory](t, deps.AuthFactory)
+			mockClient := mocks.GetMock[*mockbitbucketClient](t, deps.Client)
+			mockAuth := mocks.GetMock[*mockbitbucketAuthFactory](t, deps.AuthFactory)
 			service := NewBitbucketService(deps)
 
 			// Create test data
@@ -44,7 +44,7 @@ func TestBitbucketService(t *testing.T) {
 			// Mock the auth factory to return our token provider
 			mockAuth.EXPECT().
 				getTokenProvider(mock.Anything, "").
-				Return(tokenProvider)
+				Return(tokenProviderFunc(tokenProvider.GetToken))
 
 			// Mock the client to return expected PR
 			mockClient.EXPECT().
@@ -95,8 +95,8 @@ func TestBitbucketService(t *testing.T) {
 		t.Run("successfully creates pull request with named account", func(t *testing.T) {
 			// Arrange
 			deps := makeMockDeps(t)
-			mockClient := mocks.GetMock[*MockbitbucketClient](t, deps.Client)
-			mockAuth := mocks.GetMock[*MockbitbucketAuthFactory](t, deps.AuthFactory)
+			mockClient := mocks.GetMock[*mockbitbucketClient](t, deps.Client)
+			mockAuth := mocks.GetMock[*mockbitbucketAuthFactory](t, deps.AuthFactory)
 			service := NewBitbucketService(deps)
 
 			// Create test data
@@ -110,7 +110,7 @@ func TestBitbucketService(t *testing.T) {
 			// Mock the auth factory to return our token provider
 			mockAuth.EXPECT().
 				getTokenProvider(mock.Anything, accountName).
-				Return(tokenProvider)
+				Return(tokenProviderFunc(tokenProvider.GetToken))
 
 			// Mock the client to return expected PR
 			mockClient.EXPECT().
@@ -140,8 +140,8 @@ func TestBitbucketService(t *testing.T) {
 		t.Run("successfully creates pull request with reviewers", func(t *testing.T) {
 			// Arrange
 			deps := makeMockDeps(t)
-			mockClient := mocks.GetMock[*MockbitbucketClient](t, deps.Client)
-			mockAuth := mocks.GetMock[*MockbitbucketAuthFactory](t, deps.AuthFactory)
+			mockClient := mocks.GetMock[*mockbitbucketClient](t, deps.Client)
+			mockAuth := mocks.GetMock[*mockbitbucketAuthFactory](t, deps.AuthFactory)
 			service := NewBitbucketService(deps)
 
 			// Generate random reviewers
@@ -159,7 +159,7 @@ func TestBitbucketService(t *testing.T) {
 			// Mock the auth factory
 			mockAuth.EXPECT().
 				getTokenProvider(mock.Anything, "").
-				Return(tokenProvider)
+				Return(tokenProviderFunc(tokenProvider.GetToken))
 
 			// Mock the client
 			mockClient.EXPECT().
@@ -191,8 +191,8 @@ func TestBitbucketService(t *testing.T) {
 		t.Run("successfully creates draft pull request", func(t *testing.T) {
 			// Arrange
 			deps := makeMockDeps(t)
-			mockClient := mocks.GetMock[*MockbitbucketClient](t, deps.Client)
-			mockAuth := mocks.GetMock[*MockbitbucketAuthFactory](t, deps.AuthFactory)
+			mockClient := mocks.GetMock[*mockbitbucketClient](t, deps.Client)
+			mockAuth := mocks.GetMock[*mockbitbucketAuthFactory](t, deps.AuthFactory)
 			service := NewBitbucketService(deps)
 
 			repoOwner := "owner-" + faker.Username()
@@ -205,7 +205,7 @@ func TestBitbucketService(t *testing.T) {
 			// Mock the auth factory
 			mockAuth.EXPECT().
 				getTokenProvider(mock.Anything, "").
-				Return(tokenProvider)
+				Return(tokenProviderFunc(tokenProvider.GetToken))
 
 			// Mock the client
 			mockClient.EXPECT().
@@ -296,8 +296,8 @@ func TestBitbucketService(t *testing.T) {
 		t.Run("fails when client returns error", func(t *testing.T) {
 			// Arrange
 			deps := makeMockDeps(t)
-			mockClient := mocks.GetMock[*MockbitbucketClient](t, deps.Client)
-			mockAuth := mocks.GetMock[*MockbitbucketAuthFactory](t, deps.AuthFactory)
+			mockClient := mocks.GetMock[*mockbitbucketClient](t, deps.Client)
+			mockAuth := mocks.GetMock[*mockbitbucketAuthFactory](t, deps.AuthFactory)
 			service := NewBitbucketService(deps)
 
 			repoOwner := "owner-" + faker.Username()
@@ -311,7 +311,7 @@ func TestBitbucketService(t *testing.T) {
 			// Mock auth factory
 			mockAuth.EXPECT().
 				getTokenProvider(mock.Anything, "").
-				Return(tokenProvider)
+				Return(tokenProviderFunc(tokenProvider.GetToken))
 
 			// Mock client error
 			mockClient.EXPECT().
@@ -338,8 +338,8 @@ func TestBitbucketService(t *testing.T) {
 		t.Run("successfully retrieves pull request with default account", func(t *testing.T) {
 			// Arrange
 			deps := makeMockDeps(t)
-			mockClient := mocks.GetMock[*MockbitbucketClient](t, deps.Client)
-			mockAuth := mocks.GetMock[*MockbitbucketAuthFactory](t, deps.AuthFactory)
+			mockClient := mocks.GetMock[*mockbitbucketClient](t, deps.Client)
+			mockAuth := mocks.GetMock[*mockbitbucketAuthFactory](t, deps.AuthFactory)
 			service := NewBitbucketService(deps)
 
 			// Create test data
@@ -353,7 +353,7 @@ func TestBitbucketService(t *testing.T) {
 			// Mock the auth factory to return our token provider
 			mockAuth.EXPECT().
 				getTokenProvider(mock.Anything, "").
-				Return(tokenProvider)
+				Return(tokenProviderFunc(tokenProvider.GetToken))
 
 			// Mock the client to return expected PR
 			mockClient.EXPECT().
@@ -381,8 +381,8 @@ func TestBitbucketService(t *testing.T) {
 		t.Run("successfully retrieves pull request with named account", func(t *testing.T) {
 			// Arrange
 			deps := makeMockDeps(t)
-			mockClient := mocks.GetMock[*MockbitbucketClient](t, deps.Client)
-			mockAuth := mocks.GetMock[*MockbitbucketAuthFactory](t, deps.AuthFactory)
+			mockClient := mocks.GetMock[*mockbitbucketClient](t, deps.Client)
+			mockAuth := mocks.GetMock[*mockbitbucketAuthFactory](t, deps.AuthFactory)
 			service := NewBitbucketService(deps)
 
 			// Create test data
@@ -397,7 +397,7 @@ func TestBitbucketService(t *testing.T) {
 			// Mock the auth factory to return our token provider
 			mockAuth.EXPECT().
 				getTokenProvider(mock.Anything, accountName).
-				Return(tokenProvider)
+				Return(tokenProviderFunc(tokenProvider.GetToken))
 
 			// Mock the client to return expected PR
 			mockClient.EXPECT().
@@ -476,8 +476,8 @@ func TestBitbucketService(t *testing.T) {
 		t.Run("handles client error", func(t *testing.T) {
 			// Arrange
 			deps := makeMockDeps(t)
-			mockClient := mocks.GetMock[*MockbitbucketClient](t, deps.Client)
-			mockAuth := mocks.GetMock[*MockbitbucketAuthFactory](t, deps.AuthFactory)
+			mockClient := mocks.GetMock[*mockbitbucketClient](t, deps.Client)
+			mockAuth := mocks.GetMock[*mockbitbucketAuthFactory](t, deps.AuthFactory)
 			service := NewBitbucketService(deps)
 
 			// Create test data
@@ -491,7 +491,7 @@ func TestBitbucketService(t *testing.T) {
 			// Mock the auth factory
 			mockAuth.EXPECT().
 				getTokenProvider(mock.Anything, "").
-				Return(tokenProvider)
+				Return(tokenProviderFunc(tokenProvider.GetToken))
 
 			// Mock the client to return an error
 			mockClient.EXPECT().
@@ -516,8 +516,8 @@ func TestBitbucketService(t *testing.T) {
 		t.Run("successfully updates pull request with default account", func(t *testing.T) {
 			// Arrange
 			deps := makeMockDeps(t)
-			mockClient := mocks.GetMock[*MockbitbucketClient](t, deps.Client)
-			mockAuth := mocks.GetMock[*MockbitbucketAuthFactory](t, deps.AuthFactory)
+			mockClient := mocks.GetMock[*mockbitbucketClient](t, deps.Client)
+			mockAuth := mocks.GetMock[*mockbitbucketAuthFactory](t, deps.AuthFactory)
 			service := NewBitbucketService(deps)
 
 			// Create test data
@@ -538,7 +538,7 @@ func TestBitbucketService(t *testing.T) {
 			// Mock the auth factory to return our token provider
 			mockAuth.EXPECT().
 				getTokenProvider(mock.Anything, "").
-				Return(tokenProvider)
+				Return(tokenProviderFunc(tokenProvider.GetToken))
 
 			// Mock the client to return expected PR
 			mockClient.EXPECT().
@@ -572,8 +572,8 @@ func TestBitbucketService(t *testing.T) {
 		t.Run("successfully updates pull request with title only", func(t *testing.T) {
 			// Arrange
 			deps := makeMockDeps(t)
-			mockClient := mocks.GetMock[*MockbitbucketClient](t, deps.Client)
-			mockAuth := mocks.GetMock[*MockbitbucketAuthFactory](t, deps.AuthFactory)
+			mockClient := mocks.GetMock[*mockbitbucketClient](t, deps.Client)
+			mockAuth := mocks.GetMock[*mockbitbucketAuthFactory](t, deps.AuthFactory)
 			service := NewBitbucketService(deps)
 
 			// Create test data
@@ -592,7 +592,7 @@ func TestBitbucketService(t *testing.T) {
 			// Mock the auth factory to return our token provider
 			mockAuth.EXPECT().
 				getTokenProvider(mock.Anything, "").
-				Return(tokenProvider)
+				Return(tokenProviderFunc(tokenProvider.GetToken))
 
 			// Mock the client to return expected PR
 			mockClient.EXPECT().
@@ -625,8 +625,8 @@ func TestBitbucketService(t *testing.T) {
 		t.Run("successfully updates pull request with named account", func(t *testing.T) {
 			// Arrange
 			deps := makeMockDeps(t)
-			mockClient := mocks.GetMock[*MockbitbucketClient](t, deps.Client)
-			mockAuth := mocks.GetMock[*MockbitbucketAuthFactory](t, deps.AuthFactory)
+			mockClient := mocks.GetMock[*mockbitbucketClient](t, deps.Client)
+			mockAuth := mocks.GetMock[*mockbitbucketAuthFactory](t, deps.AuthFactory)
 			service := NewBitbucketService(deps)
 
 			// Create test data
@@ -646,7 +646,7 @@ func TestBitbucketService(t *testing.T) {
 			// Mock the auth factory to return our token provider for the named account
 			mockAuth.EXPECT().
 				getTokenProvider(mock.Anything, accountName).
-				Return(tokenProvider)
+				Return(tokenProviderFunc(tokenProvider.GetToken))
 
 			// Mock the client to return expected PR
 			mockClient.EXPECT().
@@ -742,8 +742,8 @@ func TestBitbucketService(t *testing.T) {
 		t.Run("handles client error", func(t *testing.T) {
 			// Arrange
 			deps := makeMockDeps(t)
-			mockClient := mocks.GetMock[*MockbitbucketClient](t, deps.Client)
-			mockAuth := mocks.GetMock[*MockbitbucketAuthFactory](t, deps.AuthFactory)
+			mockClient := mocks.GetMock[*mockbitbucketClient](t, deps.Client)
+			mockAuth := mocks.GetMock[*mockbitbucketAuthFactory](t, deps.AuthFactory)
 			service := NewBitbucketService(deps)
 
 			// Create test data
@@ -758,7 +758,7 @@ func TestBitbucketService(t *testing.T) {
 			// Mock the auth factory
 			mockAuth.EXPECT().
 				getTokenProvider(mock.Anything, "").
-				Return(tokenProvider)
+				Return(tokenProviderFunc(tokenProvider.GetToken))
 
 			// Mock the client to return an error
 			mockClient.EXPECT().
@@ -782,8 +782,8 @@ func TestBitbucketService(t *testing.T) {
 		t.Run("successfully updates pull request draft status", func(t *testing.T) {
 			// Arrange
 			deps := makeMockDeps(t)
-			mockClient := mocks.GetMock[*MockbitbucketClient](t, deps.Client)
-			mockAuth := mocks.GetMock[*MockbitbucketAuthFactory](t, deps.AuthFactory)
+			mockClient := mocks.GetMock[*mockbitbucketClient](t, deps.Client)
+			mockAuth := mocks.GetMock[*mockbitbucketAuthFactory](t, deps.AuthFactory)
 			service := NewBitbucketService(deps)
 
 			// Create test data
@@ -800,7 +800,7 @@ func TestBitbucketService(t *testing.T) {
 			// Mock the auth factory to return our token provider
 			mockAuth.EXPECT().
 				getTokenProvider(mock.Anything, "").
-				Return(tokenProvider)
+				Return(tokenProviderFunc(tokenProvider.GetToken))
 
 			// Mock the client to return expected PR
 			mockClient.EXPECT().
@@ -835,8 +835,8 @@ func TestBitbucketService(t *testing.T) {
 		t.Run("successfully approves pull request with default account", func(t *testing.T) {
 			// Arrange
 			deps := makeMockDeps(t)
-			mockClient := mocks.GetMock[*MockbitbucketClient](t, deps.Client)
-			mockAuth := mocks.GetMock[*MockbitbucketAuthFactory](t, deps.AuthFactory)
+			mockClient := mocks.GetMock[*mockbitbucketClient](t, deps.Client)
+			mockAuth := mocks.GetMock[*mockbitbucketAuthFactory](t, deps.AuthFactory)
 			service := NewBitbucketService(deps)
 
 			// Create test data
@@ -850,7 +850,7 @@ func TestBitbucketService(t *testing.T) {
 			// Mock the auth factory to return our token provider
 			mockAuth.EXPECT().
 				getTokenProvider(mock.Anything, "").
-				Return(tokenProvider)
+				Return(tokenProviderFunc(tokenProvider.GetToken))
 
 			// Mock the client to return expected participant
 			mockClient.EXPECT().
@@ -878,8 +878,8 @@ func TestBitbucketService(t *testing.T) {
 		t.Run("successfully approves pull request with named account", func(t *testing.T) {
 			// Arrange
 			deps := makeMockDeps(t)
-			mockClient := mocks.GetMock[*MockbitbucketClient](t, deps.Client)
-			mockAuth := mocks.GetMock[*MockbitbucketAuthFactory](t, deps.AuthFactory)
+			mockClient := mocks.GetMock[*mockbitbucketClient](t, deps.Client)
+			mockAuth := mocks.GetMock[*mockbitbucketAuthFactory](t, deps.AuthFactory)
 			service := NewBitbucketService(deps)
 
 			// Create test data
@@ -894,7 +894,7 @@ func TestBitbucketService(t *testing.T) {
 			// Mock the auth factory to return our token provider for the named account
 			mockAuth.EXPECT().
 				getTokenProvider(mock.Anything, accountName).
-				Return(tokenProvider)
+				Return(tokenProviderFunc(tokenProvider.GetToken))
 
 			// Mock the client to return expected participant
 			mockClient.EXPECT().
@@ -973,8 +973,8 @@ func TestBitbucketService(t *testing.T) {
 		t.Run("handles client error", func(t *testing.T) {
 			// Arrange
 			deps := makeMockDeps(t)
-			mockClient := mocks.GetMock[*MockbitbucketClient](t, deps.Client)
-			mockAuth := mocks.GetMock[*MockbitbucketAuthFactory](t, deps.AuthFactory)
+			mockClient := mocks.GetMock[*mockbitbucketClient](t, deps.Client)
+			mockAuth := mocks.GetMock[*mockbitbucketAuthFactory](t, deps.AuthFactory)
 			service := NewBitbucketService(deps)
 
 			// Create test data
@@ -988,7 +988,7 @@ func TestBitbucketService(t *testing.T) {
 			// Mock the auth factory
 			mockAuth.EXPECT().
 				getTokenProvider(mock.Anything, "").
-				Return(tokenProvider)
+				Return(tokenProviderFunc(tokenProvider.GetToken))
 
 			// Mock the client to return an error
 			mockClient.EXPECT().
@@ -1013,8 +1013,8 @@ func TestBitbucketService(t *testing.T) {
 		t.Run("successfully merges pull request with default account", func(t *testing.T) {
 			// Arrange
 			deps := makeMockDeps(t)
-			mockClient := mocks.GetMock[*MockbitbucketClient](t, deps.Client)
-			mockAuth := mocks.GetMock[*MockbitbucketAuthFactory](t, deps.AuthFactory)
+			mockClient := mocks.GetMock[*mockbitbucketClient](t, deps.Client)
+			mockAuth := mocks.GetMock[*mockbitbucketAuthFactory](t, deps.AuthFactory)
 			service := NewBitbucketService(deps)
 
 			// Create test data
@@ -1035,7 +1035,7 @@ func TestBitbucketService(t *testing.T) {
 			// Mock the auth factory to return our token provider
 			mockAuth.EXPECT().
 				getTokenProvider(mock.Anything, "").
-				Return(tokenProvider)
+				Return(tokenProviderFunc(tokenProvider.GetToken))
 
 			// Mock the client to return expected PR
 			mockClient.EXPECT().
@@ -1072,8 +1072,8 @@ func TestBitbucketService(t *testing.T) {
 		t.Run("successfully merges pull request with named account", func(t *testing.T) {
 			// Arrange
 			deps := makeMockDeps(t)
-			mockClient := mocks.GetMock[*MockbitbucketClient](t, deps.Client)
-			mockAuth := mocks.GetMock[*MockbitbucketAuthFactory](t, deps.AuthFactory)
+			mockClient := mocks.GetMock[*mockbitbucketClient](t, deps.Client)
+			mockAuth := mocks.GetMock[*mockbitbucketAuthFactory](t, deps.AuthFactory)
 			service := NewBitbucketService(deps)
 
 			// Create test data
@@ -1091,7 +1091,7 @@ func TestBitbucketService(t *testing.T) {
 			// Mock the auth factory to return our token provider for the named account
 			mockAuth.EXPECT().
 				getTokenProvider(mock.Anything, accountName).
-				Return(tokenProvider)
+				Return(tokenProviderFunc(tokenProvider.GetToken))
 
 			// Mock the client to return expected PR
 			mockClient.EXPECT().
@@ -1125,8 +1125,8 @@ func TestBitbucketService(t *testing.T) {
 		t.Run("successfully uses fast-forward strategy", func(t *testing.T) {
 			// Arrange
 			deps := makeMockDeps(t)
-			mockClient := mocks.GetMock[*MockbitbucketClient](t, deps.Client)
-			mockAuth := mocks.GetMock[*MockbitbucketAuthFactory](t, deps.AuthFactory)
+			mockClient := mocks.GetMock[*mockbitbucketClient](t, deps.Client)
+			mockAuth := mocks.GetMock[*mockbitbucketAuthFactory](t, deps.AuthFactory)
 			service := NewBitbucketService(deps)
 
 			// Create test data
@@ -1143,7 +1143,7 @@ func TestBitbucketService(t *testing.T) {
 			// Mock the auth factory to return our token provider
 			mockAuth.EXPECT().
 				getTokenProvider(mock.Anything, "").
-				Return(tokenProvider)
+				Return(tokenProviderFunc(tokenProvider.GetToken))
 
 			// Mock the client to return expected PR
 			mockClient.EXPECT().
@@ -1171,8 +1171,8 @@ func TestBitbucketService(t *testing.T) {
 		t.Run("fails when client returns error", func(t *testing.T) {
 			// Arrange
 			deps := makeMockDeps(t)
-			mockClient := mocks.GetMock[*MockbitbucketClient](t, deps.Client)
-			mockAuth := mocks.GetMock[*MockbitbucketAuthFactory](t, deps.AuthFactory)
+			mockClient := mocks.GetMock[*mockbitbucketClient](t, deps.Client)
+			mockAuth := mocks.GetMock[*mockbitbucketAuthFactory](t, deps.AuthFactory)
 			service := NewBitbucketService(deps)
 
 			repoOwner := "owner-" + faker.Username()
@@ -1186,7 +1186,7 @@ func TestBitbucketService(t *testing.T) {
 			// Mock auth factory
 			mockAuth.EXPECT().
 				getTokenProvider(mock.Anything, "").
-				Return(tokenProvider)
+				Return(tokenProviderFunc(tokenProvider.GetToken))
 
 			// Mock client error
 			mockClient.EXPECT().
@@ -1271,8 +1271,8 @@ func TestBitbucketService(t *testing.T) {
 		t.Run("successfully lists tasks", func(t *testing.T) {
 			// Arrange
 			deps := makeMockDeps(t)
-			mockClient := mocks.GetMock[*MockbitbucketClient](t, deps.Client)
-			mockAuth := mocks.GetMock[*MockbitbucketAuthFactory](t, deps.AuthFactory)
+			mockClient := mocks.GetMock[*mockbitbucketClient](t, deps.Client)
+			mockAuth := mocks.GetMock[*mockbitbucketAuthFactory](t, deps.AuthFactory)
 			service := NewBitbucketService(deps)
 
 			// Create test data
@@ -1286,7 +1286,7 @@ func TestBitbucketService(t *testing.T) {
 			// Mock the auth factory to return our token provider
 			mockAuth.EXPECT().
 				getTokenProvider(mock.Anything, "").
-				Return(tokenProvider)
+				Return(tokenProviderFunc(tokenProvider.GetToken))
 
 			// Mock the client to return expected tasks
 			mockClient.EXPECT().
@@ -1323,8 +1323,8 @@ func TestBitbucketService(t *testing.T) {
 		t.Run("successfully lists tasks with query parameters", func(t *testing.T) {
 			// Arrange
 			deps := makeMockDeps(t)
-			mockClient := mocks.GetMock[*MockbitbucketClient](t, deps.Client)
-			mockAuth := mocks.GetMock[*MockbitbucketAuthFactory](t, deps.AuthFactory)
+			mockClient := mocks.GetMock[*mockbitbucketClient](t, deps.Client)
+			mockAuth := mocks.GetMock[*mockbitbucketAuthFactory](t, deps.AuthFactory)
 			service := NewBitbucketService(deps)
 
 			// Create test data
@@ -1341,7 +1341,7 @@ func TestBitbucketService(t *testing.T) {
 			// Mock the auth factory
 			mockAuth.EXPECT().
 				getTokenProvider(mock.Anything, "").
-				Return(tokenProvider)
+				Return(tokenProviderFunc(tokenProvider.GetToken))
 
 			// Mock the client
 			mockClient.EXPECT().
@@ -1375,8 +1375,8 @@ func TestBitbucketService(t *testing.T) {
 		t.Run("successfully lists tasks with custom account", func(t *testing.T) {
 			// Arrange
 			deps := makeMockDeps(t)
-			mockClient := mocks.GetMock[*MockbitbucketClient](t, deps.Client)
-			mockAuth := mocks.GetMock[*MockbitbucketAuthFactory](t, deps.AuthFactory)
+			mockClient := mocks.GetMock[*mockbitbucketClient](t, deps.Client)
+			mockAuth := mocks.GetMock[*mockbitbucketAuthFactory](t, deps.AuthFactory)
 			service := NewBitbucketService(deps)
 
 			// Create test data
@@ -1391,7 +1391,7 @@ func TestBitbucketService(t *testing.T) {
 			// Mock the auth factory
 			mockAuth.EXPECT().
 				getTokenProvider(mock.Anything, accountName).
-				Return(tokenProvider)
+				Return(tokenProviderFunc(tokenProvider.GetToken))
 
 			// Mock the client
 			mockClient.EXPECT().
@@ -1419,8 +1419,8 @@ func TestBitbucketService(t *testing.T) {
 		t.Run("fails when client returns error", func(t *testing.T) {
 			// Arrange
 			deps := makeMockDeps(t)
-			mockClient := mocks.GetMock[*MockbitbucketClient](t, deps.Client)
-			mockAuth := mocks.GetMock[*MockbitbucketAuthFactory](t, deps.AuthFactory)
+			mockClient := mocks.GetMock[*mockbitbucketClient](t, deps.Client)
+			mockAuth := mocks.GetMock[*mockbitbucketAuthFactory](t, deps.AuthFactory)
 			service := NewBitbucketService(deps)
 
 			expectedErr := errors.New("client error")
@@ -1430,7 +1430,7 @@ func TestBitbucketService(t *testing.T) {
 			// Mock the auth factory
 			mockAuth.EXPECT().
 				getTokenProvider(mock.Anything, "").
-				Return(tokenProvider)
+				Return(tokenProviderFunc(tokenProvider.GetToken))
 
 			// Mock the client to return error
 			mockClient.EXPECT().
@@ -1505,8 +1505,8 @@ func TestBitbucketService(t *testing.T) {
 		t.Run("successfully updates task content", func(t *testing.T) {
 			// Arrange
 			deps := makeMockDeps(t)
-			mockClient := mocks.GetMock[*MockbitbucketClient](t, deps.Client)
-			mockAuth := mocks.GetMock[*MockbitbucketAuthFactory](t, deps.AuthFactory)
+			mockClient := mocks.GetMock[*mockbitbucketClient](t, deps.Client)
+			mockAuth := mocks.GetMock[*mockbitbucketAuthFactory](t, deps.AuthFactory)
 			service := NewBitbucketService(deps)
 
 			// Create test data
@@ -1532,7 +1532,7 @@ func TestBitbucketService(t *testing.T) {
 			// Mock the auth factory to return our token provider
 			mockAuth.EXPECT().
 				getTokenProvider(mock.Anything, "").
-				Return(tokenProvider)
+				Return(tokenProviderFunc(tokenProvider.GetToken))
 
 			// Mock the client to return expected task
 			mockClient.EXPECT().
@@ -1569,8 +1569,8 @@ func TestBitbucketService(t *testing.T) {
 		t.Run("successfully updates task state", func(t *testing.T) {
 			// Arrange
 			deps := makeMockDeps(t)
-			mockClient := mocks.GetMock[*MockbitbucketClient](t, deps.Client)
-			mockAuth := mocks.GetMock[*MockbitbucketAuthFactory](t, deps.AuthFactory)
+			mockClient := mocks.GetMock[*mockbitbucketClient](t, deps.Client)
+			mockAuth := mocks.GetMock[*mockbitbucketAuthFactory](t, deps.AuthFactory)
 			service := NewBitbucketService(deps)
 
 			// Create test data
@@ -1596,7 +1596,7 @@ func TestBitbucketService(t *testing.T) {
 			// Mock the auth factory
 			mockAuth.EXPECT().
 				getTokenProvider(mock.Anything, "").
-				Return(tokenProvider)
+				Return(tokenProviderFunc(tokenProvider.GetToken))
 
 			// Mock the client
 			mockClient.EXPECT().
@@ -1628,8 +1628,8 @@ func TestBitbucketService(t *testing.T) {
 		t.Run("successfully updates task with custom account", func(t *testing.T) {
 			// Arrange
 			deps := makeMockDeps(t)
-			mockClient := mocks.GetMock[*MockbitbucketClient](t, deps.Client)
-			mockAuth := mocks.GetMock[*MockbitbucketAuthFactory](t, deps.AuthFactory)
+			mockClient := mocks.GetMock[*mockbitbucketClient](t, deps.Client)
+			mockAuth := mocks.GetMock[*mockbitbucketAuthFactory](t, deps.AuthFactory)
 			service := NewBitbucketService(deps)
 
 			// Create test data
@@ -1657,7 +1657,7 @@ func TestBitbucketService(t *testing.T) {
 			// Mock the auth factory to use custom account
 			mockAuth.EXPECT().
 				getTokenProvider(mock.Anything, accountName).
-				Return(tokenProvider)
+				Return(tokenProviderFunc(tokenProvider.GetToken))
 
 			// Mock the client
 			mockClient.EXPECT().
@@ -1688,8 +1688,8 @@ func TestBitbucketService(t *testing.T) {
 		t.Run("fails when client returns error", func(t *testing.T) {
 			// Arrange
 			deps := makeMockDeps(t)
-			mockClient := mocks.GetMock[*MockbitbucketClient](t, deps.Client)
-			mockAuth := mocks.GetMock[*MockbitbucketAuthFactory](t, deps.AuthFactory)
+			mockClient := mocks.GetMock[*mockbitbucketClient](t, deps.Client)
+			mockAuth := mocks.GetMock[*mockbitbucketAuthFactory](t, deps.AuthFactory)
 			service := NewBitbucketService(deps)
 
 			expectedErr := errors.New("client error")
@@ -1699,7 +1699,7 @@ func TestBitbucketService(t *testing.T) {
 			// Mock the auth factory
 			mockAuth.EXPECT().
 				getTokenProvider(mock.Anything, "").
-				Return(tokenProvider)
+				Return(tokenProviderFunc(tokenProvider.GetToken))
 
 			// Mock the client to return error
 			mockClient.EXPECT().
@@ -1794,8 +1794,8 @@ func TestBitbucketService(t *testing.T) {
 		t.Run("successfully creates task with default account", func(t *testing.T) {
 			// Arrange
 			deps := makeMockDeps(t)
-			mockClient := mocks.GetMock[*MockbitbucketClient](t, deps.Client)
-			mockAuth := mocks.GetMock[*MockbitbucketAuthFactory](t, deps.AuthFactory)
+			mockClient := mocks.GetMock[*mockbitbucketClient](t, deps.Client)
+			mockAuth := mocks.GetMock[*mockbitbucketAuthFactory](t, deps.AuthFactory)
 			service := NewBitbucketService(deps)
 
 			// Create test data
@@ -1820,7 +1820,7 @@ func TestBitbucketService(t *testing.T) {
 			// Mock the auth factory to return our token provider
 			mockAuth.EXPECT().
 				getTokenProvider(mock.Anything, "").
-				Return(tokenProvider)
+				Return(tokenProviderFunc(tokenProvider.GetToken))
 
 			// Mock the client to return expected task
 			mockClient.EXPECT().
@@ -1855,8 +1855,8 @@ func TestBitbucketService(t *testing.T) {
 		t.Run("successfully creates task with comment ID", func(t *testing.T) {
 			// Arrange
 			deps := makeMockDeps(t)
-			mockClient := mocks.GetMock[*MockbitbucketClient](t, deps.Client)
-			mockAuth := mocks.GetMock[*MockbitbucketAuthFactory](t, deps.AuthFactory)
+			mockClient := mocks.GetMock[*mockbitbucketClient](t, deps.Client)
+			mockAuth := mocks.GetMock[*mockbitbucketAuthFactory](t, deps.AuthFactory)
 			service := NewBitbucketService(deps)
 
 			// Create test data
@@ -1882,7 +1882,7 @@ func TestBitbucketService(t *testing.T) {
 			// Mock the auth factory
 			mockAuth.EXPECT().
 				getTokenProvider(mock.Anything, "").
-				Return(tokenProvider)
+				Return(tokenProviderFunc(tokenProvider.GetToken))
 
 			// Mock the client
 			mockClient.EXPECT().
@@ -1917,8 +1917,8 @@ func TestBitbucketService(t *testing.T) {
 		t.Run("successfully creates task with custom account", func(t *testing.T) {
 			// Arrange
 			deps := makeMockDeps(t)
-			mockClient := mocks.GetMock[*MockbitbucketClient](t, deps.Client)
-			mockAuth := mocks.GetMock[*MockbitbucketAuthFactory](t, deps.AuthFactory)
+			mockClient := mocks.GetMock[*mockbitbucketClient](t, deps.Client)
+			mockAuth := mocks.GetMock[*mockbitbucketAuthFactory](t, deps.AuthFactory)
 			service := NewBitbucketService(deps)
 
 			// Create test data
@@ -1944,7 +1944,7 @@ func TestBitbucketService(t *testing.T) {
 			// Mock the auth factory
 			mockAuth.EXPECT().
 				getTokenProvider(mock.Anything, accountName).
-				Return(tokenProvider)
+				Return(tokenProviderFunc(tokenProvider.GetToken))
 
 			// Mock the client
 			mockClient.EXPECT().
@@ -1968,8 +1968,8 @@ func TestBitbucketService(t *testing.T) {
 		t.Run("fails when client returns error", func(t *testing.T) {
 			// Arrange
 			deps := makeMockDeps(t)
-			mockClient := mocks.GetMock[*MockbitbucketClient](t, deps.Client)
-			mockAuth := mocks.GetMock[*MockbitbucketAuthFactory](t, deps.AuthFactory)
+			mockClient := mocks.GetMock[*mockbitbucketClient](t, deps.Client)
+			mockAuth := mocks.GetMock[*mockbitbucketAuthFactory](t, deps.AuthFactory)
 			service := NewBitbucketService(deps)
 
 			expectedErr := errors.New("client error")
@@ -1979,7 +1979,7 @@ func TestBitbucketService(t *testing.T) {
 			// Mock the auth factory
 			mockAuth.EXPECT().
 				getTokenProvider(mock.Anything, "").
-				Return(tokenProvider)
+				Return(tokenProviderFunc(tokenProvider.GetToken))
 
 			// Mock the client to return error
 			mockClient.EXPECT().
@@ -2063,8 +2063,8 @@ func TestBitbucketService(t *testing.T) {
 		t.Run("successfully retrieves diffstat for a pull request", func(t *testing.T) {
 			// Arrange
 			deps := makeMockDeps(t)
-			mockClient := mocks.GetMock[*MockbitbucketClient](t, deps.Client)
-			mockAuth := mocks.GetMock[*MockbitbucketAuthFactory](t, deps.AuthFactory)
+			mockClient := mocks.GetMock[*mockbitbucketClient](t, deps.Client)
+			mockAuth := mocks.GetMock[*mockbitbucketAuthFactory](t, deps.AuthFactory)
 			service := NewBitbucketService(deps)
 
 			accountName := "account-" + faker.Username()
@@ -2091,7 +2091,7 @@ func TestBitbucketService(t *testing.T) {
 			// Mock the auth factory to return our token provider
 			mockAuth.EXPECT().
 				getTokenProvider(mock.Anything, accountName).
-				Return(tokenProvider)
+				Return(tokenProviderFunc(tokenProvider.GetToken))
 
 			// Mock the client to return expected diffstat
 			mockClient.EXPECT().
@@ -2134,8 +2134,8 @@ func TestBitbucketService(t *testing.T) {
 		t.Run("successfully retrieves diff for a pull request", func(t *testing.T) {
 			// Arrange
 			deps := makeMockDeps(t)
-			mockClient := mocks.GetMock[*MockbitbucketClient](t, deps.Client)
-			mockAuth := mocks.GetMock[*MockbitbucketAuthFactory](t, deps.AuthFactory)
+			mockClient := mocks.GetMock[*mockbitbucketClient](t, deps.Client)
+			mockAuth := mocks.GetMock[*mockbitbucketAuthFactory](t, deps.AuthFactory)
 			service := NewBitbucketService(deps)
 
 			accountName := "account-" + faker.Username()
@@ -2149,7 +2149,7 @@ func TestBitbucketService(t *testing.T) {
 			// Mock the auth factory to return our token provider
 			mockAuth.EXPECT().
 				getTokenProvider(mock.Anything, accountName).
-				Return(tokenProvider)
+				Return(tokenProviderFunc(tokenProvider.GetToken))
 
 			// Mock the client to return expected diff
 			mockClient.EXPECT().
@@ -2227,8 +2227,8 @@ func TestBitbucketService(t *testing.T) {
 
 		t.Run("passes file paths and context lines to client", func(t *testing.T) {
 			deps := makeMockDeps(t)
-			mockClient := mocks.GetMock[*MockbitbucketClient](t, deps.Client)
-			mockAuth := mocks.GetMock[*MockbitbucketAuthFactory](t, deps.AuthFactory)
+			mockClient := mocks.GetMock[*mockbitbucketClient](t, deps.Client)
+			mockAuth := mocks.GetMock[*mockbitbucketAuthFactory](t, deps.AuthFactory)
 			service := NewBitbucketService(deps)
 
 			accountName := "account-" + faker.Username()
@@ -2243,7 +2243,7 @@ func TestBitbucketService(t *testing.T) {
 
 			mockAuth.EXPECT().
 				getTokenProvider(mock.Anything, accountName).
-				Return(tokenProvider)
+				Return(tokenProviderFunc(tokenProvider.GetToken))
 
 			mockClient.EXPECT().
 				GetPRDiff(
@@ -2277,8 +2277,8 @@ func TestBitbucketService(t *testing.T) {
 		t.Run("successfully retrieves file content", func(t *testing.T) {
 			// Arrange
 			deps := makeMockDeps(t)
-			mockClient := mocks.GetMock[*MockbitbucketClient](t, deps.Client)
-			mockAuth := mocks.GetMock[*MockbitbucketAuthFactory](t, deps.AuthFactory)
+			mockClient := mocks.GetMock[*mockbitbucketClient](t, deps.Client)
+			mockAuth := mocks.GetMock[*mockbitbucketAuthFactory](t, deps.AuthFactory)
 			service := NewBitbucketService(deps)
 
 			accountName := "account-" + faker.Username()
@@ -2302,7 +2302,7 @@ func TestBitbucketService(t *testing.T) {
 			// Mock the auth factory to return our token provider
 			mockAuth.EXPECT().
 				getTokenProvider(mock.Anything, accountName).
-				Return(tokenProvider)
+				Return(tokenProviderFunc(tokenProvider.GetToken))
 
 			// Mock the client to return expected file content
 			mockClient.EXPECT().
@@ -2341,8 +2341,8 @@ func TestBitbucketService(t *testing.T) {
 		t.Run("successfully adds a general comment to a pull request", func(t *testing.T) {
 			// Arrange
 			deps := makeMockDeps(t)
-			mockClient := mocks.GetMock[*MockbitbucketClient](t, deps.Client)
-			mockAuth := mocks.GetMock[*MockbitbucketAuthFactory](t, deps.AuthFactory)
+			mockClient := mocks.GetMock[*mockbitbucketClient](t, deps.Client)
+			mockAuth := mocks.GetMock[*mockbitbucketAuthFactory](t, deps.AuthFactory)
 			service := NewBitbucketService(deps)
 
 			accountName := "account-" + faker.Username()
@@ -2358,13 +2358,13 @@ func TestBitbucketService(t *testing.T) {
 			// Mock the auth factory to return our token provider
 			mockAuth.EXPECT().
 				getTokenProvider(mock.Anything, accountName).
-				Return(tokenProvider)
+				Return(tokenProviderFunc(tokenProvider.GetToken))
 
 			// Mock the client to return expected comment ID and status
 			mockClient.EXPECT().
 				AddPRComment(
 					mock.Anything,
-					tokenProvider,
+					mock.Anything,
 					mock.MatchedBy(func(params bitbucket.AddPRCommentParams) bool {
 						assert.Equal(t, repoOwner, params.Workspace)
 						assert.Equal(t, repoName, params.RepoSlug)
@@ -2393,8 +2393,8 @@ func TestBitbucketService(t *testing.T) {
 		t.Run("successfully adds a pending PR comment", func(t *testing.T) {
 			// Arrange
 			deps := makeMockDeps(t)
-			mockClient := mocks.GetMock[*MockbitbucketClient](t, deps.Client)
-			mockAuth := mocks.GetMock[*MockbitbucketAuthFactory](t, deps.AuthFactory)
+			mockClient := mocks.GetMock[*mockbitbucketClient](t, deps.Client)
+			mockAuth := mocks.GetMock[*mockbitbucketAuthFactory](t, deps.AuthFactory)
 			service := NewBitbucketService(deps)
 
 			// Create test data
@@ -2411,7 +2411,7 @@ func TestBitbucketService(t *testing.T) {
 			// Mock the auth factory to return our token provider
 			mockAuth.EXPECT().
 				getTokenProvider(mock.Anything, "").
-				Return(tokenProvider)
+				Return(tokenProviderFunc(tokenProvider.GetToken))
 
 			// Mock the client to return expected comment ID and status
 			mockClient.EXPECT().
@@ -2505,8 +2505,8 @@ func TestBitbucketService(t *testing.T) {
 	t.Run("RequestPRChanges", func(t *testing.T) {
 		t.Run("successfully requests PR changes with default account", func(t *testing.T) {
 			deps := makeMockDeps(t)
-			mockClient := mocks.GetMock[*MockbitbucketClient](t, deps.Client)
-			mockAuth := mocks.GetMock[*MockbitbucketAuthFactory](t, deps.AuthFactory)
+			mockClient := mocks.GetMock[*mockbitbucketClient](t, deps.Client)
+			mockAuth := mocks.GetMock[*mockbitbucketAuthFactory](t, deps.AuthFactory)
 			service := NewBitbucketService(deps)
 
 			repoOwner := "owner-" + faker.Username()
@@ -2519,12 +2519,12 @@ func TestBitbucketService(t *testing.T) {
 
 			mockAuth.EXPECT().
 				getTokenProvider(mock.Anything, "").
-				Return(tokenProvider)
+				Return(tokenProviderFunc(tokenProvider.GetToken))
 
 			mockClient.EXPECT().
 				RequestPRChanges(
 					mock.Anything,
-					tokenProvider,
+					mock.Anything,
 					mock.MatchedBy(func(params bitbucket.RequestPRChangesParams) bool {
 						assert.Equal(t, repoOwner, params.Workspace)
 						assert.Equal(t, repoName, params.RepoSlug)
@@ -2594,8 +2594,8 @@ func TestBitbucketService(t *testing.T) {
 		t.Run("successfully lists PR comments with default account", func(t *testing.T) {
 			// Arrange
 			deps := makeMockDeps(t)
-			mockClient := mocks.GetMock[*MockbitbucketClient](t, deps.Client)
-			mockAuth := mocks.GetMock[*MockbitbucketAuthFactory](t, deps.AuthFactory)
+			mockClient := mocks.GetMock[*mockbitbucketClient](t, deps.Client)
+			mockAuth := mocks.GetMock[*mockbitbucketAuthFactory](t, deps.AuthFactory)
 			service := NewBitbucketService(deps)
 
 			// Create test data
@@ -2627,11 +2627,11 @@ func TestBitbucketService(t *testing.T) {
 			// Mock the auth factory to return our token provider
 			mockAuth.EXPECT().
 				getTokenProvider(mock.Anything, "").
-				Return(tokenProvider)
+				Return(tokenProviderFunc(tokenProvider.GetToken))
 
 			// Mock the client to return expected comments - default PageLen of 100 is applied
 			mockClient.EXPECT().
-				ListPRComments(mock.Anything, tokenProvider, mock.MatchedBy(func(params bitbucket.ListPRCommentsParams) bool {
+				ListPRComments(mock.Anything, mock.Anything, mock.MatchedBy(func(params bitbucket.ListPRCommentsParams) bool {
 					assert.Equal(t, repoOwner, params.Workspace)
 					assert.Equal(t, repoName, params.RepoSlug)
 					assert.Equal(t, prID, params.PRID)
@@ -2656,8 +2656,8 @@ func TestBitbucketService(t *testing.T) {
 		t.Run("passes pagination params through to client", func(t *testing.T) {
 			// Arrange
 			deps := makeMockDeps(t)
-			mockClient := mocks.GetMock[*MockbitbucketClient](t, deps.Client)
-			mockAuth := mocks.GetMock[*MockbitbucketAuthFactory](t, deps.AuthFactory)
+			mockClient := mocks.GetMock[*mockbitbucketClient](t, deps.Client)
+			mockAuth := mocks.GetMock[*mockbitbucketAuthFactory](t, deps.AuthFactory)
 			service := NewBitbucketService(deps)
 
 			repoOwner := "owner-" + faker.Username()
@@ -2683,10 +2683,10 @@ func TestBitbucketService(t *testing.T) {
 
 			mockAuth.EXPECT().
 				getTokenProvider(mock.Anything, "").
-				Return(tokenProvider)
+				Return(tokenProviderFunc(tokenProvider.GetToken))
 
 			mockClient.EXPECT().
-				ListPRComments(mock.Anything, tokenProvider, mock.MatchedBy(func(params bitbucket.ListPRCommentsParams) bool {
+				ListPRComments(mock.Anything, mock.Anything, mock.MatchedBy(func(params bitbucket.ListPRCommentsParams) bool {
 					assert.Equal(t, repoOwner, params.Workspace)
 					assert.Equal(t, repoName, params.RepoSlug)
 					assert.Equal(t, int64(prID), params.PRID)
@@ -2713,8 +2713,8 @@ func TestBitbucketService(t *testing.T) {
 		t.Run("applies default PageLen of 100 when caller specifies 0", func(t *testing.T) {
 			// Arrange
 			deps := makeMockDeps(t)
-			mockClient := mocks.GetMock[*MockbitbucketClient](t, deps.Client)
-			mockAuth := mocks.GetMock[*MockbitbucketAuthFactory](t, deps.AuthFactory)
+			mockClient := mocks.GetMock[*mockbitbucketClient](t, deps.Client)
+			mockAuth := mocks.GetMock[*mockbitbucketAuthFactory](t, deps.AuthFactory)
 			service := NewBitbucketService(deps)
 
 			repoOwner := "owner-" + faker.Username()
@@ -2738,10 +2738,10 @@ func TestBitbucketService(t *testing.T) {
 
 			mockAuth.EXPECT().
 				getTokenProvider(mock.Anything, "").
-				Return(tokenProvider)
+				Return(tokenProviderFunc(tokenProvider.GetToken))
 
 			mockClient.EXPECT().
-				ListPRComments(mock.Anything, tokenProvider, mock.MatchedBy(func(params bitbucket.ListPRCommentsParams) bool {
+				ListPRComments(mock.Anything, mock.Anything, mock.MatchedBy(func(params bitbucket.ListPRCommentsParams) bool {
 					// Default PageLen of 100 must be applied when caller passes 0
 					assert.Equal(t, 100, params.PageLen)
 					return true
@@ -2763,8 +2763,8 @@ func TestBitbucketService(t *testing.T) {
 
 		t.Run("null resolution maps to not resolved", func(t *testing.T) {
 			deps := makeMockDeps(t)
-			mockClient := mocks.GetMock[*MockbitbucketClient](t, deps.Client)
-			mockAuth := mocks.GetMock[*MockbitbucketAuthFactory](t, deps.AuthFactory)
+			mockClient := mocks.GetMock[*mockbitbucketClient](t, deps.Client)
+			mockAuth := mocks.GetMock[*mockbitbucketAuthFactory](t, deps.AuthFactory)
 			service := NewBitbucketService(deps)
 
 			repoOwner := "owner-" + faker.Username()
@@ -2782,9 +2782,9 @@ func TestBitbucketService(t *testing.T) {
 			}
 			mockAuth.EXPECT().
 				getTokenProvider(mock.Anything, "").
-				Return(tokenProvider)
+				Return(tokenProviderFunc(tokenProvider.GetToken))
 			mockClient.EXPECT().
-				ListPRComments(mock.Anything, tokenProvider, mock.Anything).
+				ListPRComments(mock.Anything, mock.Anything, mock.Anything).
 				Return(&bitbucket.ListPRCommentsResponse{Values: []bitbucket.PRComment{listComment}}, nil)
 
 			result, err := service.ListPRComments(t.Context(), BitbucketListPRCommentsParams{
@@ -2847,8 +2847,8 @@ func TestBitbucketService(t *testing.T) {
 	t.Run("ResolvePRComment", func(t *testing.T) {
 		t.Run("calls client with validated params", func(t *testing.T) {
 			deps := makeMockDeps(t)
-			mockClient := mocks.GetMock[*MockbitbucketClient](t, deps.Client)
-			mockAuth := mocks.GetMock[*MockbitbucketAuthFactory](t, deps.AuthFactory)
+			mockClient := mocks.GetMock[*mockbitbucketClient](t, deps.Client)
+			mockAuth := mocks.GetMock[*mockbitbucketAuthFactory](t, deps.AuthFactory)
 			service := NewBitbucketService(deps)
 			repoOwner := "owner-" + faker.Username()
 			repoName := "repo-" + faker.Username()
@@ -2856,10 +2856,10 @@ func TestBitbucketService(t *testing.T) {
 			commentID := 1 + faker.RandomUnixTime()%9999
 			token := "token-" + faker.UUIDHyphenated()
 			tokenProvider := newStaticTokenProvider(token)
-			mockAuth.EXPECT().getTokenProvider(mock.Anything, "").Return(tokenProvider)
+			mockAuth.EXPECT().getTokenProvider(mock.Anything, "").Return(tokenProviderFunc(tokenProvider.GetToken))
 			want := &bitbucket.CommentResolution{Type: "pullrequest_comment"}
 			mockClient.EXPECT().
-				ResolvePRComment(mock.Anything, tokenProvider, mock.MatchedBy(func(p bitbucket.ResolvePRCommentParams) bool {
+				ResolvePRComment(mock.Anything, mock.Anything, mock.MatchedBy(func(p bitbucket.ResolvePRCommentParams) bool {
 					return p.Workspace == repoOwner && p.RepoSlug == repoName &&
 						p.PRID == int64(pullRequestID) && p.CommentID == commentID
 				})).

@@ -11,6 +11,7 @@ func Register(container *dig.Container) error {
 		NewEchoService,
 		NewBitbucketService,
 		newBitbucketAuthFactory,
+		di.ProvideAs[*bitbucketAuthFactoryImpl, bitbucketAuthFactory],
 		di.ProvideAs[*bitbucket.Client, bitbucketClient],
 	)
 }

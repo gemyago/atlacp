@@ -22,6 +22,16 @@ func TestMain(t *testing.T) {
 			})
 			require.NoError(t, rootCmd.Execute())
 		})
+		t.Run("should initialize app with default accounts file path when flag omitted", func(t *testing.T) {
+			rootCmd := setupCommands()
+			rootCmd.SetArgs([]string{
+				"http",
+				"--noop",
+				"--logs-file",
+				"../../test.log",
+			})
+			require.NoError(t, rootCmd.Execute())
+		})
 		t.Run("should fail if bad log level", func(t *testing.T) {
 			rootCmd := setupCommands()
 			rootCmd.SilenceErrors = true
@@ -66,6 +76,16 @@ func TestMain(t *testing.T) {
 				"../../test.log",
 				"--atlassian-accounts-file",
 				"../../quick-start/atlassian-accounts-stub.json",
+			})
+			require.NoError(t, rootCmd.Execute())
+		})
+		t.Run("should initialize app with default accounts file path when flag omitted", func(t *testing.T) {
+			rootCmd := setupCommands()
+			rootCmd.SetArgs([]string{
+				"stdio",
+				"--noop",
+				"--logs-file",
+				"../../test.log",
 			})
 			require.NoError(t, rootCmd.Execute())
 		})

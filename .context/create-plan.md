@@ -9,7 +9,7 @@ To guide an AI assistant in creating a detailed plan of the work in Markdown for
 1.  **Receive Initial Prompt:** The user provides a brief description or request for a new feature or functionality, optionally referencing existing document
 2.  **Do Research:** Before creating the plan, the AI *must* do the research of the codebase to gather sufficient detail. The goal is to understand the "what", "why" and most important **how** of the requested work.
 3.  **Generate Plan:** Based on the initial prompt and the research, generate the plan using the structure outlined below.
-4.  **Save the Plan:** Save the generated document as `plan-[feature-name].md` inside the `/doc/implementation/[feature-name]` directory (relevant to the module).
+4.  **Save the Plan:** Save the generated document as `plan-[feature-name].md` inside the `/docs/implementation/[feature-name]` directory (relevant to the module).
 
 ## Research Areas (Examples)
 
@@ -23,7 +23,7 @@ The AI should adapt its research areas based on the prompt, but here are some co
 *   **Design/UI:** "Are there any existing design mockups or UI guidelines to follow?" or "Can you describe the desired look and feel?"
 *   **Edge Cases:** "Are there any potential edge cases or error conditions we should consider?"
 
-AI should do it's best to understand what needs to be built. Any small uncertanties should be listed in the resulting plan document. AI should **only** ask clarifying questions if the initial prompt is hightly ambiguous and the AI has failed to understand the final outcome.
+AI should do it's best to understand what needs to be built. Any small uncertainties should be listed in the resulting plan document. AI should **only** ask clarifying questions if the initial prompt is highly ambiguous and the AI has failed to understand the final outcome.
 
 ## Plan Structure
 
@@ -33,11 +33,13 @@ The generated Plan may include the following sections when applicable:
 3. **High Level Architecture:** Describe the high level architecture of the feature, list components involved.
 4. **Detailed Architecture:** For each component involved, describe how it will work and structured, which files may need to be created or updated
 5. **Key Architectural Decisions:** List key architectural decisions that were made.
-6. **Uncertanties:** List any uncertanties (if present) or areas needing further clarification.
-8. **Releted Files** List all files related to the change. If new files needs to be created - mention them as well.
+6. **Uncertainties:** List any uncertainties (if present) or areas needing further clarification.
+8. **Related Files** List all files related to the change. If new files needs to be created - mention them as well.
 7. **Task List** Detailed numbered list of tasks (steps) that needs to be taken to implement the required plan. Please note that TDD approach must be followed to implement the desired change (mention this in the task list). Please note that each task should be self contained. Module specific task completion protocol **must** be followed.
 
 ### Example task format
+
+Note: application areas may have specific completion protocol or task format, follow it if provided. Otherwise use what is sensible or reasonable in your opinion.
 
 ```markdown
 **Task X.X: Implement user update handling**
@@ -47,34 +49,36 @@ The generated Plan may include the following sections when applicable:
   - expected user is written to the database
   - invalid user ID results in error
   - conflicting user email results in error
-- Run affected tests: `go test -v ./<package> --run <test pattern>`
+- Run affected tests
   - Verify failure is expectation (e.g expected not to equal, exists e.t.c).
   - Compilation errors are **not acceptable** - missing stubs should be added, test should be retried.
 - Implement `updateUser(_ update: UserUpdate)` logic
-- Run affected tests: `go test -v ./<package> --run <test pattern>`
+- Run affected tests
   - Verify all tests pass
 - Write summary to `docs/implementation/plan-<plan-slug>/summary-task-x.x.md`
-- All checks from completion protocol must be passed
+- Success criteria: As per completion protocol
 ```
 
 Important notes:
 - Tests for new types/new fields are not required, only logic needs tests
-- Any task should leave the codebase in builable state as per module specific task completion protocol.
+- Any task should leave the codebase in green state as per module specific task completion protocol.
 
 Last task must always be the following:
 ```markdown
-**Task X.X: Compress implementation summaries**
+**Compress implementation summaries**
 - Follow [compress-implementation-summaries.md](/.context/compress-implementation-summaries.md) to compress the implementation summaries.
 ```
 
+> **Important:** Do NOT use a numbered `Task X.X:` heading for this step. It must be a non-numbered trailer so the orchestrator does not treat it as an atomic task and does not produce a `completed-task-*.md` summary file for it.
+
 ## Target Audience
 
-Assume the primary reader of the Plan is a **junior developer**. Therefore, requirements should be explicit, unambiguous, and avoid jargon where possible. Provide enough detail for them to understand the feature's purpose and core logic.
+Assume the primary reader of the Plan is a **junior LLM model**. Therefore, requirements should be explicit, unambiguous. Provide enough detail for them to understand the feature's purpose and core logic.
 
 ## Output
 
 *   **Format:** Markdown (`.md`)
-*   **Location:** `/doc/implementation/[feature-name]` (relevant to the module)
+*   **Location:** `docs/implementation/[feature-name]/` under the module root or global docs folder
 *   **Filename:** `plan-[feature-name].md`
 
 ## Final instructions

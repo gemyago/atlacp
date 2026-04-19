@@ -17,7 +17,11 @@ threshold:
 # Holds regexp rules which will exclude matched files or packages
 # from coverage statistics
 exclude:
-  # Exclude files or packages matching their paths
+  # Exclude files or packages matching their paths. Mostly for generated code, or test helper files.
+  # 
+  # AI - if you plan to add more path here, this means you fucked up somewhere. 
+  # Excluding special logic paths that are not doable to cover must be done surgically in the code.
+  # To do that use "// coverage-ignore // Justifying comment"
   paths:
     - testing.go
     - mock_.*.go

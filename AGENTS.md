@@ -30,6 +30,11 @@ AI must **always** use `--noop` flag to dry-run startup checks without external 
 
 - MCP server (stdio): `go run ./cmd/mcp stdio --env local --noop`
 - MCP server (HTTP): `go run ./cmd/mcp http --env local --noop`
+- Bitbucket CLI (`bbmd`): `go run ./cmd/bbmd --help`
+- `bbmd` list accounts (JSON): `go run ./cmd/bbmd auth status`
+- `bbmd` read PR (JSON): `go run ./cmd/bbmd pr read --repo-owner <owner> --repo-name <repo> --pr-id <id>`
+
+`--noop` on `bbmd` wires dependencies and skips real Bitbucket/account calls (dry-run / startup checks).
 
 ## Docker Images (multi-platform)
 - Build local images (load): `make -C build docker/.local-images`

@@ -1,23 +1,21 @@
-dir: "{{.InterfaceDirRelative}}"
-inpackage: true
-filename: "mock_{{.InterfaceNameSnake}}.go"
-mock-build-tags: "!release"
-disable-version-string: true
+dir: '{{.InterfaceDirRelative}}'
+template: testify
+template-data:
+  mock-build-tags: '!release'
+  unroll-variadic: true
 packages:
+  github.com/gemyago/atlacp/internal/api/mcp/controllers:
+    interfaces:
+      bitbucketService:
+  github.com/gemyago/atlacp/internal/app:
+    interfaces:
+      AtlassianAccountsRepository:
+      bitbucketAuthFactory:
+      bitbucketClient:
   log/slog:
     interfaces:
       Handler:
         config:
-          inpackage: false
-          outpkg: 'diag'
-          dir: 'internal/diag'
-          filename: "mock_slog_handler.go"
-          mockname: MockSlogHandler
-  github.com/gemyago/atlacp/internal/app:
-    interfaces:
-      bitbucketAuthFactory:
-      bitbucketClient:
-      AtlassianAccountsRepository:
-  github.com/gemyago/atlacp/internal/api/mcp/controllers:
-    interfaces:
-      bitbucketService:
+          dir: internal/diag
+          structname: MockSlogHandler
+          pkgname: diag
