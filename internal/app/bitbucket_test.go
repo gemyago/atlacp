@@ -44,7 +44,7 @@ func TestBitbucketService(t *testing.T) {
 			// Mock the auth factory to return our token provider
 			mockAuth.EXPECT().
 				getTokenProvider(mock.Anything, "").
-				Return(tokenProvider)
+				Return(tokenProviderFunc(tokenProvider.GetToken))
 
 			// Mock the client to return expected PR
 			mockClient.EXPECT().
@@ -110,7 +110,7 @@ func TestBitbucketService(t *testing.T) {
 			// Mock the auth factory to return our token provider
 			mockAuth.EXPECT().
 				getTokenProvider(mock.Anything, accountName).
-				Return(tokenProvider)
+				Return(tokenProviderFunc(tokenProvider.GetToken))
 
 			// Mock the client to return expected PR
 			mockClient.EXPECT().
@@ -159,7 +159,7 @@ func TestBitbucketService(t *testing.T) {
 			// Mock the auth factory
 			mockAuth.EXPECT().
 				getTokenProvider(mock.Anything, "").
-				Return(tokenProvider)
+				Return(tokenProviderFunc(tokenProvider.GetToken))
 
 			// Mock the client
 			mockClient.EXPECT().
@@ -205,7 +205,7 @@ func TestBitbucketService(t *testing.T) {
 			// Mock the auth factory
 			mockAuth.EXPECT().
 				getTokenProvider(mock.Anything, "").
-				Return(tokenProvider)
+				Return(tokenProviderFunc(tokenProvider.GetToken))
 
 			// Mock the client
 			mockClient.EXPECT().
@@ -311,7 +311,7 @@ func TestBitbucketService(t *testing.T) {
 			// Mock auth factory
 			mockAuth.EXPECT().
 				getTokenProvider(mock.Anything, "").
-				Return(tokenProvider)
+				Return(tokenProviderFunc(tokenProvider.GetToken))
 
 			// Mock client error
 			mockClient.EXPECT().
@@ -353,7 +353,7 @@ func TestBitbucketService(t *testing.T) {
 			// Mock the auth factory to return our token provider
 			mockAuth.EXPECT().
 				getTokenProvider(mock.Anything, "").
-				Return(tokenProvider)
+				Return(tokenProviderFunc(tokenProvider.GetToken))
 
 			// Mock the client to return expected PR
 			mockClient.EXPECT().
@@ -397,7 +397,7 @@ func TestBitbucketService(t *testing.T) {
 			// Mock the auth factory to return our token provider
 			mockAuth.EXPECT().
 				getTokenProvider(mock.Anything, accountName).
-				Return(tokenProvider)
+				Return(tokenProviderFunc(tokenProvider.GetToken))
 
 			// Mock the client to return expected PR
 			mockClient.EXPECT().
@@ -491,7 +491,7 @@ func TestBitbucketService(t *testing.T) {
 			// Mock the auth factory
 			mockAuth.EXPECT().
 				getTokenProvider(mock.Anything, "").
-				Return(tokenProvider)
+				Return(tokenProviderFunc(tokenProvider.GetToken))
 
 			// Mock the client to return an error
 			mockClient.EXPECT().
@@ -538,7 +538,7 @@ func TestBitbucketService(t *testing.T) {
 			// Mock the auth factory to return our token provider
 			mockAuth.EXPECT().
 				getTokenProvider(mock.Anything, "").
-				Return(tokenProvider)
+				Return(tokenProviderFunc(tokenProvider.GetToken))
 
 			// Mock the client to return expected PR
 			mockClient.EXPECT().
@@ -592,7 +592,7 @@ func TestBitbucketService(t *testing.T) {
 			// Mock the auth factory to return our token provider
 			mockAuth.EXPECT().
 				getTokenProvider(mock.Anything, "").
-				Return(tokenProvider)
+				Return(tokenProviderFunc(tokenProvider.GetToken))
 
 			// Mock the client to return expected PR
 			mockClient.EXPECT().
@@ -646,7 +646,7 @@ func TestBitbucketService(t *testing.T) {
 			// Mock the auth factory to return our token provider for the named account
 			mockAuth.EXPECT().
 				getTokenProvider(mock.Anything, accountName).
-				Return(tokenProvider)
+				Return(tokenProviderFunc(tokenProvider.GetToken))
 
 			// Mock the client to return expected PR
 			mockClient.EXPECT().
@@ -758,7 +758,7 @@ func TestBitbucketService(t *testing.T) {
 			// Mock the auth factory
 			mockAuth.EXPECT().
 				getTokenProvider(mock.Anything, "").
-				Return(tokenProvider)
+				Return(tokenProviderFunc(tokenProvider.GetToken))
 
 			// Mock the client to return an error
 			mockClient.EXPECT().
@@ -800,7 +800,7 @@ func TestBitbucketService(t *testing.T) {
 			// Mock the auth factory to return our token provider
 			mockAuth.EXPECT().
 				getTokenProvider(mock.Anything, "").
-				Return(tokenProvider)
+				Return(tokenProviderFunc(tokenProvider.GetToken))
 
 			// Mock the client to return expected PR
 			mockClient.EXPECT().
@@ -850,7 +850,7 @@ func TestBitbucketService(t *testing.T) {
 			// Mock the auth factory to return our token provider
 			mockAuth.EXPECT().
 				getTokenProvider(mock.Anything, "").
-				Return(tokenProvider)
+				Return(tokenProviderFunc(tokenProvider.GetToken))
 
 			// Mock the client to return expected participant
 			mockClient.EXPECT().
@@ -894,7 +894,7 @@ func TestBitbucketService(t *testing.T) {
 			// Mock the auth factory to return our token provider for the named account
 			mockAuth.EXPECT().
 				getTokenProvider(mock.Anything, accountName).
-				Return(tokenProvider)
+				Return(tokenProviderFunc(tokenProvider.GetToken))
 
 			// Mock the client to return expected participant
 			mockClient.EXPECT().
@@ -988,7 +988,7 @@ func TestBitbucketService(t *testing.T) {
 			// Mock the auth factory
 			mockAuth.EXPECT().
 				getTokenProvider(mock.Anything, "").
-				Return(tokenProvider)
+				Return(tokenProviderFunc(tokenProvider.GetToken))
 
 			// Mock the client to return an error
 			mockClient.EXPECT().
@@ -1035,7 +1035,7 @@ func TestBitbucketService(t *testing.T) {
 			// Mock the auth factory to return our token provider
 			mockAuth.EXPECT().
 				getTokenProvider(mock.Anything, "").
-				Return(tokenProvider)
+				Return(tokenProviderFunc(tokenProvider.GetToken))
 
 			// Mock the client to return expected PR
 			mockClient.EXPECT().
@@ -1091,7 +1091,7 @@ func TestBitbucketService(t *testing.T) {
 			// Mock the auth factory to return our token provider for the named account
 			mockAuth.EXPECT().
 				getTokenProvider(mock.Anything, accountName).
-				Return(tokenProvider)
+				Return(tokenProviderFunc(tokenProvider.GetToken))
 
 			// Mock the client to return expected PR
 			mockClient.EXPECT().
@@ -1143,7 +1143,7 @@ func TestBitbucketService(t *testing.T) {
 			// Mock the auth factory to return our token provider
 			mockAuth.EXPECT().
 				getTokenProvider(mock.Anything, "").
-				Return(tokenProvider)
+				Return(tokenProviderFunc(tokenProvider.GetToken))
 
 			// Mock the client to return expected PR
 			mockClient.EXPECT().
@@ -1186,7 +1186,7 @@ func TestBitbucketService(t *testing.T) {
 			// Mock auth factory
 			mockAuth.EXPECT().
 				getTokenProvider(mock.Anything, "").
-				Return(tokenProvider)
+				Return(tokenProviderFunc(tokenProvider.GetToken))
 
 			// Mock client error
 			mockClient.EXPECT().
@@ -1286,7 +1286,7 @@ func TestBitbucketService(t *testing.T) {
 			// Mock the auth factory to return our token provider
 			mockAuth.EXPECT().
 				getTokenProvider(mock.Anything, "").
-				Return(tokenProvider)
+				Return(tokenProviderFunc(tokenProvider.GetToken))
 
 			// Mock the client to return expected tasks
 			mockClient.EXPECT().
@@ -1341,7 +1341,7 @@ func TestBitbucketService(t *testing.T) {
 			// Mock the auth factory
 			mockAuth.EXPECT().
 				getTokenProvider(mock.Anything, "").
-				Return(tokenProvider)
+				Return(tokenProviderFunc(tokenProvider.GetToken))
 
 			// Mock the client
 			mockClient.EXPECT().
@@ -1391,7 +1391,7 @@ func TestBitbucketService(t *testing.T) {
 			// Mock the auth factory
 			mockAuth.EXPECT().
 				getTokenProvider(mock.Anything, accountName).
-				Return(tokenProvider)
+				Return(tokenProviderFunc(tokenProvider.GetToken))
 
 			// Mock the client
 			mockClient.EXPECT().
@@ -1430,7 +1430,7 @@ func TestBitbucketService(t *testing.T) {
 			// Mock the auth factory
 			mockAuth.EXPECT().
 				getTokenProvider(mock.Anything, "").
-				Return(tokenProvider)
+				Return(tokenProviderFunc(tokenProvider.GetToken))
 
 			// Mock the client to return error
 			mockClient.EXPECT().
@@ -1532,7 +1532,7 @@ func TestBitbucketService(t *testing.T) {
 			// Mock the auth factory to return our token provider
 			mockAuth.EXPECT().
 				getTokenProvider(mock.Anything, "").
-				Return(tokenProvider)
+				Return(tokenProviderFunc(tokenProvider.GetToken))
 
 			// Mock the client to return expected task
 			mockClient.EXPECT().
@@ -1596,7 +1596,7 @@ func TestBitbucketService(t *testing.T) {
 			// Mock the auth factory
 			mockAuth.EXPECT().
 				getTokenProvider(mock.Anything, "").
-				Return(tokenProvider)
+				Return(tokenProviderFunc(tokenProvider.GetToken))
 
 			// Mock the client
 			mockClient.EXPECT().
@@ -1657,7 +1657,7 @@ func TestBitbucketService(t *testing.T) {
 			// Mock the auth factory to use custom account
 			mockAuth.EXPECT().
 				getTokenProvider(mock.Anything, accountName).
-				Return(tokenProvider)
+				Return(tokenProviderFunc(tokenProvider.GetToken))
 
 			// Mock the client
 			mockClient.EXPECT().
@@ -1699,7 +1699,7 @@ func TestBitbucketService(t *testing.T) {
 			// Mock the auth factory
 			mockAuth.EXPECT().
 				getTokenProvider(mock.Anything, "").
-				Return(tokenProvider)
+				Return(tokenProviderFunc(tokenProvider.GetToken))
 
 			// Mock the client to return error
 			mockClient.EXPECT().
@@ -1820,7 +1820,7 @@ func TestBitbucketService(t *testing.T) {
 			// Mock the auth factory to return our token provider
 			mockAuth.EXPECT().
 				getTokenProvider(mock.Anything, "").
-				Return(tokenProvider)
+				Return(tokenProviderFunc(tokenProvider.GetToken))
 
 			// Mock the client to return expected task
 			mockClient.EXPECT().
@@ -1882,7 +1882,7 @@ func TestBitbucketService(t *testing.T) {
 			// Mock the auth factory
 			mockAuth.EXPECT().
 				getTokenProvider(mock.Anything, "").
-				Return(tokenProvider)
+				Return(tokenProviderFunc(tokenProvider.GetToken))
 
 			// Mock the client
 			mockClient.EXPECT().
@@ -1944,7 +1944,7 @@ func TestBitbucketService(t *testing.T) {
 			// Mock the auth factory
 			mockAuth.EXPECT().
 				getTokenProvider(mock.Anything, accountName).
-				Return(tokenProvider)
+				Return(tokenProviderFunc(tokenProvider.GetToken))
 
 			// Mock the client
 			mockClient.EXPECT().
@@ -1979,7 +1979,7 @@ func TestBitbucketService(t *testing.T) {
 			// Mock the auth factory
 			mockAuth.EXPECT().
 				getTokenProvider(mock.Anything, "").
-				Return(tokenProvider)
+				Return(tokenProviderFunc(tokenProvider.GetToken))
 
 			// Mock the client to return error
 			mockClient.EXPECT().
@@ -2091,7 +2091,7 @@ func TestBitbucketService(t *testing.T) {
 			// Mock the auth factory to return our token provider
 			mockAuth.EXPECT().
 				getTokenProvider(mock.Anything, accountName).
-				Return(tokenProvider)
+				Return(tokenProviderFunc(tokenProvider.GetToken))
 
 			// Mock the client to return expected diffstat
 			mockClient.EXPECT().
@@ -2149,7 +2149,7 @@ func TestBitbucketService(t *testing.T) {
 			// Mock the auth factory to return our token provider
 			mockAuth.EXPECT().
 				getTokenProvider(mock.Anything, accountName).
-				Return(tokenProvider)
+				Return(tokenProviderFunc(tokenProvider.GetToken))
 
 			// Mock the client to return expected diff
 			mockClient.EXPECT().
@@ -2243,7 +2243,7 @@ func TestBitbucketService(t *testing.T) {
 
 			mockAuth.EXPECT().
 				getTokenProvider(mock.Anything, accountName).
-				Return(tokenProvider)
+				Return(tokenProviderFunc(tokenProvider.GetToken))
 
 			mockClient.EXPECT().
 				GetPRDiff(
@@ -2302,7 +2302,7 @@ func TestBitbucketService(t *testing.T) {
 			// Mock the auth factory to return our token provider
 			mockAuth.EXPECT().
 				getTokenProvider(mock.Anything, accountName).
-				Return(tokenProvider)
+				Return(tokenProviderFunc(tokenProvider.GetToken))
 
 			// Mock the client to return expected file content
 			mockClient.EXPECT().
@@ -2358,13 +2358,13 @@ func TestBitbucketService(t *testing.T) {
 			// Mock the auth factory to return our token provider
 			mockAuth.EXPECT().
 				getTokenProvider(mock.Anything, accountName).
-				Return(tokenProvider)
+				Return(tokenProviderFunc(tokenProvider.GetToken))
 
 			// Mock the client to return expected comment ID and status
 			mockClient.EXPECT().
 				AddPRComment(
 					mock.Anything,
-					tokenProvider,
+					mock.Anything,
 					mock.MatchedBy(func(params bitbucket.AddPRCommentParams) bool {
 						assert.Equal(t, repoOwner, params.Workspace)
 						assert.Equal(t, repoName, params.RepoSlug)
@@ -2411,7 +2411,7 @@ func TestBitbucketService(t *testing.T) {
 			// Mock the auth factory to return our token provider
 			mockAuth.EXPECT().
 				getTokenProvider(mock.Anything, "").
-				Return(tokenProvider)
+				Return(tokenProviderFunc(tokenProvider.GetToken))
 
 			// Mock the client to return expected comment ID and status
 			mockClient.EXPECT().
@@ -2519,12 +2519,12 @@ func TestBitbucketService(t *testing.T) {
 
 			mockAuth.EXPECT().
 				getTokenProvider(mock.Anything, "").
-				Return(tokenProvider)
+				Return(tokenProviderFunc(tokenProvider.GetToken))
 
 			mockClient.EXPECT().
 				RequestPRChanges(
 					mock.Anything,
-					tokenProvider,
+					mock.Anything,
 					mock.MatchedBy(func(params bitbucket.RequestPRChangesParams) bool {
 						assert.Equal(t, repoOwner, params.Workspace)
 						assert.Equal(t, repoName, params.RepoSlug)
@@ -2627,11 +2627,11 @@ func TestBitbucketService(t *testing.T) {
 			// Mock the auth factory to return our token provider
 			mockAuth.EXPECT().
 				getTokenProvider(mock.Anything, "").
-				Return(tokenProvider)
+				Return(tokenProviderFunc(tokenProvider.GetToken))
 
 			// Mock the client to return expected comments - default PageLen of 100 is applied
 			mockClient.EXPECT().
-				ListPRComments(mock.Anything, tokenProvider, mock.MatchedBy(func(params bitbucket.ListPRCommentsParams) bool {
+				ListPRComments(mock.Anything, mock.Anything, mock.MatchedBy(func(params bitbucket.ListPRCommentsParams) bool {
 					assert.Equal(t, repoOwner, params.Workspace)
 					assert.Equal(t, repoName, params.RepoSlug)
 					assert.Equal(t, prID, params.PRID)
@@ -2683,10 +2683,10 @@ func TestBitbucketService(t *testing.T) {
 
 			mockAuth.EXPECT().
 				getTokenProvider(mock.Anything, "").
-				Return(tokenProvider)
+				Return(tokenProviderFunc(tokenProvider.GetToken))
 
 			mockClient.EXPECT().
-				ListPRComments(mock.Anything, tokenProvider, mock.MatchedBy(func(params bitbucket.ListPRCommentsParams) bool {
+				ListPRComments(mock.Anything, mock.Anything, mock.MatchedBy(func(params bitbucket.ListPRCommentsParams) bool {
 					assert.Equal(t, repoOwner, params.Workspace)
 					assert.Equal(t, repoName, params.RepoSlug)
 					assert.Equal(t, int64(prID), params.PRID)
@@ -2738,10 +2738,10 @@ func TestBitbucketService(t *testing.T) {
 
 			mockAuth.EXPECT().
 				getTokenProvider(mock.Anything, "").
-				Return(tokenProvider)
+				Return(tokenProviderFunc(tokenProvider.GetToken))
 
 			mockClient.EXPECT().
-				ListPRComments(mock.Anything, tokenProvider, mock.MatchedBy(func(params bitbucket.ListPRCommentsParams) bool {
+				ListPRComments(mock.Anything, mock.Anything, mock.MatchedBy(func(params bitbucket.ListPRCommentsParams) bool {
 					// Default PageLen of 100 must be applied when caller passes 0
 					assert.Equal(t, 100, params.PageLen)
 					return true
@@ -2782,9 +2782,9 @@ func TestBitbucketService(t *testing.T) {
 			}
 			mockAuth.EXPECT().
 				getTokenProvider(mock.Anything, "").
-				Return(tokenProvider)
+				Return(tokenProviderFunc(tokenProvider.GetToken))
 			mockClient.EXPECT().
-				ListPRComments(mock.Anything, tokenProvider, mock.Anything).
+				ListPRComments(mock.Anything, mock.Anything, mock.Anything).
 				Return(&bitbucket.ListPRCommentsResponse{Values: []bitbucket.PRComment{listComment}}, nil)
 
 			result, err := service.ListPRComments(t.Context(), BitbucketListPRCommentsParams{
@@ -2856,10 +2856,10 @@ func TestBitbucketService(t *testing.T) {
 			commentID := 1 + faker.RandomUnixTime()%9999
 			token := "token-" + faker.UUIDHyphenated()
 			tokenProvider := newStaticTokenProvider(token)
-			mockAuth.EXPECT().getTokenProvider(mock.Anything, "").Return(tokenProvider)
+			mockAuth.EXPECT().getTokenProvider(mock.Anything, "").Return(tokenProviderFunc(tokenProvider.GetToken))
 			want := &bitbucket.CommentResolution{Type: "pullrequest_comment"}
 			mockClient.EXPECT().
-				ResolvePRComment(mock.Anything, tokenProvider, mock.MatchedBy(func(p bitbucket.ResolvePRCommentParams) bool {
+				ResolvePRComment(mock.Anything, mock.Anything, mock.MatchedBy(func(p bitbucket.ResolvePRCommentParams) bool {
 					return p.Workspace == repoOwner && p.RepoSlug == repoName &&
 						p.PRID == int64(pullRequestID) && p.CommentID == commentID
 				})).

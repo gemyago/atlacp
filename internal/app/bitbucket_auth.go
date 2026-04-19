@@ -13,7 +13,7 @@ import (
 type bitbucketAuthFactory interface {
 	// getTokenProvider returns a TokenProvider for the specified account name.
 	// If accountName is empty, uses the default account.
-	getTokenProvider(ctx context.Context, accountName string) TokenProvider
+	getTokenProvider(ctx context.Context, accountName string) tokenProviderFunc
 }
 
 // bitbucketAuthFactoryImpl provides authentication for Bitbucket operations by resolving
@@ -32,7 +32,7 @@ type BitbucketAuthFactoryDeps struct {
 }
 
 // newBitbucketAuthFactory creates a new Bitbucket account auth component.
-func newBitbucketAuthFactory(deps BitbucketAuthFactoryDeps) bitbucketAuthFactory {
+func newBitbucketAuthFactory(deps BitbucketAuthFactoryDeps) *bitbucketAuthFactoryImpl {
 	return &bitbucketAuthFactoryImpl{
 		accountsRepo: deps.AccountsRepo,
 		logger:       deps.RootLogger.WithGroup("app.bitbucket-account-auth"),
@@ -44,7 +44,7 @@ func newBitbucketAuthFactory(deps BitbucketAuthFactoryDeps) bitbucketAuthFactory
 func (a *bitbucketAuthFactoryImpl) getTokenProvider(
 	_ context.Context,
 	accountName string,
-) TokenProvider {
+) tokenProviderFunc {
 	return tokenProviderFunc(func(ctx context.Context) (middleware.Token, error) {
 		var account *AtlassianAccount
 		var err error

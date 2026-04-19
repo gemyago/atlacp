@@ -24,19 +24,19 @@ func (_m *MockbitbucketAuthFactory) EXPECT() *MockbitbucketAuthFactory_Expecter 
 }
 
 // getTokenProvider provides a mock function with given fields: ctx, accountName
-func (_m *MockbitbucketAuthFactory) getTokenProvider(ctx context.Context, accountName string) TokenProvider {
+func (_m *MockbitbucketAuthFactory) getTokenProvider(ctx context.Context, accountName string) tokenProviderFunc {
 	ret := _m.Called(ctx, accountName)
 
 	if len(ret) == 0 {
 		panic("no return value specified for getTokenProvider")
 	}
 
-	var r0 TokenProvider
-	if rf, ok := ret.Get(0).(func(context.Context, string) TokenProvider); ok {
+	var r0 tokenProviderFunc
+	if rf, ok := ret.Get(0).(func(context.Context, string) tokenProviderFunc); ok {
 		r0 = rf(ctx, accountName)
 	} else {
 		if ret.Get(0) != nil {
-			r0 = ret.Get(0).(TokenProvider)
+			r0 = ret.Get(0).(tokenProviderFunc)
 		}
 	}
 
@@ -62,12 +62,12 @@ func (_c *MockbitbucketAuthFactory_getTokenProvider_Call) Run(run func(ctx conte
 	return _c
 }
 
-func (_c *MockbitbucketAuthFactory_getTokenProvider_Call) Return(_a0 TokenProvider) *MockbitbucketAuthFactory_getTokenProvider_Call {
+func (_c *MockbitbucketAuthFactory_getTokenProvider_Call) Return(_a0 tokenProviderFunc) *MockbitbucketAuthFactory_getTokenProvider_Call {
 	_c.Call.Return(_a0)
 	return _c
 }
 
-func (_c *MockbitbucketAuthFactory_getTokenProvider_Call) RunAndReturn(run func(context.Context, string) TokenProvider) *MockbitbucketAuthFactory_getTokenProvider_Call {
+func (_c *MockbitbucketAuthFactory_getTokenProvider_Call) RunAndReturn(run func(context.Context, string) tokenProviderFunc) *MockbitbucketAuthFactory_getTokenProvider_Call {
 	_c.Call.Return(run)
 	return _c
 }
