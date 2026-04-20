@@ -17,3 +17,7 @@ openspec/
 
 # Ignore some examples
 quick-start/atlassian-accounts.json
+.opencode/agents/implement-task.md
+.opencode/agents/verify-task.md
+.opencode/agents/fix-codebase.md
+.opencode/agents/orchestrator.md
