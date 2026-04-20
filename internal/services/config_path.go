@@ -5,10 +5,7 @@ import (
 	"fmt"
 	"os"
 	"path/filepath"
-	"runtime"
 )
-
-const goosDarwin = "darwin"
 
 const accountsFileParentDirPerm = 0o750
 
@@ -16,38 +13,23 @@ const accountsFileParentDirPerm = 0o750
 // platform and can create missing parent directories for any accounts file path.
 // Use [NewAccountsFilePathResolver] for production defaults; tests may set fields directly.
 type AccountsFilePathResolver struct {
-	GOOS          string
-	Home          string
-	UserConfigDir func() (string, error)
+	Home string
 }
 
-// NewAccountsFilePathResolver returns a resolver using [runtime.GOOS], $HOME, and [os.UserConfigDir].
+// NewAccountsFilePathResolver returns a resolver using $HOME.
 func NewAccountsFilePathResolver() *AccountsFilePathResolver {
 	return &AccountsFilePathResolver{
-		GOOS:          runtime.GOOS,
-		Home:          os.Getenv("HOME"),
-		UserConfigDir: os.UserConfigDir,
+		Home: os.Getenv("HOME"),
 	}
 }
 
-func (r *AccountsFilePathResolver) defaultBaseDir() (string, error) {
-	if r.GOOS == goosDarwin {
-		return filepath.Join(r.Home, ".config"), nil
-	}
-
-	return r.UserConfigDir()
+func (r *AccountsFilePathResolver) defaultBaseDir() string {
+	return filepath.Join(r.Home, ".atlacp")
 }
 
 // DefaultPath returns the default filesystem path for the Atlassian accounts configuration file.
-// On macOS the base directory is $HOME/.config (XDG-style) instead of [os.UserConfigDir], which on
-// darwin resolves to ~/Library/Application Support.
 func (r *AccountsFilePathResolver) DefaultPath() (string, error) {
-	baseDir, err := r.defaultBaseDir()
-	if err != nil {
-		return "", err
-	}
-
-	return filepath.Join(baseDir, "atlacp", "accounts.json"), nil
+	return filepath.Join(r.defaultBaseDir(), "accounts.json"), nil
 }
 
 // EnsureParentDirsForFile creates the parent directory of filePath if needed (idempotent).

@@ -72,7 +72,7 @@ func ProvideWithArgErr[
 // ProvideAs is used to provide one type as another, typically
 // used to provide implementation struct as particular interface.
 //
-//nolint:ireturn // TTarget is often an interface type parameter; callers rely on the cast.
+//nolint:ireturn,nolintlint // TTarget is often an interface type parameter; callers rely on the cast.
 func ProvideAs[TSource any, TTarget any](source TSource) (TTarget, error) {
 	target, ok := any(source).(TTarget)
 	if !ok {
