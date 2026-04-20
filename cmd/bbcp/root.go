@@ -43,7 +43,7 @@ func newRootCmd(container *dig.Container) *cobra.Command {
 	logsOutputFile := ""
 
 	cmd := &cobra.Command{
-		Use:   "mcp",
+		Use:   "bbcp",
 		Short: "MCP (Model Context Protocol) server command",
 		Long:  "Start MCP server with stdio or HTTP transport for providing tools to MCP clients",
 	}

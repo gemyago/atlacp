@@ -28,8 +28,8 @@ This is a golang backend project with OpenTelemetry integration for observabilit
 
 AI must **always** use `--noop` flag to dry-run startup checks without external deps. Without this flag, processes will start in foreground and block.
 
-- MCP server (stdio): `go run ./cmd/mcp stdio --env local --noop`
-- MCP server (HTTP): `go run ./cmd/mcp http --env local --noop`
+- MCP server (stdio): `go run ./cmd/bbcp stdio --env local --noop`
+- MCP server (HTTP): `go run ./cmd/bbcp http --env local --noop`
 - Bitbucket CLI (`bbmd`): `go run ./cmd/bbmd --help`
 - `bbmd` list accounts (JSON): `go run ./cmd/bbmd auth status`
 - `bbmd` read PR (JSON): `go run ./cmd/bbmd pr read --repo-owner <owner> --repo-name <repo> --pr-id <id>`

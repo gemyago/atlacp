@@ -25,11 +25,18 @@ jobs:
           cache: 'pip'
       - run: pip install -r requirements.txt
 
+      - name: Get image names
+        working-directory: build
+        run: make docker/.remote-image-names
+
       - name: Cleanup Docker Images
         working-directory: build
-        # TODO - docker build step should produce list of images
-        # Here we should do the cleanup, probably via makefile.
         run: |
-          ./scripts/ghcr.py cleanup-versions --namespace "users/${GITHUB_REPOSITORY_OWNER}" --package atlacp-mcp --really-remove
+          while IFS= read -r image; do
+            package=$(basename "$image")
+            ./scripts/ghcr.py cleanup-versions \
+              --namespace "users/${GITHUB_REPOSITORY_OWNER}" \
+              --package "$package" --really-remove
+          done < docker/.remote-image-names
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
