@@ -1,0 +1,11 @@
+{
+  "name": "@atlacp/install-linux-x64",
+  "version": "0.0.0",
+  "os": ["linux"],
+  "cpu": ["x64"],
+  "files": ["bin/"],
+  "publishConfig": {
+    "access": "public",
+    "provenance": true
+  }
+}
