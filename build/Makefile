@@ -81,6 +81,28 @@ dist/%: FORCE
 dist: FORCE
 	@make -j4 $(dist_platforms)
 
+# Populate npm platform packages with binaries and set versions.
+# Usage: make npm-packages VERSION=1.2.3
+# Depends on 'dist' having already been run.
+npm-packages: dist
+	@test -n "$(VERSION)" || (echo "VERSION is required. Usage: make npm-packages VERSION=1.2.3"; exit 1)
+	$(eval NPM_DIR := $(CURDIR)/../npm)
+	@$(foreach platform,$(subst $(comma), ,$(platforms)), \
+		$(eval GOOS   := $(word 1,$(subst /, ,$(platform)))) \
+		$(eval GOARCH := $(word 2,$(subst /, ,$(platform)))) \
+		$(eval NPMARCH := $(subst amd64,x64,$(GOARCH))) \
+		$(eval PKG_DIR := $(NPM_DIR)/install-$(GOOS)-$(NPMARCH)) \
+		mkdir -p $(PKG_DIR)/bin && \
+		cp dist/$(GOOS)/$(GOARCH)/* $(PKG_DIR)/bin/ && \
+		chmod +x $(PKG_DIR)/bin/* && \
+		jq '.version = "$(VERSION)"' $(PKG_DIR)/package.json > $(PKG_DIR)/package.json.tmp && \
+		mv $(PKG_DIR)/package.json.tmp $(PKG_DIR)/package.json; \
+	)
+	@jq '.version = "$(VERSION)" | .optionalDependencies |= with_entries(.value = "$(VERSION)")' \
+		$(NPM_DIR)/install/package.json > $(NPM_DIR)/install/package.json.tmp
+	@mv $(NPM_DIR)/install/package.json.tmp $(NPM_DIR)/install/package.json
+	@touch .npm-packages
+
 .build-artifacts: dist
 	@echo ./dist > $@
 
@@ -266,6 +288,7 @@ dist/clean:
 clean: docker/clean dist/clean
 	rm -rf .git-meta
 	rm -f .build-artifacts
+	rm -f .npm-packages
 	rm -f build-artifacts.tar.*
 	# Clean crane artifacts
 	rm -rf $(bin_dir)
