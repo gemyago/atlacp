@@ -303,4 +303,7 @@ test:
 	python -m unittest discover -s scripts/tests -p "test_*.py"
 
 	@echo "Running npm/scripts resolve-semver-tag.sh self-test"
-	./npm/scripts/resolve-semver-tag.sh --self-test
+	./npm/scripts/resolve-npm-platform.sh --self-test
+
+	@echo "Running npm/scripts parse-semver-tag.sh self-test"
+	./npm/scripts/parse-semver-tag.sh --self-test
