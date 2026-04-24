@@ -12,9 +12,9 @@ import {
 } from './install.mjs';
 
 test('detectPlatformPackage maps supported and unsupported platforms', () => {
-  assert.equal(detectPlatformPackage('linux', 'x64'), '@atlacp/install-linux-x64');
+  assert.equal(detectPlatformPackage('linux', 'x64'), '@atlacp/install-linux-amd64');
   assert.equal(detectPlatformPackage('linux', 'arm64'), '@atlacp/install-linux-arm64');
-  assert.equal(detectPlatformPackage('darwin', 'x64'), '@atlacp/install-darwin-x64');
+  assert.equal(detectPlatformPackage('darwin', 'x64'), '@atlacp/install-darwin-amd64');
   assert.equal(detectPlatformPackage('darwin', 'arm64'), '@atlacp/install-darwin-arm64');
   assert.equal(detectPlatformPackage('win32', 'x64'), null);
 });

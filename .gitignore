@@ -8,6 +8,7 @@ test.log
 bbmd.log
 .venv
 openspec/
+build/npm/packages/
 
 # Ignore agents configs for now
 .cursor/

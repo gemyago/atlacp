@@ -81,27 +81,59 @@ dist/%: FORCE
 dist: FORCE
 	@make -j4 $(dist_platforms)
 
-# Populate npm platform packages with binaries and set versions.
-# Usage: make npm-packages VERSION=1.2.3
-# Depends on 'dist' having already been run.
-npm-packages: dist
-	@test -n "$(VERSION)" || (echo "VERSION is required. Usage: make npm-packages VERSION=1.2.3"; exit 1)
-	$(eval NPM_DIR := $(CURDIR)/../npm)
-	@$(foreach platform,$(subst $(comma), ,$(platforms)), \
-		$(eval GOOS   := $(word 1,$(subst /, ,$(platform)))) \
-		$(eval GOARCH := $(word 2,$(subst /, ,$(platform)))) \
-		$(eval NPMARCH := $(subst amd64,x64,$(GOARCH))) \
-		$(eval PKG_DIR := $(NPM_DIR)/install-$(GOOS)-$(NPMARCH)) \
-		mkdir -p $(PKG_DIR)/bin && \
-		cp dist/$(GOOS)/$(GOARCH)/* $(PKG_DIR)/bin/ && \
-		chmod +x $(PKG_DIR)/bin/* && \
-		jq '.version = "$(VERSION)"' $(PKG_DIR)/package.json > $(PKG_DIR)/package.json.tmp && \
-		mv $(PKG_DIR)/package.json.tmp $(PKG_DIR)/package.json; \
-	)
-	@jq '.version = "$(VERSION)" | .optionalDependencies |= with_entries(.value = "$(VERSION)")' \
-		$(NPM_DIR)/install/package.json > $(NPM_DIR)/install/package.json.tmp
-	@mv $(NPM_DIR)/install/package.json.tmp $(NPM_DIR)/install/package.json
-	@touch .npm-packages
+# npm package generation (template-driven, generated under build/npm/packages/)
+npm_templates_dir := npm/templates
+npm_packages_dir := npm/packages
+npm_install_src_dir := npm/install
+npm_platform_package_json := $(patsubst %,npm/packages/%/package.json,$(subst $(comma), ,$(platforms)))
+npm_platform_packages := $(patsubst %,npm/packages/%/.packed,$(subst $(comma), ,$(platforms)))
+npm_install_sources := $(wildcard $(npm_install_src_dir)/*.mjs)
+npm_generated_install_sources := $(patsubst $(npm_install_src_dir)/%,$(npm_packages_dir)/install/%,$(npm_install_sources))
+.SECONDARY: $(npm_platform_package_json) npm/packages/install/package.json
+
+# Convert platform tuple to template suffix (linux/amd64 -> linux-amd64)
+define platform_template_suffix
+$(subst /,-,$(1))
+endef
+
+.PHONY: npm/packages/check-version
+npm/packages/check-version:
+	@test -n "$(VERSION)" || (echo "VERSION is required. Usage: make npm/packages VERSION=1.2.3"; exit 1)
+
+# Generate and pack one platform package workspace.
+# Example: make npm/packages/linux/amd64/.packed VERSION=1.2.3
+npm/packages/%/package.json: dist/% npm/packages/check-version FORCE
+	$(eval GOOS := $(word 1,$(subst /, ,$*)))
+	$(eval GOARCH := $(word 2,$(subst /, ,$*)))
+	$(eval TEMPLATE := $(npm_templates_dir)/package-$(call platform_template_suffix,$*).json)
+	@test -f "$(TEMPLATE)" || (echo "Missing template: $(TEMPLATE)"; exit 1)
+	mkdir -p $(dir $@)
+	jq '.version = "$(VERSION)"' "$(TEMPLATE)" > $@
+	rm -rf $(npm_packages_dir)/$*/bin
+	mkdir -p $(npm_packages_dir)/$*/bin
+	cp dist/$(GOOS)/$(GOARCH)/* $(npm_packages_dir)/$*/bin/
+	chmod +x $(npm_packages_dir)/$*/bin/*
+
+npm/packages/%/.packed: npm/packages/%/package.json
+	cd $(dir $<) && npm pack
+	touch $@
+
+$(npm_packages_dir)/install/%: $(npm_install_src_dir)/%
+	mkdir -p $(dir $@)
+	cp $< $@
+
+npm/packages/install/package.json: $(npm_templates_dir)/package-install.json npm/packages/check-version FORCE
+	mkdir -p $(dir $@)
+	jq '.version = "$(VERSION)" | .optionalDependencies |= with_entries(.value = "$(VERSION)")' \
+		$< > $@
+
+npm/packages/install/.packed: npm/packages/install/package.json $(npm_generated_install_sources)
+	cd $(dir $<) && npm pack
+	touch $@
+
+.PHONY: npm/packages npm-packages
+npm/packages: npm/packages/check-version $(npm_platform_packages) npm/packages/install/.packed
+npm-packages: npm/packages
 
 .build-artifacts: dist
 	@echo ./dist > $@
@@ -288,7 +320,7 @@ dist/clean:
 clean: docker/clean dist/clean
 	rm -rf .git-meta
 	rm -f .build-artifacts
-	rm -f .npm-packages
+	rm -rf npm/packages
 	rm -f build-artifacts.tar.*
 	# Clean crane artifacts
 	rm -rf $(bin_dir)

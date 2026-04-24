@@ -1,7 +1,7 @@
 {
-  "name": "@atlacp/install-darwin-x64",
+  "name": "@atlacp/install-linux-amd64",
   "version": "0.0.0",
-  "os": ["darwin"],
+  "os": ["linux"],
   "cpu": ["x64"],
   "files": ["bin/"],
   "publishConfig": {

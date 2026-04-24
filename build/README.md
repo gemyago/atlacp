@@ -6,6 +6,20 @@ This folder contains the build tools for the project.
 
 Golang binaries are build for platforms defined in [build.cfg](build.cfg) file (see `platforms` section).
 
+## Build npm Packages
+
+Generate npm installer packages from templates and compiled binaries:
+
+```sh
+# Builds required dist/<goos>/<goarch> outputs and creates packed npm artifacts
+make npm/packages VERSION=1.2.3
+
+# Compatibility alias
+make npm-packages VERSION=1.2.3
+```
+
+Generated npm package workspaces and tarballs are written to `build/npm/packages/`.
+
 ## Docker
 
 To enable multi-platform builds please enable [container image storage](https://docs.docker.com/build/building/multi-platform/#prerequisites) for your docker daemon.

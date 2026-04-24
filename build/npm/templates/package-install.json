@@ -6,9 +6,9 @@
     "postinstall": "node install.mjs"
   },
   "optionalDependencies": {
-    "@atlacp/install-linux-x64": "0.0.0",
+    "@atlacp/install-linux-amd64": "0.0.0",
     "@atlacp/install-linux-arm64": "0.0.0",
-    "@atlacp/install-darwin-x64": "0.0.0",
+    "@atlacp/install-darwin-amd64": "0.0.0",
     "@atlacp/install-darwin-arm64": "0.0.0"
   },
   "publishConfig": {

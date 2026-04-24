@@ -15,9 +15,9 @@ const EXPORT_PATH_LINE = 'export PATH="$HOME/.atlacp/bin:$PATH"';
 
 export function detectPlatformPackage(platform = process.platform, arch = process.arch) {
   const mapping = {
-    'linux:x64': '@atlacp/install-linux-x64',
+    'linux:x64': '@atlacp/install-linux-amd64',
     'linux:arm64': '@atlacp/install-linux-arm64',
-    'darwin:x64': '@atlacp/install-darwin-x64',
+    'darwin:x64': '@atlacp/install-darwin-amd64',
     'darwin:arm64': '@atlacp/install-darwin-arm64',
   };
 
