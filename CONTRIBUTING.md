@@ -12,7 +12,11 @@ Some build and deployment scripts use python. Usually you don't need to run thea
 
 ## AI Frameworks
 
-[OpenSpec](https://github.com/fission-ai/openspec) - good for structured flow. Use `openspec init`. Not committing to the repo for now.
+[OpenSpec](https://github.com/fission-ai/openspec) - good for structured flow. Not committing to the repo for now. Setup with:
+```sh
+# Use your tool if needed
+npx -y @fission-ai/openspec@latest init --tools opencode,codex
+```
 
 ## Typical golang project tasks
 
