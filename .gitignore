@@ -17,6 +17,7 @@ build/npm/packages/
 .gemini
 .codex
 .opencode
+.cache
 
 # Ignore some examples
 quick-start/atlassian-accounts.json
