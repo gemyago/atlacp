@@ -3,7 +3,7 @@
 <html>
 	<head>
 		<meta http-equiv="Content-Type" content="text/html; charset=utf-8">
-		<title>bbmd: Go Coverage Report</title>
+		<title>bbcp: Go Coverage Report</title>
 		<style>
 			body {
 				background: black;
@@ -55,27 +55,27 @@
 			<div id="nav">
 				<select id="files">
 				
-				<option value="file0">github.com/gemyago/atlacp/cmd/bbmd/auth.go (100.0%)</option>
+				<option value="file0">github.com/gemyago/atlacp/cmd/bbcp/http.go (92.5%)</option>
 				
-				<option value="file1">github.com/gemyago/atlacp/cmd/bbmd/file.go (100.0%)</option>
+				<option value="file1">github.com/gemyago/atlacp/cmd/bbcp/main.go (57.1%)</option>
 				
-				<option value="file2">github.com/gemyago/atlacp/cmd/bbmd/main.go (40.0%)</option>
+				<option value="file2">github.com/gemyago/atlacp/cmd/bbcp/root.go (90.5%)</option>
 				
-				<option value="file3">github.com/gemyago/atlacp/cmd/bbmd/output.go (100.0%)</option>
+				<option value="file3">github.com/gemyago/atlacp/cmd/bbcp/stdio.go (90.6%)</option>
 				
-				<option value="file4">github.com/gemyago/atlacp/cmd/bbmd/pr.go (91.0%)</option>
+				<option value="file4">github.com/gemyago/atlacp/cmd/bbmd/auth.go (100.0%)</option>
 				
-				<option value="file5">github.com/gemyago/atlacp/cmd/bbmd/pr_flags.go (100.0%)</option>
+				<option value="file5">github.com/gemyago/atlacp/cmd/bbmd/file.go (100.0%)</option>
 				
-				<option value="file6">github.com/gemyago/atlacp/cmd/bbmd/root.go (90.9%)</option>
+				<option value="file6">github.com/gemyago/atlacp/cmd/bbmd/main.go (40.0%)</option>
 				
-				<option value="file7">github.com/gemyago/atlacp/cmd/mcp/http.go (92.5%)</option>
+				<option value="file7">github.com/gemyago/atlacp/cmd/bbmd/output.go (100.0%)</option>
 				
-				<option value="file8">github.com/gemyago/atlacp/cmd/mcp/main.go (57.1%)</option>
+				<option value="file8">github.com/gemyago/atlacp/cmd/bbmd/pr.go (91.0%)</option>
 				
-				<option value="file9">github.com/gemyago/atlacp/cmd/mcp/root.go (90.5%)</option>
+				<option value="file9">github.com/gemyago/atlacp/cmd/bbmd/pr_flags.go (100.0%)</option>
 				
-				<option value="file10">github.com/gemyago/atlacp/cmd/mcp/stdio.go (90.6%)</option>
+				<option value="file10">github.com/gemyago/atlacp/cmd/bbmd/root.go (90.9%)</option>
 				
 				<option value="file11">github.com/gemyago/atlacp/internal/api/http/middleware/chain.go (100.0%)</option>
 				
@@ -87,7 +87,7 @@
 				
 				<option value="file15">github.com/gemyago/atlacp/internal/api/http/server/server.go (92.3%)</option>
 				
-				<option value="file16">github.com/gemyago/atlacp/internal/api/mcp/controllers/bitbucket.go (92.0%)</option>
+				<option value="file16">github.com/gemyago/atlacp/internal/api/mcp/controllers/bitbucket.go (92.1%)</option>
 				
 				<option value="file17">github.com/gemyago/atlacp/internal/api/mcp/controllers/mock_bitbucket_service.go (61.5%)</option>
 				
@@ -163,7 +163,7 @@
 				
 				<option value="file53">github.com/gemyago/atlacp/internal/services/bitbucket/update_task.go (100.0%)</option>
 				
-				<option value="file54">github.com/gemyago/atlacp/internal/services/config_path.go (92.9%)</option>
+				<option value="file54">github.com/gemyago/atlacp/internal/services/config_path.go (100.0%)</option>
 				
 				<option value="file55">github.com/gemyago/atlacp/internal/services/http/client_factory.go (100.0%)</option>
 				
@@ -191,7 +191,7 @@
 				
 				<option value="file67">github.com/gemyago/atlacp/internal/services/time.go (100.0%)</option>
 				
-				<option value="file68">github.com/gemyago/atlacp/internal/testing/mocks/mocks.go (75.0%)</option>
+				<option value="file68">github.com/gemyago/atlacp/internal/testing/mocks/mocks.go (80.0%)</option>
 				
 				</select>
 			</div>
@@ -215,6 +215,384 @@
 		<div id="content">
 		
 		<pre class="file" id="file0" style="display: none">package main
+
+import (
+        "context"
+        "errors"
+        "log/slog"
+        "os"
+        "os/signal"
+        "time"
+
+        mcpserver "github.com/gemyago/atlacp/internal/api/mcp/server"
+        "github.com/gemyago/atlacp/internal/diag"
+        "github.com/gemyago/atlacp/internal/services"
+        "github.com/spf13/cobra"
+        "go.uber.org/dig"
+        "golang.org/x/sys/unix"
+)
+
+type startHTTPServerParams struct {
+        dig.In `ignore-unexported:"true"`
+
+        *services.ShutdownHooks
+
+        noop bool
+
+        RootLogger *slog.Logger
+
+        MCPServer *mcpserver.MCPServer
+}
+
+func watchForceSignal(
+        rootCtx context.Context,
+        rootLogger *slog.Logger,
+        signals []os.Signal,
+) <span class="cov4" title="2">{
+        forceSignal := make(chan os.Signal, 1)
+        signal.Notify(forceSignal, signals...)
+
+        go func() </span><span class="cov4" title="2">{
+                &lt;-forceSignal
+                rootLogger.InfoContext(rootCtx, "Forcing shutdown")
+                os.Exit(1)
+        }</span>()
+}
+
+func startHTTPServer(rootCtx context.Context, params startHTTPServerParams) error <span class="cov4" title="2">{
+        rootLogger := params.RootLogger
+        httpServer := params.MCPServer.NewHTTPServer()
+
+        shutdownSignals := []os.Signal{unix.SIGINT, unix.SIGTERM}
+
+        shutdown := func() error </span><span class="cov4" title="2">{
+                watchForceSignal(rootCtx, rootLogger, shutdownSignals)
+                rootLogger.InfoContext(rootCtx, "Trying to shut down gracefully")
+                ts := time.Now()
+
+                err := params.ShutdownHooks.PerformShutdown(rootCtx)
+                if err != nil </span><span class="cov0" title="0">{
+                        rootLogger.ErrorContext(rootCtx, "Failed to shut down gracefully", diag.ErrAttr(err))
+                }</span>
+
+                <span class="cov4" title="2">rootLogger.InfoContext(rootCtx, "Service stopped",
+                        slog.Duration("duration", time.Since(ts)),
+                )
+                return err</span>
+        }
+
+        <span class="cov4" title="2">signalCtx, cancel := signal.NotifyContext(rootCtx, shutdownSignals...)
+        defer cancel()
+
+        const startedComponents = 2
+        startupErrors := make(chan error, startedComponents)
+        go func() </span><span class="cov4" title="2">{
+                if params.noop </span><span class="cov4" title="2">{
+                        rootLogger.InfoContext(signalCtx, "NOOP: Starting http server")
+                        startupErrors &lt;- nil
+                        return
+                }</span>
+                <span class="cov0" title="0">startupErrors &lt;- httpServer.Start(signalCtx)</span>
+        }()
+
+        <span class="cov4" title="2">var startupErr error
+        select </span>{
+        case startupErr = &lt;-startupErrors:<span class="cov4" title="2">
+                if startupErr != nil </span><span class="cov0" title="0">{
+                        rootLogger.ErrorContext(rootCtx, "Server startup failed", "err", startupErr)
+                }</span>
+        case &lt;-signalCtx.Done():<span class="cov0" title="0"></span> // coverage-ignore
+                // We will attempt to shut down in both cases
+                // so doing it once on a next line
+        }
+        <span class="cov4" title="2">return errors.Join(startupErr, shutdown())</span>
+}
+
+func newHTTPCmd(container *dig.Container) *cobra.Command <span class="cov10" title="8">{
+        noop := false
+        cmd := &amp;cobra.Command{
+                Use:   "http",
+                Short: "Start MCP server",
+                Long:  "Start MCP server via HTTP transport",
+                RunE: func(cmd *cobra.Command, _ []string) error </span><span class="cov4" title="2">{
+                        return container.Invoke(func(p startHTTPServerParams) error </span><span class="cov4" title="2">{
+                                p.noop = noop
+                                return startHTTPServer(cmd.Context(), p)
+                        }</span>)
+                },
+        }
+        <span class="cov10" title="8">cmd.Flags().BoolVar(
+                &amp;noop,
+                "noop",
+                false,
+                "Run in noop mode. Useful for testing if setup is all working.",
+        )
+        return cmd</span>
+}
+</pre>
+		
+		<pre class="file" id="file1" style="display: none">package main
+
+import (
+        "os"
+
+        "github.com/spf13/cobra"
+        "go.uber.org/dig"
+)
+
+func setupCommands() *cobra.Command <span class="cov10" title="8">{
+        container := dig.New()
+        rootCmd := newRootCmd(container)
+        rootCmd.AddCommand(
+                newStdioCmd(container),
+                newHTTPCmd(container),
+        )
+        return rootCmd
+}</span>
+
+func main() <span class="cov0" title="0">{ // coverage-ignore
+        rootCmd := setupCommands()
+        if err := rootCmd.Execute(); err != nil </span><span class="cov0" title="0">{
+                // cobra will print error to stdout
+                os.Exit(1)
+        }</span>
+}
+</pre>
+		
+		<pre class="file" id="file2" style="display: none">package main
+
+import (
+        "errors"
+        "fmt"
+        "log/slog"
+        "path/filepath"
+
+        "github.com/gemyago/atlacp/internal/api/mcp/controllers"
+        "github.com/gemyago/atlacp/internal/api/mcp/server"
+        "github.com/gemyago/atlacp/internal/app"
+        "github.com/gemyago/atlacp/internal/config"
+        "github.com/gemyago/atlacp/internal/di"
+        "github.com/gemyago/atlacp/internal/diag"
+        "github.com/gemyago/atlacp/internal/services"
+        "github.com/samber/lo"
+        "github.com/spf13/cobra"
+        "github.com/spf13/viper"
+        "go.uber.org/dig"
+)
+
+func prepareMCPAccountsFilePath(cfg *viper.Viper, accountsFile string) error <span class="cov8" title="6">{
+        pathResolver := services.NewAccountsFilePathResolver()
+        var resolved string
+        if accountsFile == "" </span><span class="cov4" title="2">{
+                defaultPath, pathErr := pathResolver.DefaultPath()
+                if pathErr != nil </span><span class="cov0" title="0">{
+                        return fmt.Errorf("resolve default atlassian accounts file path: %w", pathErr)
+                }</span>
+                <span class="cov4" title="2">resolved = defaultPath
+                cfg.Set("atlassian.accountsFilePath", defaultPath)</span>
+        } else<span class="cov7" title="4"> {
+                resolved = filepath.Clean(accountsFile)
+                cfg.Set("atlassian.accountsFilePath", resolved)
+        }</span>
+        <span class="cov8" title="6">if mkdirErr := pathResolver.EnsureParentDirsForFile(resolved); mkdirErr != nil </span><span class="cov0" title="0">{
+                return fmt.Errorf("ensure atlassian accounts file parent directories: %w", mkdirErr)
+        }</span>
+        <span class="cov8" title="6">return nil</span>
+}
+
+func newRootCmd(container *dig.Container) *cobra.Command <span class="cov10" title="8">{
+        logsOutputFile := ""
+
+        cmd := &amp;cobra.Command{
+                Use:   "bbcp",
+                Short: "MCP (Model Context Protocol) server command",
+                Long:  "Start MCP server with stdio or HTTP transport for providing tools to MCP clients",
+        }
+        cmd.SilenceUsage = true
+        cmd.PersistentFlags().StringP("log-level", "l", "", "Produce logs with given level. Default is env specific.")
+        cmd.PersistentFlags().StringVar(
+                &amp;logsOutputFile,
+                "logs-file",
+                "",
+                "Produce logs to file instead of stdout. Used for tests only.",
+        )
+        cmd.PersistentFlags().Bool(
+                "json-logs",
+                false,
+                "Indicates if logs should be in JSON format or text (default)",
+        )
+        cmd.PersistentFlags().StringP(
+                "env",
+                "e",
+                "",
+                "Env that the process is running in.",
+        )
+        cmd.PersistentFlags().StringP(
+                "atlassian-accounts-file",
+                "a",
+                "",
+                "Path to the Atlassian accounts file.",
+        )
+        cfg := config.New()
+        lo.Must0(cfg.BindPFlag("atlassian.accountsFilePath", cmd.PersistentFlags().Lookup("atlassian-accounts-file")))
+        lo.Must0(cfg.BindPFlag("jsonLogs", cmd.PersistentFlags().Lookup("json-logs")))
+        lo.Must0(cfg.BindPFlag("defaultLogLevel", cmd.PersistentFlags().Lookup("log-level")))
+        lo.Must0(cfg.BindPFlag("env", cmd.PersistentFlags().Lookup("env")))
+        cmd.PersistentPreRunE = func(cmd *cobra.Command, _ []string) error </span><span class="cov10" title="8">{
+                err := config.Load(cfg, config.NewLoadOpts().WithEnv(cfg.GetString("env")))
+                if err != nil </span><span class="cov4" title="2">{
+                        return err
+                }</span>
+
+                <span class="cov8" title="6">accountsFile, err := cmd.Flags().GetString("atlassian-accounts-file")
+                if err != nil </span><span class="cov0" title="0">{
+                        return fmt.Errorf("get atlassian-accounts-file flag: %w", err)
+                }</span>
+                <span class="cov8" title="6">if prepErr := prepareMCPAccountsFilePath(cfg, accountsFile); prepErr != nil </span><span class="cov0" title="0">{
+                        return prepErr
+                }</span>
+
+                <span class="cov8" title="6">var logLevel slog.Level
+                if err = logLevel.UnmarshalText([]byte(cfg.GetString("defaultLogLevel"))); err != nil </span><span class="cov4" title="2">{
+                        return err
+                }</span>
+
+                <span class="cov7" title="4">rootLogger := diag.SetupRootLogger(
+                        diag.NewRootLoggerOpts().
+                                WithJSONLogs(cfg.GetBool("jsonLogs")).
+                                WithLogLevel(logLevel).
+                                WithOptionalOutputFile(logsOutputFile),
+                )
+
+                err = errors.Join(
+                        config.Provide(container, cfg),
+
+                        // app layer
+                        app.Register(container),
+
+                        // services
+                        services.Register(container),
+
+                        // mcp components
+                        controllers.Register(container),
+                        di.ProvideAll(container,
+                                server.NewMCPServer,
+                        ),
+
+                        di.ProvideAll(container,
+                                di.ProvideValue(rootLogger),
+                        ),
+                )
+
+                return lo.
+                        If(err != nil, fmt.Errorf("failed to inject dependencies: %w", err)).
+                        Else(nil)</span>
+        }
+        <span class="cov10" title="8">return cmd</span>
+}
+</pre>
+		
+		<pre class="file" id="file3" style="display: none">package main
+
+import (
+        "context"
+        "errors"
+        "log/slog"
+        "os"
+        "os/signal"
+        "time"
+
+        mcpserver "github.com/gemyago/atlacp/internal/api/mcp/server"
+        "github.com/gemyago/atlacp/internal/diag"
+        "github.com/gemyago/atlacp/internal/services"
+        "github.com/spf13/cobra"
+        "go.uber.org/dig"
+        "golang.org/x/sys/unix"
+)
+
+type stdioServerParams struct {
+        dig.In `ignore-unexported:"true"`
+
+        *services.ShutdownHooks
+
+        noop bool
+
+        RootLogger *slog.Logger
+
+        MCPServer *mcpserver.MCPServer
+}
+
+func startStdioServer(rootCtx context.Context, params stdioServerParams) error <span class="cov4" title="2">{
+        rootLogger := params.RootLogger
+
+        shutdown := func() error </span><span class="cov4" title="2">{
+                rootLogger.InfoContext(rootCtx, "Trying to shut down gracefully")
+                ts := time.Now()
+
+                err := params.ShutdownHooks.PerformShutdown(rootCtx)
+                if err != nil </span><span class="cov0" title="0">{
+                        rootLogger.ErrorContext(rootCtx, "Failed to shut down gracefully", diag.ErrAttr(err))
+                }</span>
+
+                <span class="cov4" title="2">rootLogger.InfoContext(rootCtx, "Service stopped",
+                        slog.Duration("duration", time.Since(ts)),
+                )
+                return err</span>
+        }
+
+        <span class="cov4" title="2">signalCtx, cancel := signal.NotifyContext(rootCtx, unix.SIGINT, unix.SIGTERM)
+        defer cancel()
+
+        const startedComponents = 2
+        startupErrors := make(chan error, startedComponents)
+        go func() </span><span class="cov4" title="2">{
+                if params.noop </span><span class="cov4" title="2">{
+                        rootLogger.InfoContext(signalCtx, "NOOP: Starting stdio server")
+                        startupErrors &lt;- nil
+                        return
+                }</span>
+                <span class="cov0" title="0">startupErrors &lt;- params.MCPServer.ListenStdioServer(signalCtx, os.Stdin, os.Stdout)</span>
+        }()
+
+        <span class="cov4" title="2">var startupErr error
+        select </span>{
+        case startupErr = &lt;-startupErrors:<span class="cov4" title="2">
+                if startupErr != nil </span><span class="cov0" title="0">{
+                        rootLogger.ErrorContext(rootCtx, "Server startup failed", "err", startupErr)
+                }</span>
+        case &lt;-signalCtx.Done():<span class="cov0" title="0"></span> // coverage-ignore
+                // We will attempt to shut down in both cases
+                // so doing it once on a next line
+        }
+        <span class="cov4" title="2">return errors.Join(startupErr, shutdown())</span>
+}
+
+func newStdioCmd(container *dig.Container) *cobra.Command <span class="cov10" title="8">{
+        cmd := &amp;cobra.Command{
+                Use:   "stdio",
+                Short: "Start MCP server with stdio transport",
+                Long:  "Start MCP server using stdio transport for communication with MCP clients",
+        }
+
+        noop := false
+        cmd.Flags().BoolVar(
+                &amp;noop,
+                "noop",
+                false,
+                "Run in noop mode. Useful for testing if setup is all working.",
+        )
+        cmd.RunE = func(_ *cobra.Command, _ []string) error </span><span class="cov4" title="2">{
+                return container.Invoke(func(p stdioServerParams) error </span><span class="cov4" title="2">{
+                        p.noop = noop
+                        return startStdioServer(cmd.Context(), p)
+                }</span>)
+        }
+
+        <span class="cov10" title="8">return cmd</span>
+}
+</pre>
+		
+		<pre class="file" id="file4" style="display: none">package main
 
 import (
         "context"
@@ -410,7 +788,7 @@ func runAuthSetDefault(cmd *cobra.Command, container *dig.Container, rootParams 
 }
 </pre>
 		
-		<pre class="file" id="file1" style="display: none">package main
+		<pre class="file" id="file5" style="display: none">package main
 
 import (
         "github.com/gemyago/atlacp/internal/app"
@@ -482,7 +860,7 @@ func runFileContent(
 }
 </pre>
 		
-		<pre class="file" id="file2" style="display: none">package main
+		<pre class="file" id="file6" style="display: none">package main
 
 import (
         "os"
@@ -504,7 +882,7 @@ func main() <span class="cov0" title="0">{ // coverage-ignore
 }
 </pre>
 		
-		<pre class="file" id="file3" style="display: none">package main
+		<pre class="file" id="file7" style="display: none">package main
 
 import (
         "context"
@@ -571,7 +949,7 @@ func execNoOutput[TParams any](
 }
 </pre>
 		
-		<pre class="file" id="file4" style="display: none">package main
+		<pre class="file" id="file8" style="display: none">package main
 
 import (
         "context"
@@ -1126,6 +1504,7 @@ func newPRAddCommentCmd(container *dig.Container, rootParams *rootCommandParams)
                 Content  string
                 FilePath string
                 Line     int
+                ParentID int64
         }
         cmd := &amp;cobra.Command{
                 Use:   "add-comment",
@@ -1138,6 +1517,7 @@ func newPRAddCommentCmd(container *dig.Container, rootParams *rootCommandParams)
                                 Content:       cmt.Content,
                                 FilePath:      cmt.FilePath,
                                 AccountName:   core.Account,
+                                ParentID:      cmt.ParentID,
                         }
                         if cmd.Flags().Changed("line") </span><span class="cov1" title="1">{
                                 params.LineFrom = cmt.Line
@@ -1151,6 +1531,7 @@ func newPRAddCommentCmd(container *dig.Container, rootParams *rootCommandParams)
         cmd.Flags().StringVar(&amp;cmt.Content, "content", "", "Comment content (raw)")
         cmd.Flags().StringVar(&amp;cmt.FilePath, "file-path", "", "File path for inline comments")
         cmd.Flags().IntVar(&amp;cmt.Line, "line", 0, "Line number for inline comments (sets from/to)")
+        cmd.Flags().Int64Var(&amp;cmt.ParentID, "parent-comment-id", 0, "Parent comment ID for replies")
         _ = cmd.MarkFlagRequired("content")
         return cmd</span>
 }
@@ -1277,7 +1658,7 @@ func runPRResolveComment(
 }
 </pre>
 		
-		<pre class="file" id="file5" style="display: none">package main
+		<pre class="file" id="file9" style="display: none">package main
 
 import (
         "github.com/spf13/cobra"
@@ -1305,7 +1686,7 @@ func requirePRCoreFlags(cmd *cobra.Command) <span class="cov10" title="624">{
 }</span>
 </pre>
 		
-		<pre class="file" id="file6" style="display: none">package main
+		<pre class="file" id="file10" style="display: none">package main
 
 import (
         "errors"
@@ -1439,384 +1820,6 @@ func newRootCmd(container *dig.Container, rootParams *rootCommandParams) *cobra.
         )
 
         return cmd</span>
-}
-</pre>
-		
-		<pre class="file" id="file7" style="display: none">package main
-
-import (
-        "context"
-        "errors"
-        "log/slog"
-        "os"
-        "os/signal"
-        "time"
-
-        mcpserver "github.com/gemyago/atlacp/internal/api/mcp/server"
-        "github.com/gemyago/atlacp/internal/diag"
-        "github.com/gemyago/atlacp/internal/services"
-        "github.com/spf13/cobra"
-        "go.uber.org/dig"
-        "golang.org/x/sys/unix"
-)
-
-type startHTTPServerParams struct {
-        dig.In `ignore-unexported:"true"`
-
-        *services.ShutdownHooks
-
-        noop bool
-
-        RootLogger *slog.Logger
-
-        MCPServer *mcpserver.MCPServer
-}
-
-func watchForceSignal(
-        rootCtx context.Context,
-        rootLogger *slog.Logger,
-        signals []os.Signal,
-) <span class="cov4" title="2">{
-        forceSignal := make(chan os.Signal, 1)
-        signal.Notify(forceSignal, signals...)
-
-        go func() </span><span class="cov4" title="2">{
-                &lt;-forceSignal
-                rootLogger.InfoContext(rootCtx, "Forcing shutdown")
-                os.Exit(1)
-        }</span>()
-}
-
-func startHTTPServer(rootCtx context.Context, params startHTTPServerParams) error <span class="cov4" title="2">{
-        rootLogger := params.RootLogger
-        httpServer := params.MCPServer.NewHTTPServer()
-
-        shutdownSignals := []os.Signal{unix.SIGINT, unix.SIGTERM}
-
-        shutdown := func() error </span><span class="cov4" title="2">{
-                watchForceSignal(rootCtx, rootLogger, shutdownSignals)
-                rootLogger.InfoContext(rootCtx, "Trying to shut down gracefully")
-                ts := time.Now()
-
-                err := params.ShutdownHooks.PerformShutdown(rootCtx)
-                if err != nil </span><span class="cov0" title="0">{
-                        rootLogger.ErrorContext(rootCtx, "Failed to shut down gracefully", diag.ErrAttr(err))
-                }</span>
-
-                <span class="cov4" title="2">rootLogger.InfoContext(rootCtx, "Service stopped",
-                        slog.Duration("duration", time.Since(ts)),
-                )
-                return err</span>
-        }
-
-        <span class="cov4" title="2">signalCtx, cancel := signal.NotifyContext(rootCtx, shutdownSignals...)
-        defer cancel()
-
-        const startedComponents = 2
-        startupErrors := make(chan error, startedComponents)
-        go func() </span><span class="cov4" title="2">{
-                if params.noop </span><span class="cov4" title="2">{
-                        rootLogger.InfoContext(signalCtx, "NOOP: Starting http server")
-                        startupErrors &lt;- nil
-                        return
-                }</span>
-                <span class="cov0" title="0">startupErrors &lt;- httpServer.Start(signalCtx)</span>
-        }()
-
-        <span class="cov4" title="2">var startupErr error
-        select </span>{
-        case startupErr = &lt;-startupErrors:<span class="cov4" title="2">
-                if startupErr != nil </span><span class="cov0" title="0">{
-                        rootLogger.ErrorContext(rootCtx, "Server startup failed", "err", startupErr)
-                }</span>
-        case &lt;-signalCtx.Done():<span class="cov0" title="0"></span> // coverage-ignore
-                // We will attempt to shut down in both cases
-                // so doing it once on a next line
-        }
-        <span class="cov4" title="2">return errors.Join(startupErr, shutdown())</span>
-}
-
-func newHTTPCmd(container *dig.Container) *cobra.Command <span class="cov10" title="8">{
-        noop := false
-        cmd := &amp;cobra.Command{
-                Use:   "http",
-                Short: "Start MCP server",
-                Long:  "Start MCP server via HTTP transport",
-                RunE: func(cmd *cobra.Command, _ []string) error </span><span class="cov4" title="2">{
-                        return container.Invoke(func(p startHTTPServerParams) error </span><span class="cov4" title="2">{
-                                p.noop = noop
-                                return startHTTPServer(cmd.Context(), p)
-                        }</span>)
-                },
-        }
-        <span class="cov10" title="8">cmd.Flags().BoolVar(
-                &amp;noop,
-                "noop",
-                false,
-                "Run in noop mode. Useful for testing if setup is all working.",
-        )
-        return cmd</span>
-}
-</pre>
-		
-		<pre class="file" id="file8" style="display: none">package main
-
-import (
-        "os"
-
-        "github.com/spf13/cobra"
-        "go.uber.org/dig"
-)
-
-func setupCommands() *cobra.Command <span class="cov10" title="8">{
-        container := dig.New()
-        rootCmd := newRootCmd(container)
-        rootCmd.AddCommand(
-                newStdioCmd(container),
-                newHTTPCmd(container),
-        )
-        return rootCmd
-}</span>
-
-func main() <span class="cov0" title="0">{ // coverage-ignore
-        rootCmd := setupCommands()
-        if err := rootCmd.Execute(); err != nil </span><span class="cov0" title="0">{
-                // cobra will print error to stdout
-                os.Exit(1)
-        }</span>
-}
-</pre>
-		
-		<pre class="file" id="file9" style="display: none">package main
-
-import (
-        "errors"
-        "fmt"
-        "log/slog"
-        "path/filepath"
-
-        "github.com/gemyago/atlacp/internal/api/mcp/controllers"
-        "github.com/gemyago/atlacp/internal/api/mcp/server"
-        "github.com/gemyago/atlacp/internal/app"
-        "github.com/gemyago/atlacp/internal/config"
-        "github.com/gemyago/atlacp/internal/di"
-        "github.com/gemyago/atlacp/internal/diag"
-        "github.com/gemyago/atlacp/internal/services"
-        "github.com/samber/lo"
-        "github.com/spf13/cobra"
-        "github.com/spf13/viper"
-        "go.uber.org/dig"
-)
-
-func prepareMCPAccountsFilePath(cfg *viper.Viper, accountsFile string) error <span class="cov8" title="6">{
-        pathResolver := services.NewAccountsFilePathResolver()
-        var resolved string
-        if accountsFile == "" </span><span class="cov4" title="2">{
-                defaultPath, pathErr := pathResolver.DefaultPath()
-                if pathErr != nil </span><span class="cov0" title="0">{
-                        return fmt.Errorf("resolve default atlassian accounts file path: %w", pathErr)
-                }</span>
-                <span class="cov4" title="2">resolved = defaultPath
-                cfg.Set("atlassian.accountsFilePath", defaultPath)</span>
-        } else<span class="cov7" title="4"> {
-                resolved = filepath.Clean(accountsFile)
-                cfg.Set("atlassian.accountsFilePath", resolved)
-        }</span>
-        <span class="cov8" title="6">if mkdirErr := pathResolver.EnsureParentDirsForFile(resolved); mkdirErr != nil </span><span class="cov0" title="0">{
-                return fmt.Errorf("ensure atlassian accounts file parent directories: %w", mkdirErr)
-        }</span>
-        <span class="cov8" title="6">return nil</span>
-}
-
-func newRootCmd(container *dig.Container) *cobra.Command <span class="cov10" title="8">{
-        logsOutputFile := ""
-
-        cmd := &amp;cobra.Command{
-                Use:   "mcp",
-                Short: "MCP (Model Context Protocol) server command",
-                Long:  "Start MCP server with stdio or HTTP transport for providing tools to MCP clients",
-        }
-        cmd.SilenceUsage = true
-        cmd.PersistentFlags().StringP("log-level", "l", "", "Produce logs with given level. Default is env specific.")
-        cmd.PersistentFlags().StringVar(
-                &amp;logsOutputFile,
-                "logs-file",
-                "",
-                "Produce logs to file instead of stdout. Used for tests only.",
-        )
-        cmd.PersistentFlags().Bool(
-                "json-logs",
-                false,
-                "Indicates if logs should be in JSON format or text (default)",
-        )
-        cmd.PersistentFlags().StringP(
-                "env",
-                "e",
-                "",
-                "Env that the process is running in.",
-        )
-        cmd.PersistentFlags().StringP(
-                "atlassian-accounts-file",
-                "a",
-                "",
-                "Path to the Atlassian accounts file.",
-        )
-        cfg := config.New()
-        lo.Must0(cfg.BindPFlag("atlassian.accountsFilePath", cmd.PersistentFlags().Lookup("atlassian-accounts-file")))
-        lo.Must0(cfg.BindPFlag("jsonLogs", cmd.PersistentFlags().Lookup("json-logs")))
-        lo.Must0(cfg.BindPFlag("defaultLogLevel", cmd.PersistentFlags().Lookup("log-level")))
-        lo.Must0(cfg.BindPFlag("env", cmd.PersistentFlags().Lookup("env")))
-        cmd.PersistentPreRunE = func(cmd *cobra.Command, _ []string) error </span><span class="cov10" title="8">{
-                err := config.Load(cfg, config.NewLoadOpts().WithEnv(cfg.GetString("env")))
-                if err != nil </span><span class="cov4" title="2">{
-                        return err
-                }</span>
-
-                <span class="cov8" title="6">accountsFile, err := cmd.Flags().GetString("atlassian-accounts-file")
-                if err != nil </span><span class="cov0" title="0">{
-                        return fmt.Errorf("get atlassian-accounts-file flag: %w", err)
-                }</span>
-                <span class="cov8" title="6">if prepErr := prepareMCPAccountsFilePath(cfg, accountsFile); prepErr != nil </span><span class="cov0" title="0">{
-                        return prepErr
-                }</span>
-
-                <span class="cov8" title="6">var logLevel slog.Level
-                if err = logLevel.UnmarshalText([]byte(cfg.GetString("defaultLogLevel"))); err != nil </span><span class="cov4" title="2">{
-                        return err
-                }</span>
-
-                <span class="cov7" title="4">rootLogger := diag.SetupRootLogger(
-                        diag.NewRootLoggerOpts().
-                                WithJSONLogs(cfg.GetBool("jsonLogs")).
-                                WithLogLevel(logLevel).
-                                WithOptionalOutputFile(logsOutputFile),
-                )
-
-                err = errors.Join(
-                        config.Provide(container, cfg),
-
-                        // app layer
-                        app.Register(container),
-
-                        // services
-                        services.Register(container),
-
-                        // mcp components
-                        controllers.Register(container),
-                        di.ProvideAll(container,
-                                server.NewMCPServer,
-                        ),
-
-                        di.ProvideAll(container,
-                                di.ProvideValue(rootLogger),
-                        ),
-                )
-
-                return lo.
-                        If(err != nil, fmt.Errorf("failed to inject dependencies: %w", err)).
-                        Else(nil)</span>
-        }
-        <span class="cov10" title="8">return cmd</span>
-}
-</pre>
-		
-		<pre class="file" id="file10" style="display: none">package main
-
-import (
-        "context"
-        "errors"
-        "log/slog"
-        "os"
-        "os/signal"
-        "time"
-
-        mcpserver "github.com/gemyago/atlacp/internal/api/mcp/server"
-        "github.com/gemyago/atlacp/internal/diag"
-        "github.com/gemyago/atlacp/internal/services"
-        "github.com/spf13/cobra"
-        "go.uber.org/dig"
-        "golang.org/x/sys/unix"
-)
-
-type stdioServerParams struct {
-        dig.In `ignore-unexported:"true"`
-
-        *services.ShutdownHooks
-
-        noop bool
-
-        RootLogger *slog.Logger
-
-        MCPServer *mcpserver.MCPServer
-}
-
-func startStdioServer(rootCtx context.Context, params stdioServerParams) error <span class="cov4" title="2">{
-        rootLogger := params.RootLogger
-
-        shutdown := func() error </span><span class="cov4" title="2">{
-                rootLogger.InfoContext(rootCtx, "Trying to shut down gracefully")
-                ts := time.Now()
-
-                err := params.ShutdownHooks.PerformShutdown(rootCtx)
-                if err != nil </span><span class="cov0" title="0">{
-                        rootLogger.ErrorContext(rootCtx, "Failed to shut down gracefully", diag.ErrAttr(err))
-                }</span>
-
-                <span class="cov4" title="2">rootLogger.InfoContext(rootCtx, "Service stopped",
-                        slog.Duration("duration", time.Since(ts)),
-                )
-                return err</span>
-        }
-
-        <span class="cov4" title="2">signalCtx, cancel := signal.NotifyContext(rootCtx, unix.SIGINT, unix.SIGTERM)
-        defer cancel()
-
-        const startedComponents = 2
-        startupErrors := make(chan error, startedComponents)
-        go func() </span><span class="cov4" title="2">{
-                if params.noop </span><span class="cov4" title="2">{
-                        rootLogger.InfoContext(signalCtx, "NOOP: Starting stdio server")
-                        startupErrors &lt;- nil
-                        return
-                }</span>
-                <span class="cov0" title="0">startupErrors &lt;- params.MCPServer.ListenStdioServer(signalCtx, os.Stdin, os.Stdout)</span>
-        }()
-
-        <span class="cov4" title="2">var startupErr error
-        select </span>{
-        case startupErr = &lt;-startupErrors:<span class="cov4" title="2">
-                if startupErr != nil </span><span class="cov0" title="0">{
-                        rootLogger.ErrorContext(rootCtx, "Server startup failed", "err", startupErr)
-                }</span>
-        case &lt;-signalCtx.Done():<span class="cov0" title="0"></span> // coverage-ignore
-                // We will attempt to shut down in both cases
-                // so doing it once on a next line
-        }
-        <span class="cov4" title="2">return errors.Join(startupErr, shutdown())</span>
-}
-
-func newStdioCmd(container *dig.Container) *cobra.Command <span class="cov10" title="8">{
-        cmd := &amp;cobra.Command{
-                Use:   "stdio",
-                Short: "Start MCP server with stdio transport",
-                Long:  "Start MCP server using stdio transport for communication with MCP clients",
-        }
-
-        noop := false
-        cmd.Flags().BoolVar(
-                &amp;noop,
-                "noop",
-                false,
-                "Run in noop mode. Useful for testing if setup is all working.",
-        )
-        cmd.RunE = func(_ *cobra.Command, _ []string) error </span><span class="cov4" title="2">{
-                return container.Invoke(func(p stdioServerParams) error </span><span class="cov4" title="2">{
-                        p.noop = noop
-                        return startStdioServer(cmd.Context(), p)
-                }</span>)
-        }
-
-        <span class="cov10" title="8">return cmd</span>
 }
 </pre>
 		
@@ -3251,6 +3254,9 @@ func (bc *BitbucketController) newAddPRCommentServerTool() server.ServerTool <sp
                 mcp.WithBoolean("pending",
                         mcp.Description("Create as a pending comment (optional, defaults to false)"),
                 ),
+                mcp.WithNumber("parent_comment_id",
+                        mcp.Description("Parent comment ID for replies (optional)"),
+                ),
         )
         handler := func(ctx context.Context, request mcp.CallToolRequest) (*mcp.CallToolResult, error) </span><span class="cov1" title="1">{
                 bc.logger.Debug("Received bitbucket_add_pr_comment request", "params", request.Params)
@@ -3279,6 +3285,7 @@ func (bc *BitbucketController) newAddPRCommentServerTool() server.ServerTool <sp
                 lineFrom := request.GetInt("line_number_from", 0)
                 lineTo := request.GetInt("line_number_to", 0)
                 pending := request.GetBool("pending", false)
+                parentID := request.GetInt("parent_comment_id", 0)
 
                 params := app.BitbucketAddPRCommentParams{
                         PullRequestID: prID,
@@ -3290,6 +3297,7 @@ func (bc *BitbucketController) newAddPRCommentServerTool() server.ServerTool <sp
                         LineFrom:      lineFrom,
                         LineTo:        lineTo,
                         Pending:       pending,
+                        ParentID:      int64(parentID),
                 }
 
                 commentID, content, err := bc.bitbucketService.AddPRComment(ctx, params)
@@ -4768,7 +4776,7 @@ func (s *testMCPServer) Start(ctx context.Context, mcpServer *mcpserver.MCPServe
                 stdioServer := mcpserver.NewStdioServer(mcpServer)
                 stdioServer.SetErrorLogger(logger)
 
-                if err := stdioServer.Listen(ctx, s.serverReader, s.serverWriter); err != nil </span><span class="cov8" title="4">{
+                if err := stdioServer.Listen(ctx, s.serverReader, s.serverWriter); err != nil </span><span class="cov10" title="5">{
                         logger.Println("StdioServer.Listen failed:", err)
                 }</span>
         })
@@ -4995,7 +5003,7 @@ type staticTokenProvider struct {
 }
 
 // newStaticTokenProvider creates a new provider that returns a static token.
-func newStaticTokenProvider(token string) *staticTokenProvider <span class="cov10" title="47">{
+func newStaticTokenProvider(token string) *staticTokenProvider <span class="cov10" title="48">{
         return &amp;staticTokenProvider{token: token}
 }</span>
 
@@ -5050,7 +5058,7 @@ type BitbucketServiceDeps struct {
 }
 
 // NewBitbucketService creates a new Bitbucket service.
-func NewBitbucketService(deps BitbucketServiceDeps) *BitbucketService <span class="cov10" title="78">{
+func NewBitbucketService(deps BitbucketServiceDeps) *BitbucketService <span class="cov10" title="79">{
         return &amp;BitbucketService{
                 client:      deps.Client,
                 authFactory: deps.AuthFactory,
@@ -5850,28 +5858,29 @@ type BitbucketAddPRCommentParams struct {
         LineFrom      int
         LineTo        int
         Pending       bool
+        ParentID      int64
 }
 
 // AddPRComment adds a comment to a pull request (general or inline).
 func (s *BitbucketService) AddPRComment(
         ctx context.Context,
         params BitbucketAddPRCommentParams,
-) (int64, string, error) <span class="cov4" title="6">{
+) (int64, string, error) <span class="cov5" title="7">{
         // Validate required parameters
         if params.RepoOwner == "" </span><span class="cov1" title="1">{
                 return 0, "", errors.New("repository owner is required")
         }</span>
-        <span class="cov4" title="5">if params.RepoName == "" </span><span class="cov1" title="1">{
+        <span class="cov4" title="6">if params.RepoName == "" </span><span class="cov1" title="1">{
                 return 0, "", errors.New("repository name is required")
         }</span>
-        <span class="cov3" title="4">if params.PullRequestID &lt;= 0 </span><span class="cov1" title="1">{
+        <span class="cov4" title="5">if params.PullRequestID &lt;= 0 </span><span class="cov1" title="1">{
                 return 0, "", errors.New("pull request ID must be positive")
         }</span>
-        <span class="cov3" title="3">if params.Content == "" </span><span class="cov1" title="1">{
+        <span class="cov3" title="4">if params.Content == "" </span><span class="cov1" title="1">{
                 return 0, "", errors.New("comment content is required")
         }</span>
 
-        <span class="cov2" title="2">tokenProvider := s.authFactory.getTokenProvider(ctx, params.AccountName)
+        <span class="cov3" title="3">tokenProvider := s.authFactory.getTokenProvider(ctx, params.AccountName)
         clientParams := bitbucket.AddPRCommentParams{
                 Workspace:   params.RepoOwner,
                 RepoSlug:    params.RepoName,
@@ -5882,6 +5891,7 @@ func (s *BitbucketService) AddPRComment(
                 LineTo:      params.LineTo,
                 Account:     params.AccountName,
                 Pending:     params.Pending,
+                ParentID:    params.ParentID,
         }
         return s.client.AddPRComment(ctx, tokenProvider, clientParams)</span>
 }
@@ -6352,7 +6362,7 @@ func ProvideWithArgErr[
 // ProvideAs is used to provide one type as another, typically
 // used to provide implementation struct as particular interface.
 //
-//nolint:ireturn // TTarget is often an interface type parameter; callers rely on the cast.
+//nolint:ireturn,nolintlint // TTarget is often an interface type parameter; callers rely on the cast.
 func ProvideAs[TSource any, TTarget any](source TSource) (TTarget, error) <span class="cov6" title="69">{
         target, ok := any(source).(TTarget)
         if !ok </span><span class="cov1" title="1">{
@@ -6397,7 +6407,7 @@ func GetLogAttributesFromContext(ctx context.Context) LogAttributes <span class=
         return res
 }</span>
 
-func SetLogAttributesToContext(ctx context.Context, attributes LogAttributes) context.Context <span class="cov4" title="10">{
+func SetLogAttributesToContext(ctx context.Context, attributes LogAttributes) context.Context <span class="cov3" title="10">{
         return context.WithValue(ctx, contextDiagAttrs, attributes)
 }</span>
 
@@ -6405,25 +6415,25 @@ type diagLogHandler struct {
         target slog.Handler
 }
 
-func (h *diagLogHandler) Enabled(ctx context.Context, lvl slog.Level) bool <span class="cov8" title="408">{
+func (h *diagLogHandler) Enabled(ctx context.Context, lvl slog.Level) bool <span class="cov8" title="410">{
         return h.target.Enabled(ctx, lvl)
 }</span>
 
-func (h *diagLogHandler) Handle(ctx context.Context, rec slog.Record) error <span class="cov8" title="216">{
+func (h *diagLogHandler) Handle(ctx context.Context, rec slog.Record) error <span class="cov7" title="216">{
         if diagAttributes, ok := ctx.Value(contextDiagAttrs).(LogAttributes); ok </span><span class="cov4" title="12">{
                 rec.AddAttrs(
                         slog.Attr{Key: "correlationId", Value: diagAttributes.CorrelationID},
                 )
         }</span>
 
-        <span class="cov8" title="216">return h.target.Handle(ctx, rec)</span>
+        <span class="cov7" title="216">return h.target.Handle(ctx, rec)</span>
 }
 
-func (h *diagLogHandler) WithAttrs(attrs []slog.Attr) slog.Handler <span class="cov10" title="998">{
+func (h *diagLogHandler) WithAttrs(attrs []slog.Attr) slog.Handler <span class="cov10" title="1005">{
         return &amp;diagLogHandler{target: h.target.WithAttrs(attrs)}
 }</span>
 
-func (h *diagLogHandler) WithGroup(name string) slog.Handler <span class="cov9" title="836">{
+func (h *diagLogHandler) WithGroup(name string) slog.Handler <span class="cov9" title="842">{
         // Using WithAttrs here since group will nest all the attributes
         // inside of it (including correlationId), which makes it harder to
         // filter logs by the correlationId.
@@ -6442,7 +6452,7 @@ type RootLoggerOpts struct {
         logLevel slog.Level
 }
 
-func NewRootLoggerOpts() *RootLoggerOpts <span class="cov8" title="354">{
+func NewRootLoggerOpts() *RootLoggerOpts <span class="cov8" title="356">{
         return &amp;RootLoggerOpts{
                 output: os.Stdout,
         }
@@ -6458,7 +6468,7 @@ func (opts *RootLoggerOpts) WithLogLevel(logLevel slog.Level) *RootLoggerOpts <s
         return opts
 }</span>
 
-func (opts *RootLoggerOpts) WithOutput(output io.Writer) *RootLoggerOpts <span class="cov8" title="303">{
+func (opts *RootLoggerOpts) WithOutput(output io.Writer) *RootLoggerOpts <span class="cov8" title="305">{
         opts.output = output
         return opts
 }</span>
@@ -6475,15 +6485,15 @@ func (opts *RootLoggerOpts) WithOptionalOutputFile(outputFile string) *RootLogge
         return opts</span>
 }
 
-func SetupRootLogger(opts *RootLoggerOpts) *slog.Logger <span class="cov8" title="354">{
+func SetupRootLogger(opts *RootLoggerOpts) *slog.Logger <span class="cov8" title="356">{
         logHandlerOpts := &amp;slog.HandlerOptions{Level: opts.logLevel}
         var logHandler slog.Handler
         if opts.jsonLogs </span><span class="cov1" title="1">{
                 logHandler = slog.NewJSONHandler(opts.output, logHandlerOpts)
-        }</span> else<span class="cov8" title="353"> {
+        }</span> else<span class="cov8" title="355"> {
                 logHandler = slog.NewTextHandler(opts.output, logHandlerOpts)
         }</span>
-        <span class="cov8" title="354">return slog.New(&amp;diagLogHandler{target: logHandler})</span>
+        <span class="cov8" title="356">return slog.New(&amp;diagLogHandler{target: logHandler})</span>
 }
 </pre>
 		
@@ -6516,7 +6526,7 @@ func openTestLogFile() *os.File <span class="cov5" title="13">{
 
 var testOutput = openTestLogFile() //nolint:gochecknoglobals //it's ok for tests
 
-func RootTestLogger() *slog.Logger <span class="cov10" title="302">{
+func RootTestLogger() *slog.Logger <span class="cov10" title="304">{
         return SetupRootLogger(
                 NewRootLoggerOpts().WithOutput(testOutput),
         )
@@ -6850,6 +6860,7 @@ type AddPRCommentParams struct {
         LineTo      int    // optional, for inline
         Account     string // optional, for future use
         Pending     bool   // optional, for pending comments
+        ParentID    int64  // optional, for threaded replies
 }
 
 // addPRCommentPayload matches the Bitbucket API for PR comments.
@@ -6862,6 +6873,9 @@ type addPRCommentPayload struct {
                 From int    `json:"from,omitempty"`
                 To   int    `json:"to,omitempty"`
         } `json:"inline,omitempty"`
+        Parent *struct {
+                ID int64 `json:"id"`
+        } `json:"parent,omitempty"`
         Pending bool `json:"pending,omitempty"`
 }
 
@@ -6871,12 +6885,12 @@ func (c *Client) AddPRComment(
         ctx context.Context,
         tokenProvider TokenProvider,
         params AddPRCommentParams,
-) (int64, string, error) <span class="cov10" title="5">{
+) (int64, string, error) <span class="cov10" title="6">{
         token, err := tokenProvider.GetToken(ctx)
         if err != nil </span><span class="cov1" title="1">{
                 return 0, "", fmt.Errorf("failed to get token: %w", err)
         }</span>
-        <span class="cov8" title="4">ctxWithAuth := middleware.WithAuthTokenV2(ctx, token)
+        <span class="cov9" title="5">ctxWithAuth := middleware.WithAuthTokenV2(ctx, token)
 
         // Build the URL
         path := fmt.Sprintf("/repositories/%s/%s/pullrequests/%d/comments",
@@ -6889,9 +6903,14 @@ func (c *Client) AddPRComment(
         payload := addPRCommentPayload{}
         payload.Content.Raw = params.CommentText
         payload.Pending = params.Pending
+        if params.ParentID &gt; 0 </span><span class="cov1" title="1">{
+                payload.Parent = &amp;struct {
+                        ID int64 `json:"id"`
+                }{ID: params.ParentID}
+        }</span>
 
         // If file path is provided, treat as inline comment
-        if params.FilePath != "" </span><span class="cov1" title="1">{
+        <span class="cov9" title="5">if params.FilePath != "" </span><span class="cov1" title="1">{
                 inline := &amp;struct {
                         Path string `json:"path"`
                         From int    `json:"from,omitempty"`
@@ -6909,7 +6928,7 @@ func (c *Client) AddPRComment(
         }
 
         // Make API call
-        <span class="cov8" title="4">var response Comment
+        <span class="cov9" title="5">var response Comment
         err = http.SendRequest(ctxWithAuth, c.httpClient, http.SendRequestParams[addPRCommentPayload, Comment]{
                 Method: "POST",
                 URL:    c.baseURL + path,
@@ -6920,7 +6939,7 @@ func (c *Client) AddPRComment(
                 return 0, "", fmt.Errorf("add pull request comment failed: %w", err)
         }</span>
 
-        <span class="cov7" title="3">return response.ID, addPRCommentStatusSuccess, nil</span>
+        <span class="cov7" title="4">return response.ID, addPRCommentStatusSuccess, nil</span>
 }
 </pre>
 		
@@ -7008,7 +7027,7 @@ type ClientDeps struct {
 }
 
 // NewClient creates a new Bitbucket API client.
-func NewClient(deps ClientDeps) *Client <span class="cov10" title="91">{
+func NewClient(deps ClientDeps) *Client <span class="cov10" title="92">{
         return &amp;Client{
                 httpClient: deps.ClientFactory.CreateClient(),
                 baseURL:    deps.BaseURL,
@@ -8253,10 +8272,7 @@ import (
         "fmt"
         "os"
         "path/filepath"
-        "runtime"
 )
-
-const goosDarwin = "darwin"
 
 const accountsFileParentDirPerm = 0o750
 
@@ -8264,49 +8280,34 @@ const accountsFileParentDirPerm = 0o750
 // platform and can create missing parent directories for any accounts file path.
 // Use [NewAccountsFilePathResolver] for production defaults; tests may set fields directly.
 type AccountsFilePathResolver struct {
-        GOOS          string
-        Home          string
-        UserConfigDir func() (string, error)
+        Home string
 }
 
-// NewAccountsFilePathResolver returns a resolver using [runtime.GOOS], $HOME, and [os.UserConfigDir].
-func NewAccountsFilePathResolver() *AccountsFilePathResolver <span class="cov10" title="58">{
+// NewAccountsFilePathResolver returns a resolver using $HOME.
+func NewAccountsFilePathResolver() *AccountsFilePathResolver <span class="cov10" title="59">{
         return &amp;AccountsFilePathResolver{
-                GOOS:          runtime.GOOS,
-                Home:          os.Getenv("HOME"),
-                UserConfigDir: os.UserConfigDir,
+                Home: os.Getenv("HOME"),
         }
 }</span>
 
-func (r *AccountsFilePathResolver) defaultBaseDir() (string, error) <span class="cov8" title="31">{
-        if r.GOOS == goosDarwin </span><span class="cov1" title="1">{
-                return filepath.Join(r.Home, ".config"), nil
-        }</span>
-
-        <span class="cov8" title="30">return r.UserConfigDir()</span>
-}
+func (r *AccountsFilePathResolver) defaultBaseDir() string <span class="cov8" title="30">{
+        return filepath.Join(r.Home, ".atlacp")
+}</span>
 
 // DefaultPath returns the default filesystem path for the Atlassian accounts configuration file.
-// On macOS the base directory is $HOME/.config (XDG-style) instead of [os.UserConfigDir], which on
-// darwin resolves to ~/Library/Application Support.
 func (r *AccountsFilePathResolver) DefaultPath() (string, error) <span class="cov8" title="28">{
-        baseDir, err := r.defaultBaseDir()
-        if err != nil </span><span class="cov1" title="1">{
-                return "", err
-        }</span>
-
-        <span class="cov8" title="27">return filepath.Join(baseDir, "atlacp", "accounts.json"), nil</span>
-}
+        return filepath.Join(r.defaultBaseDir(), "accounts.json"), nil
+}</span>
 
 // EnsureParentDirsForFile creates the parent directory of filePath if needed (idempotent).
 // It MUST be called before writing the accounts file when the directory may not exist yet.
-func (r *AccountsFilePathResolver) EnsureParentDirsForFile(filePath string) error <span class="cov9" title="57">{
+func (r *AccountsFilePathResolver) EnsureParentDirsForFile(filePath string) error <span class="cov9" title="58">{
         if filePath == "" </span><span class="cov1" title="1">{
                 return errors.New("accounts file path is empty")
         }</span>
 
-        <span class="cov9" title="56">dir := filepath.Dir(filepath.Clean(filePath))
-        if err := os.MkdirAll(dir, accountsFileParentDirPerm); err != nil </span><span class="cov0" title="0">{
+        <span class="cov9" title="57">dir := filepath.Dir(filepath.Clean(filePath))
+        if err := os.MkdirAll(dir, accountsFileParentDirPerm); err != nil </span><span class="cov1" title="1">{
                 return fmt.Errorf("create accounts file parent directory %q: %w", dir, err)
         }</span>
 
@@ -8382,7 +8383,7 @@ type ClientFactory struct {
 }
 
 // NewClientFactory creates a new client factory.
-func NewClientFactory(deps ClientFactoryDeps) *ClientFactory <span class="cov10" title="108">{
+func NewClientFactory(deps ClientFactoryDeps) *ClientFactory <span class="cov10" title="109">{
         return &amp;ClientFactory{
                 logger: deps.RootLogger.WithGroup("http-client-factory"),
         }
@@ -8391,7 +8392,7 @@ func NewClientFactory(deps ClientFactoryDeps) *ClientFactory <span class="cov10"
 // CreateClient creates a new HTTP client with the specified options.
 // Middleware is applied in the order: Logging -&gt; Auth -&gt; ErrorHandling -&gt; BaseTransport
 // This ensures logging captures the full request lifecycle, auth adds headers, and error handling catches issues.
-func (f *ClientFactory) CreateClient(options ...ClientOption) *http.Client <span class="cov10" title="108">{
+func (f *ClientFactory) CreateClient(options ...ClientOption) *http.Client <span class="cov10" title="109">{
         config := &amp;clientConfig{
                 timeout:             defaultClientTimeout,
                 enableAuth:          true, // Default: enabled
@@ -8404,31 +8405,31 @@ func (f *ClientFactory) CreateClient(options ...ClientOption) *http.Client <span
         }</span>
 
         // Start with the base transport
-        <span class="cov10" title="108">transport := http.DefaultTransport
+        <span class="cov10" title="109">transport := http.DefaultTransport
 
         // Apply middleware in reverse order (innermost to outermost)
         // Error handling middleware is applied closest to the base transport
-        if config.enableErrorHandling </span><span class="cov9" title="107">{
+        if config.enableErrorHandling </span><span class="cov9" title="108">{
                 transport = middleware.NewErrorHandlingMiddleware(transport, middleware.ErrorHandlingMiddlewareDeps{
                         RootLogger: f.logger,
                 })
         }</span>
 
         // Auth middleware wraps error handling
-        <span class="cov10" title="108">if config.enableAuth </span><span class="cov9" title="107">{
+        <span class="cov10" title="109">if config.enableAuth </span><span class="cov9" title="108">{
                 transport = middleware.NewAuthenticationMiddleware(transport, middleware.AuthenticationMiddlewareDeps{
                         RootLogger: f.logger,
                 })
         }</span>
 
         // Logging middleware is outermost to capture full request lifecycle
-        <span class="cov10" title="108">if config.enableLogging </span><span class="cov9" title="107">{
+        <span class="cov10" title="109">if config.enableLogging </span><span class="cov9" title="108">{
                 transport = middleware.NewLoggingMiddleware(transport, middleware.LoggingMiddlewareDeps{
                         RootLogger: f.logger,
                 })
         }</span>
 
-        <span class="cov10" title="108">return &amp;http.Client{
+        <span class="cov10" title="109">return &amp;http.Client{
                 Transport: transport,
                 Timeout:   config.timeout,
         }</span>
@@ -8453,7 +8454,7 @@ type Token struct {
 }
 
 // WithAuthTokenV2 adds a Token struct to the context.
-func WithAuthTokenV2(ctx context.Context, token Token) context.Context <span class="cov9" title="71">{
+func WithAuthTokenV2(ctx context.Context, token Token) context.Context <span class="cov9" title="72">{
         return context.WithValue(ctx, authTokenKey{}, token)
 }</span>
 
@@ -8463,7 +8464,7 @@ func WithAuthToken(ctx context.Context, token string) context.Context <span clas
 }</span>
 
 // AuthTokenFromContext extracts the Token from the context.
-func AuthTokenFromContext(ctx context.Context) (Token, bool) <span class="cov9" title="70">{
+func AuthTokenFromContext(ctx context.Context) (Token, bool) <span class="cov9" title="71">{
         token, ok := ctx.Value(authTokenKey{}).(Token)
         return token, ok
 }</span>
@@ -8481,7 +8482,7 @@ type AuthenticationMiddleware struct {
 
 // NewAuthenticationMiddleware creates a new authentication middleware
 // Tokens are injected via context using WithAuthToken.
-func NewAuthenticationMiddleware(transport http.RoundTripper, deps AuthenticationMiddlewareDeps) http.RoundTripper <span class="cov10" title="111">{
+func NewAuthenticationMiddleware(transport http.RoundTripper, deps AuthenticationMiddlewareDeps) http.RoundTripper <span class="cov10" title="112">{
         return &amp;AuthenticationMiddleware{
                 transport: transport,
                 logger:    deps.RootLogger.WithGroup("http-auth-middleware"),
@@ -8490,7 +8491,7 @@ func NewAuthenticationMiddleware(transport http.RoundTripper, deps Authenticatio
 
 // RoundTrip implements [http.RoundTripper].
 // Extracts token from context and adds Authorization header.
-func (a *AuthenticationMiddleware) RoundTrip(req *http.Request) (*http.Response, error) <span class="cov9" title="69">{
+func (a *AuthenticationMiddleware) RoundTrip(req *http.Request) (*http.Response, error) <span class="cov9" title="70">{
         // Extract token from context
         token, hasToken := AuthTokenFromContext(req.Context())
 
@@ -8504,7 +8505,7 @@ func (a *AuthenticationMiddleware) RoundTrip(req *http.Request) (*http.Response,
         }</span>
 
         // Clone the request to avoid modifying the original
-        <span class="cov9" title="67">clonedReq := req.Clone(req.Context())
+        <span class="cov9" title="68">clonedReq := req.Clone(req.Context())
 
         // Add Authorization header
         clonedReq.Header.Set("Authorization", token.Type+" "+token.Value)
@@ -8571,7 +8572,7 @@ type ErrorHandlingMiddleware struct {
 }
 
 // NewErrorHandlingMiddleware creates a new error handling middleware.
-func NewErrorHandlingMiddleware(transport http.RoundTripper, deps ErrorHandlingMiddlewareDeps) http.RoundTripper <span class="cov10" title="112">{
+func NewErrorHandlingMiddleware(transport http.RoundTripper, deps ErrorHandlingMiddlewareDeps) http.RoundTripper <span class="cov10" title="113">{
         return &amp;ErrorHandlingMiddleware{
                 transport: transport,
                 logger:    deps.RootLogger.WithGroup("http-error-middleware"),
@@ -8580,7 +8581,7 @@ func NewErrorHandlingMiddleware(transport http.RoundTripper, deps ErrorHandlingM
 
 // RoundTrip implements [http.RoundTripper].
 // Handles HTTP errors by wrapping non-2xx responses and transport errors in HTTPError.
-func (e *ErrorHandlingMiddleware) RoundTrip(req *http.Request) (*http.Response, error) <span class="cov9" title="70">{
+func (e *ErrorHandlingMiddleware) RoundTrip(req *http.Request) (*http.Response, error) <span class="cov9" title="71">{
         // Call next transport
         resp, err := e.transport.RoundTrip(req)
 
@@ -8602,7 +8603,7 @@ func (e *ErrorHandlingMiddleware) RoundTrip(req *http.Request) (*http.Response, 
         }</span>
 
         // Handle HTTP error status codes
-        <span class="cov9" title="69">if resp.StatusCode &gt;= httpStatusClientErrorMin </span><span class="cov6" title="22">{
+        <span class="cov9" title="70">if resp.StatusCode &gt;= httpStatusClientErrorMin </span><span class="cov6" title="22">{
                 message := httpErrorMessageForStatus(resp.StatusCode, resp.Status)
 
                 httpErr := &amp;HTTPError{
@@ -8640,7 +8641,7 @@ func (e *ErrorHandlingMiddleware) RoundTrip(req *http.Request) (*http.Response, 
         }
 
         // Success case - pass through unchanged
-        <span class="cov8" title="47">return resp, nil</span>
+        <span class="cov8" title="48">return resp, nil</span>
 }
 </pre>
 		
@@ -8664,7 +8665,7 @@ type LoggingMiddleware struct {
 }
 
 // NewLoggingMiddleware creates a new logging middleware.
-func NewLoggingMiddleware(transport http.RoundTripper, deps LoggingMiddlewareDeps) http.RoundTripper <span class="cov10" title="110">{
+func NewLoggingMiddleware(transport http.RoundTripper, deps LoggingMiddlewareDeps) http.RoundTripper <span class="cov10" title="111">{
         return &amp;LoggingMiddleware{
                 transport: transport,
                 logger:    deps.RootLogger.WithGroup("http-logging-middleware"),
@@ -8673,7 +8674,7 @@ func NewLoggingMiddleware(transport http.RoundTripper, deps LoggingMiddlewareDep
 
 // RoundTrip implements [http.RoundTripper].
 // Logs request and response details with structured logging.
-func (l *LoggingMiddleware) RoundTrip(req *http.Request) (*http.Response, error) <span class="cov9" title="68">{
+func (l *LoggingMiddleware) RoundTrip(req *http.Request) (*http.Response, error) <span class="cov9" title="69">{
         start := time.Now()
 
         // Log request
@@ -8698,7 +8699,7 @@ func (l *LoggingMiddleware) RoundTrip(req *http.Request) (*http.Response, error)
                 return nil, err
         }</span>
 
-        <span class="cov8" title="47">l.logger.DebugContext(req.Context(), "HTTP request completed",
+        <span class="cov8" title="48">l.logger.DebugContext(req.Context(), "HTTP request completed",
                 slog.String("method", req.Method),
                 slog.String("url", req.URL.String()),
                 slog.Int("status_code", resp.StatusCode),
@@ -8741,37 +8742,37 @@ func SendRequest[TBody any, TTarget any](
         ctx context.Context,
         client *http.Client,
         params SendRequestParams[TBody, TTarget],
-) error <span class="cov10" title="61">{
+) error <span class="cov10" title="62">{
         var reqBody bytes.Buffer
-        if params.Body != nil </span><span class="cov8" title="25">{
+        if params.Body != nil </span><span class="cov8" title="26">{
                 if err := json.NewEncoder(&amp;reqBody).Encode(params.Body); err != nil </span><span class="cov1" title="1">{
                         return fmt.Errorf("failed to marshal request body: %w", err)
                 }</span>
         }
 
-        <span class="cov9" title="60">req, err := http.NewRequestWithContext(ctx, params.Method, params.URL, &amp;reqBody)
+        <span class="cov9" title="61">req, err := http.NewRequestWithContext(ctx, params.Method, params.URL, &amp;reqBody)
         if err != nil </span><span class="cov0" title="0">{
                 return fmt.Errorf("failed to create HTTP request: %w", err)
         }</span>
 
-        <span class="cov9" title="60">if params.Body != nil </span><span class="cov7" title="24">{
+        <span class="cov9" title="61">if params.Body != nil </span><span class="cov8" title="25">{
                 req.Header.Set("Content-Type", "application/json")
         }</span>
 
         //nolint:gosec // G704: callers supply URLs for known API endpoints.
-        <span class="cov9" title="60">resp, err := client.Do(req)
+        <span class="cov9" title="61">resp, err := client.Do(req)
         if err != nil </span><span class="cov7" title="19">{
                 return fmt.Errorf("HTTP request failed: %w", err)
         }</span>
-        <span class="cov9" title="41">defer resp.Body.Close()
+        <span class="cov9" title="42">defer resp.Body.Close()
 
-        if params.Target != nil </span><span class="cov8" title="36">{
+        if params.Target != nil </span><span class="cov8" title="37">{
                 if err = json.NewDecoder(resp.Body).Decode(params.Target); err != nil </span><span class="cov1" title="1">{
                         return fmt.Errorf("failed to unmarshal response into target: %w", err)
                 }</span>
         }
 
-        <span class="cov9" title="40">return nil</span>
+        <span class="cov9" title="41">return nil</span>
 }
 </pre>
 		
@@ -9229,13 +9230,15 @@ import (
 // GetMock is a helper function to get a mock from a given instance.
 // Note: This should only be used internally in tests.
 //
-//nolint:ireturn // Generic test helper returns the requested mock type.
-func GetMock[TOutput any](t *testing.T, input any) TOutput <span class="cov10" title="131">{
+//nolint:ireturn // test helper intentionally returns caller-selected generic type
+func GetMock[TOutput any](t *testing.T, input any) TOutput <span class="cov10" title="134">{
+        t.Helper()
+
         mock, ok := input.(TOutput)
         if !ok </span><span class="cov0" title="0">{
                 t.Fatalf("input is not a %T", input)
         }</span>
-        <span class="cov10" title="131">return mock</span>
+        <span class="cov10" title="134">return mock</span>
 }
 </pre>
 		
