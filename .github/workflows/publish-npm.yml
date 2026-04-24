@@ -33,25 +33,9 @@ jobs:
       - name: Install Go dependencies
         run: go mod download && go install tool
 
-      - name: Build binaries (all platforms)
-        run: make -C build dist
-
-      - name: Populate npm packages
+      - name: Publish npm packages
         env:
           NPM_VERSION: ${{ github.event.release.tag_name }}
         run: |
           VERSION="${NPM_VERSION#v}"
-          make -C build npm-packages VERSION="$VERSION"
-
-      - name: Publish platform packages
-        env:
-          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
-        run: |
-          for pkg in npm/install-linux-x64 npm/install-linux-arm64 npm/install-darwin-x64 npm/install-darwin-arm64; do
-            npm publish "$pkg" --provenance --access public
-          done
-
-      - name: Publish main package
-        env:
-          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
-        run: npm publish npm/install --provenance --access public
+          make -C build npm/publish VERSION="$VERSION"

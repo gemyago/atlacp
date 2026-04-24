@@ -11,6 +11,7 @@
 ## Build Artifacts
 - Build multi-platform binaries (from this dir): `make dist`
 - Populate npm packages with built binaries and versions: `make npm/packages VERSION=1.2.3` (compat alias: `make npm-packages VERSION=1.2.3`; requires `jq` and `npm`)
+- Publish npm packages: `make npm/publish VERSION=1.2.3` (requires npm auth)
 - Package artifacts tarball: `make build-artifacts.tar.bz2`
 - Clean outputs: `make clean`
 

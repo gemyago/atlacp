@@ -20,6 +20,12 @@ make npm-packages VERSION=1.2.3
 
 Generated npm package workspaces and tarballs are written to `build/npm/packages/`.
 
+Publish all platform packages first, then the root installer package:
+
+```sh
+make npm/publish VERSION=1.2.3
+```
+
 ## Docker
 
 To enable multi-platform builds please enable [container image storage](https://docs.docker.com/build/building/multi-platform/#prerequisites) for your docker daemon.

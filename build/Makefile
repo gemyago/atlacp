@@ -87,8 +87,10 @@ npm_packages_dir := npm/packages
 npm_install_src_dir := npm/install
 npm_platform_package_json := $(patsubst %,npm/packages/%/package.json,$(subst $(comma), ,$(platforms)))
 npm_platform_packages := $(patsubst %,npm/packages/%/.packed,$(subst $(comma), ,$(platforms)))
+npm_platform_published := $(patsubst %,npm/packages/%/.published,$(subst $(comma), ,$(platforms)))
 npm_install_sources := $(wildcard $(npm_install_src_dir)/*.mjs)
 npm_generated_install_sources := $(patsubst $(npm_install_src_dir)/%,$(npm_packages_dir)/install/%,$(npm_install_sources))
+npm_publish_flags ?= --provenance --access public
 .SECONDARY: $(npm_platform_package_json) npm/packages/install/package.json
 
 # Convert platform tuple to template suffix (linux/amd64 -> linux-amd64)
@@ -134,6 +136,17 @@ npm/packages/install/.packed: npm/packages/install/package.json $(npm_generated_
 .PHONY: npm/packages npm-packages
 npm/packages: npm/packages/check-version $(npm_platform_packages) npm/packages/install/.packed
 npm-packages: npm/packages
+
+npm/packages/%/.published: npm/packages/%/.packed
+	cd $(dir $<) && npm publish $(npm_publish_flags)
+	touch $@
+
+npm/packages/install/.published: npm/packages/install/.packed $(npm_platform_published)
+	cd $(dir $<) && npm publish $(npm_publish_flags)
+	touch $@
+
+.PHONY: npm/publish
+npm/publish: npm/packages/check-version $(npm_platform_published) npm/packages/install/.published
 
 .build-artifacts: dist
 	@echo ./dist > $@
