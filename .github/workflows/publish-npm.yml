@@ -3,6 +3,12 @@ name: Publish npm Packages
 on:
   release:
     types: [published]
+  workflow_dispatch:
+    inputs:
+      version:
+        description: Version to publish (for example: v1.2.3)
+        required: true
+        type: string
 
 permissions:
   id-token: write
@@ -16,7 +22,8 @@ jobs:
       - name: Checkout code
         uses: actions/checkout@v4
         with:
-          ref: ${{ github.event.release.tag_name }}
+          ref: ${{ github.event.inputs.version || github.event.release.tag_name }}
+          fetch-depth: 0
 
       - name: Set up Go
         uses: actions/setup-go@v5
@@ -35,7 +42,15 @@ jobs:
 
       - name: Publish npm packages
         env:
-          NPM_VERSION: ${{ github.event.release.tag_name }}
+          VERSION_INPUT: ${{ github.event.inputs.version }}
+          RELEASE_VERSION: ${{ github.event.release.tag_name }}
         run: |
-          VERSION="${NPM_VERSION#v}"
+          VERSION="${VERSION_INPUT:-$RELEASE_VERSION}"
+
+          if [ -z "$VERSION" ]; then
+            echo "::error::Missing version. Use workflow_dispatch input 'version' or trigger from a release event."
+            exit 1
+          fi
+
+          VERSION="${VERSION#v}"
           make -C build npm/publish VERSION="$VERSION"
