@@ -5,4 +5,4 @@ PROJECT_DIR=$(dirname "$SCRIPT_DIR")
 
 set -euo pipefail
 
-bash -c "cd $PROJECT_DIR && go run ./cmd/mcp stdio"
+bash -c "cd $PROJECT_DIR && go run ./cmd/bbcp stdio"

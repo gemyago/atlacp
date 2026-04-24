@@ -1,0 +1,19 @@
+{
+  "name": "@atlacp/install",
+  "version": "0.0.0",
+  "description": "Install atlacp tools (bbcp, bbmd)",
+  "files": ["install.mjs"],
+  "scripts": {
+    "postinstall": "node install.mjs"
+  },
+  "optionalDependencies": {
+    "@atlacp/install-linux-amd64": "0.0.0",
+    "@atlacp/install-linux-arm64": "0.0.0",
+    "@atlacp/install-darwin-amd64": "0.0.0",
+    "@atlacp/install-darwin-arm64": "0.0.0"
+  },
+  "publishConfig": {
+    "access": "public",
+    "provenance": true
+  }
+}

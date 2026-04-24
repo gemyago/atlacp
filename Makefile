@@ -1,3 +1,5 @@
+include build/make/golangci-lint.mk
+
 .PHONY: tools test cmd
 
 cover_dir=.cover
@@ -8,17 +10,8 @@ cover_html=$(cover_dir)/coverage.html
 
 all: test
 
-bin/golangci-lint: .golangci-version
-	curl -sSfL https://raw.githubusercontent.com/golangci/golangci-lint/master/install.sh | sh -s $(shell cat .golangci-version)
-
-# CI (e.g. golangci-lint-action install-only) provides golangci-lint on PATH; locally use pinned bin/.
-ifeq ($(CI),true)
-lint:
-	golangci-lint run
-else
-lint: bin/golangci-lint
-	bin/golangci-lint run
-endif
+lint: $(GOLANGCI_LINT_PREREQS)
+	$(GOLANGCI_LINT_RUN)
 
 $(cover_dir):
 	mkdir -p $(cover_dir)

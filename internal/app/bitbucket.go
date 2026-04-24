@@ -837,6 +837,7 @@ type BitbucketAddPRCommentParams struct {
 	LineFrom      int
 	LineTo        int
 	Pending       bool
+	ParentID      int64
 }
 
 // AddPRComment adds a comment to a pull request (general or inline).
@@ -869,6 +870,7 @@ func (s *BitbucketService) AddPRComment(
 		LineTo:      params.LineTo,
 		Account:     params.AccountName,
 		Pending:     params.Pending,
+		ParentID:    params.ParentID,
 	}
 	return s.client.AddPRComment(ctx, tokenProvider, clientParams)
 }

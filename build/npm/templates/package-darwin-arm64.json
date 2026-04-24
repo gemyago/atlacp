@@ -1,0 +1,11 @@
+{
+  "name": "@atlacp/install-darwin-arm64",
+  "version": "0.0.0",
+  "os": ["darwin"],
+  "cpu": ["arm64"],
+  "files": ["bin/"],
+  "publishConfig": {
+    "access": "public",
+    "provenance": true
+  }
+}

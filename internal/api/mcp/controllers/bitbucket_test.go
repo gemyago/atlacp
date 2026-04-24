@@ -3218,6 +3218,7 @@ func TestBitbucketController(t *testing.T) {
 			filePath := faker.Word() + ".go"
 			lineFrom := 10 + rand.IntN(10)
 			lineTo := lineFrom + rand.IntN(5)
+			parentID := int(faker.RandomUnixTime()%1000000 + 1)
 
 			expectedParams := app.BitbucketAddPRCommentParams{
 				PullRequestID: prID,
@@ -3228,6 +3229,7 @@ func TestBitbucketController(t *testing.T) {
 				FilePath:      filePath,
 				LineFrom:      lineFrom,
 				LineTo:        lineTo,
+				ParentID:      int64(parentID),
 			}
 
 			expectedID := int64(456)
@@ -3242,7 +3244,8 @@ func TestBitbucketController(t *testing.T) {
 						params.Content == expectedParams.Content &&
 						params.FilePath == expectedParams.FilePath &&
 						params.LineFrom == expectedParams.LineFrom &&
-						params.LineTo == expectedParams.LineTo
+						params.LineTo == expectedParams.LineTo &&
+						params.ParentID == expectedParams.ParentID
 				})).
 				Return(expectedID, expectedContent, nil)
 
@@ -3250,14 +3253,15 @@ func TestBitbucketController(t *testing.T) {
 				Params: mcp.CallToolParams{
 					Name: "bitbucket_add_pr_comment",
 					Arguments: map[string]any{
-						"pr_id":            prID,
-						"repo_owner":       repoOwner,
-						"repo_name":        repoName,
-						"account":          account,
-						"comment_text":     commentText,
-						"file_path":        filePath,
-						"line_number_from": lineFrom,
-						"line_number_to":   lineTo,
+						"pr_id":             prID,
+						"repo_owner":        repoOwner,
+						"repo_name":         repoName,
+						"account":           account,
+						"comment_text":      commentText,
+						"file_path":         filePath,
+						"line_number_from":  lineFrom,
+						"line_number_to":    lineTo,
+						"parent_comment_id": parentID,
 					},
 				},
 			}

@@ -81,6 +81,73 @@ dist/%: FORCE
 dist: FORCE
 	@make -j4 $(dist_platforms)
 
+# npm package generation (template-driven, generated under build/npm/packages/)
+npm_templates_dir := npm/templates
+npm_packages_dir := npm/packages
+npm_install_src_dir := npm/install
+npm_platform_package_json := $(patsubst %,npm/packages/%/package.json,$(subst $(comma), ,$(platforms)))
+npm_platform_packages := $(patsubst %,npm/packages/%/.packed,$(subst $(comma), ,$(platforms)))
+npm_platform_published := $(patsubst %,npm/packages/%/.published,$(subst $(comma), ,$(platforms)))
+npm_install_sources := $(wildcard $(npm_install_src_dir)/*.mjs)
+npm_generated_install_sources := $(patsubst $(npm_install_src_dir)/%,$(npm_packages_dir)/install/%,$(npm_install_sources))
+npm_publish_flags ?= --provenance --access public
+.SECONDARY: $(npm_platform_package_json) npm/packages/install/package.json
+
+# Convert platform tuple to template suffix (linux/amd64 -> linux-amd64)
+define platform_template_suffix
+$(subst /,-,$(1))
+endef
+
+.PHONY: npm/packages/check-version
+npm/packages/check-version:
+	@test -n "$(VERSION)" || (echo "VERSION is required. Usage: make npm/packages VERSION=1.2.3"; exit 1)
+
+# Generate and pack one platform package workspace.
+# Example: make npm/packages/linux/amd64/.packed VERSION=1.2.3
+npm/packages/%/package.json: dist/% npm/packages/check-version FORCE
+	$(eval GOOS := $(word 1,$(subst /, ,$*)))
+	$(eval GOARCH := $(word 2,$(subst /, ,$*)))
+	$(eval TEMPLATE := $(npm_templates_dir)/package-$(call platform_template_suffix,$*).json)
+	@test -f "$(TEMPLATE)" || (echo "Missing template: $(TEMPLATE)"; exit 1)
+	mkdir -p $(dir $@)
+	jq '.version = "$(VERSION)"' "$(TEMPLATE)" > $@
+	rm -rf $(npm_packages_dir)/$*/bin
+	mkdir -p $(npm_packages_dir)/$*/bin
+	cp dist/$(GOOS)/$(GOARCH)/* $(npm_packages_dir)/$*/bin/
+	chmod +x $(npm_packages_dir)/$*/bin/*
+
+npm/packages/%/.packed: npm/packages/%/package.json
+	cd $(dir $<) && npm pack
+	touch $@
+
+$(npm_packages_dir)/install/%: $(npm_install_src_dir)/%
+	mkdir -p $(dir $@)
+	cp $< $@
+
+npm/packages/install/package.json: $(npm_templates_dir)/package-install.json npm/packages/check-version FORCE
+	mkdir -p $(dir $@)
+	jq '.version = "$(VERSION)" | .optionalDependencies |= with_entries(.value = "$(VERSION)")' \
+		$< > $@
+
+npm/packages/install/.packed: npm/packages/install/package.json $(npm_generated_install_sources)
+	cd $(dir $<) && npm pack
+	touch $@
+
+.PHONY: npm/packages npm-packages
+npm/packages: npm/packages/check-version $(npm_platform_packages) npm/packages/install/.packed
+npm-packages: npm/packages
+
+npm/packages/%/.published: npm/packages/%/.packed
+	cd $(dir $<) && npm publish $(npm_publish_flags)
+	touch $@
+
+npm/packages/install/.published: npm/packages/install/.packed $(npm_platform_published)
+	cd $(dir $<) && npm publish $(npm_publish_flags)
+	touch $@
+
+.PHONY: npm/publish
+npm/publish: npm/packages/check-version $(npm_platform_published) npm/packages/install/.published
+
 .build-artifacts: dist
 	@echo ./dist > $@
 
@@ -266,6 +333,7 @@ dist/clean:
 clean: docker/clean dist/clean
 	rm -rf .git-meta
 	rm -f .build-artifacts
+	rm -rf npm/packages
 	rm -f build-artifacts.tar.*
 	# Clean crane artifacts
 	rm -rf $(bin_dir)
@@ -278,3 +346,9 @@ test:
 
 	@echo "Running python script tests"
 	python -m unittest discover -s scripts/tests -p "test_*.py"
+
+	@echo "Running npm/scripts resolve-semver-tag.sh self-test"
+	./npm/scripts/resolve-npm-platform.sh --self-test
+
+	@echo "Running npm/scripts parse-semver-tag.sh self-test"
+	./npm/scripts/parse-semver-tag.sh --self-test

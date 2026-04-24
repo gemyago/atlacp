@@ -331,9 +331,19 @@ This test verifies the end-to-end functionality of the Bitbucket PR review tools
 
 6. **Add a general (non-inline) comment to the PR**
    - Use the `mcp.bitbucket_add_pr_comment` tool to add a general comment (not associated with a file or line) to the PR, such as "General comment for PR review tools test {timestamp}".
+   - Save the returned comment ID as `PARENT_COMMENT_ID` for the reply check.
    - Verify that the general comment appears in the PR's comment list and is not associated with any file or line number.
 
-7. **Resolve a PR comment and verify `resolved` in list JSON**
+7. **Add a reply to the general comment and verify parent linkage**
+   - Use the `mcp.bitbucket_add_pr_comment` tool to add another general comment with:
+     - comment_text: "Reply comment for PR review tools test {timestamp}"
+     - parent_comment_id: `PARENT_COMMENT_ID`
+   - Save the returned reply comment ID as `REPLY_COMMENT_ID`.
+   - Use the `mcp.bitbucket_list_pr_comments` tool to list all comments for the PR.
+   - Verify that the entry with ID `REPLY_COMMENT_ID` includes `parent.id` equal to `PARENT_COMMENT_ID`.
+   - Verify that the reply content matches "Reply comment for PR review tools test {timestamp}".
+
+8. **Resolve a PR comment and verify `resolved` in list JSON**
    - Pick a comment ID from step 4 or step 6 (inline thread root or general comment, as supported by Bitbucket for resolve).
    - Use the `mcp.bitbucket_resolve_pr_comment` tool with `pr_id`, `comment_id`, `repo_owner`, `repo_name`, and optional `account`.
    - Call `mcp.bitbucket_list_pr_comments` again and verify the JSON payload: the matching comment entry includes `resolved: true` (or document Bitbucket’s behavior if the thread cannot be resolved for that comment type).
