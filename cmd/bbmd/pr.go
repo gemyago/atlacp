@@ -553,6 +553,7 @@ func newPRAddCommentCmd(container *dig.Container, rootParams *rootCommandParams)
 		Content  string
 		FilePath string
 		Line     int
+		ParentID int64
 	}
 	cmd := &cobra.Command{
 		Use:   "add-comment",
@@ -565,6 +566,7 @@ func newPRAddCommentCmd(container *dig.Container, rootParams *rootCommandParams)
 				Content:       cmt.Content,
 				FilePath:      cmt.FilePath,
 				AccountName:   core.Account,
+				ParentID:      cmt.ParentID,
 			}
 			if cmd.Flags().Changed("line") {
 				params.LineFrom = cmt.Line
@@ -578,6 +580,7 @@ func newPRAddCommentCmd(container *dig.Container, rootParams *rootCommandParams)
 	cmd.Flags().StringVar(&cmt.Content, "content", "", "Comment content (raw)")
 	cmd.Flags().StringVar(&cmt.FilePath, "file-path", "", "File path for inline comments")
 	cmd.Flags().IntVar(&cmt.Line, "line", 0, "Line number for inline comments (sets from/to)")
+	cmd.Flags().Int64Var(&cmt.ParentID, "parent-comment-id", 0, "Parent comment ID for replies")
 	_ = cmd.MarkFlagRequired("content")
 	return cmd
 }

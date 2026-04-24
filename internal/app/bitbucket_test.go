@@ -2371,6 +2371,7 @@ func TestBitbucketService(t *testing.T) {
 						assert.Equal(t, prID, params.PullReqID)
 						assert.Equal(t, commentText, params.CommentText)
 						assert.Empty(t, params.FilePath)
+						assert.Zero(t, params.ParentID)
 						return true
 					}),
 				).
@@ -2383,6 +2384,58 @@ func TestBitbucketService(t *testing.T) {
 				RepoName:      repoName,
 				PullRequestID: prID,
 				Content:       commentText,
+			})
+
+			// Assert
+			require.NoError(t, err)
+			assert.Equal(t, expectedCommentID, commentID)
+			assert.Equal(t, expectedStatus, status)
+		})
+		t.Run("successfully adds a reply to a pull request comment", func(t *testing.T) {
+			// Arrange
+			deps := makeMockDeps(t)
+			mockClient := mocks.GetMock[*mockbitbucketClient](t, deps.Client)
+			mockAuth := mocks.GetMock[*mockbitbucketAuthFactory](t, deps.AuthFactory)
+			service := NewBitbucketService(deps)
+
+			accountName := "account-" + faker.Username()
+			repoOwner := "owner-" + faker.Username()
+			repoName := "repo-" + faker.Username()
+			prID := int(100 + faker.RandomUnixTime()%900)
+			commentText := faker.Sentence()
+			parentID := faker.RandomUnixTime()%1000000 + 1
+			expectedCommentID := int64(12345)
+			expectedStatus := "success"
+			token := "token-" + faker.UUIDHyphenated()
+			tokenProvider := newStaticTokenProvider(token)
+
+			mockAuth.EXPECT().
+				getTokenProvider(mock.Anything, accountName).
+				Return(tokenProviderFunc(tokenProvider.GetToken))
+
+			mockClient.EXPECT().
+				AddPRComment(
+					mock.Anything,
+					mock.Anything,
+					mock.MatchedBy(func(params bitbucket.AddPRCommentParams) bool {
+						assert.Equal(t, repoOwner, params.Workspace)
+						assert.Equal(t, repoName, params.RepoSlug)
+						assert.Equal(t, prID, params.PullReqID)
+						assert.Equal(t, commentText, params.CommentText)
+						assert.Equal(t, parentID, params.ParentID)
+						return true
+					}),
+				).
+				Return(expectedCommentID, expectedStatus, nil)
+
+			// Act
+			commentID, status, err := service.AddPRComment(t.Context(), BitbucketAddPRCommentParams{
+				AccountName:   accountName,
+				RepoOwner:     repoOwner,
+				RepoName:      repoName,
+				PullRequestID: prID,
+				Content:       commentText,
+				ParentID:      parentID,
 			})
 
 			// Assert

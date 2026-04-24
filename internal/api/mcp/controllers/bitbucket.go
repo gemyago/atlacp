@@ -1183,6 +1183,9 @@ func (bc *BitbucketController) newAddPRCommentServerTool() server.ServerTool {
 		mcp.WithBoolean("pending",
 			mcp.Description("Create as a pending comment (optional, defaults to false)"),
 		),
+		mcp.WithNumber("parent_comment_id",
+			mcp.Description("Parent comment ID for replies (optional)"),
+		),
 	)
 	handler := func(ctx context.Context, request mcp.CallToolRequest) (*mcp.CallToolResult, error) {
 		bc.logger.Debug("Received bitbucket_add_pr_comment request", "params", request.Params)
@@ -1211,6 +1214,7 @@ func (bc *BitbucketController) newAddPRCommentServerTool() server.ServerTool {
 		lineFrom := request.GetInt("line_number_from", 0)
 		lineTo := request.GetInt("line_number_to", 0)
 		pending := request.GetBool("pending", false)
+		parentID := request.GetInt("parent_comment_id", 0)
 
 		params := app.BitbucketAddPRCommentParams{
 			PullRequestID: prID,
@@ -1222,6 +1226,7 @@ func (bc *BitbucketController) newAddPRCommentServerTool() server.ServerTool {
 			LineFrom:      lineFrom,
 			LineTo:        lineTo,
 			Pending:       pending,
+			ParentID:      int64(parentID),
 		}
 
 		commentID, content, err := bc.bitbucketService.AddPRComment(ctx, params)

@@ -22,6 +22,7 @@ type AddPRCommentParams struct {
 	LineTo      int    // optional, for inline
 	Account     string // optional, for future use
 	Pending     bool   // optional, for pending comments
+	ParentID    int64  // optional, for threaded replies
 }
 
 // addPRCommentPayload matches the Bitbucket API for PR comments.
@@ -34,6 +35,9 @@ type addPRCommentPayload struct {
 		From int    `json:"from,omitempty"`
 		To   int    `json:"to,omitempty"`
 	} `json:"inline,omitempty"`
+	Parent *struct {
+		ID int64 `json:"id"`
+	} `json:"parent,omitempty"`
 	Pending bool `json:"pending,omitempty"`
 }
 
@@ -61,6 +65,11 @@ func (c *Client) AddPRComment(
 	payload := addPRCommentPayload{}
 	payload.Content.Raw = params.CommentText
 	payload.Pending = params.Pending
+	if params.ParentID > 0 {
+		payload.Parent = &struct {
+			ID int64 `json:"id"`
+		}{ID: params.ParentID}
+	}
 
 	// If file path is provided, treat as inline comment
 	if params.FilePath != "" {

@@ -359,7 +359,25 @@ Update the report per [Test Results Reporting](#test-results-reporting).
      --content "General comment for PR review tools test {timestamp}"
    ```
 
-8. **Resolve** — pick a comment id, then:
+   Save the returned comment ID as `PARENT_COMMENT_ID`.
+
+8. **Reply comment** — create a reply to the general comment and verify the parent linkage:
+
+   ```bash
+   bbmd pr add-comment --repo-owner "<workspace>" --repo-name "<slug>" --pr-id <PR_ID> \
+     --content "Reply comment for PR review tools test {timestamp}" \
+     --parent-comment-id <PARENT_COMMENT_ID>
+   ```
+
+   Save the returned comment ID as `REPLY_COMMENT_ID`, then list comments:
+
+   ```bash
+   bbmd pr list-comments --repo-owner "<workspace>" --repo-name "<slug>" --pr-id <PR_ID>
+   ```
+
+   Verify the entry with ID `REPLY_COMMENT_ID` includes `parent.id` equal to `PARENT_COMMENT_ID` and the expected reply content.
+
+9. **Resolve** — pick a comment id, then:
 
    ```bash
    bbmd pr resolve-comment --repo-owner "<workspace>" --repo-name "<slug>" --pr-id <PR_ID> --comment-id <ID>

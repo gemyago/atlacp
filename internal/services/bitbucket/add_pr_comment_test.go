@@ -126,6 +126,7 @@ func TestClient_AddPRComment(t *testing.T) {
 			}
 			assert.Equal(t, commentText, contentMap["raw"])
 			assert.Nil(t, payload["inline"])
+			assert.Nil(t, payload["parent"])
 
 			w.Header().Set("Content-Type", "application/json")
 			w.WriteHeader(http.StatusCreated)
@@ -141,6 +142,68 @@ func TestClient_AddPRComment(t *testing.T) {
 			RepoSlug:    repoSlug,
 			PullReqID:   pullReqID,
 			CommentText: commentText,
+		}
+
+		commentID, status, err := client.AddPRComment(t.Context(), mockTokenProvider, params)
+		require.NoError(t, err)
+		assert.Equal(t, expectedCommentID, commentID)
+		assert.Equal(t, expectedStatus, status)
+	})
+
+	t.Run("success with parent comment", func(t *testing.T) {
+		workspace := faker.Username()
+		repoSlug := faker.Username()
+		pullReqID := int(faker.RandomUnixTime()) % 10000
+		commentText := faker.Sentence()
+		parentID := faker.RandomUnixTime()
+
+		mockTokenProvider := &MockTokenProvider{
+			TokenType:  "Bearer",
+			TokenValue: faker.UUIDHyphenated(),
+		}
+
+		expectedCommentID := faker.RandomUnixTime()
+		expectedStatus := addPRCommentStatusSuccess
+		expectedComment := Comment{
+			ID:        expectedCommentID,
+			CreatedOn: time.Now(),
+			UpdatedOn: time.Now(),
+			Content:   &TaskContent{Raw: commentText},
+			User:      &Account{DisplayName: faker.Name()},
+		}
+
+		server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+			assert.Equal(t, "POST", r.Method)
+
+			var payload map[string]any
+			err := json.NewDecoder(r.Body).Decode(&payload)
+			assert.NoError(t, err)
+			contentMap, ok := payload["content"].(map[string]any)
+			if !assert.True(t, ok, "payload content is not a map") {
+				return
+			}
+			assert.Equal(t, commentText, contentMap["raw"])
+			parent, ok := payload["parent"].(map[string]any)
+			if !assert.True(t, ok, "payload parent is not a map") {
+				return
+			}
+			assert.InDelta(t, float64(parentID), parent["id"], 1e-9)
+
+			w.Header().Set("Content-Type", "application/json")
+			w.WriteHeader(http.StatusCreated)
+			_ = json.NewEncoder(w).Encode(expectedComment)
+		}))
+		defer server.Close()
+
+		deps := makeMockDepsWithTestName(t, server.URL)
+		client := NewClient(deps)
+
+		params := AddPRCommentParams{
+			Workspace:   workspace,
+			RepoSlug:    repoSlug,
+			PullReqID:   pullReqID,
+			CommentText: commentText,
+			ParentID:    parentID,
 		}
 
 		commentID, status, err := client.AddPRComment(t.Context(), mockTokenProvider, params)

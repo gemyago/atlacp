@@ -2,6 +2,19 @@
 
 These agents are local orchestration helpers and are typically gitignored.
 
+## MCPs
+
+Add to opencode.json
+```json
+  "mcp": {
+    "atlacp": {
+      "type": "remote",
+      "enabled": false,
+      "url": "http://localhost:8080"
+    }
+  }
+```
+
 ## Agent Files
 
 ### `implement-task.md`
