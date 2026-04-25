@@ -441,3 +441,5 @@ test:
 
 	@echo "Running npm/scripts parse-semver-tag.sh self-test"
 	./npm/scripts/parse-semver-tag.sh --self-test
+
+	node --test ./npm/install/install.test.mjs

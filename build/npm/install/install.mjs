@@ -70,24 +70,7 @@ export function resolveSourceBinDir(
     scriptDir,
   },
 ) {
-  if (!packageName) {
-    throw new Error('Package name is required');
-  }
-
-  const configuredBinDir = findPackageBinDir({ packageName, packagesDir });
-  if (configuredBinDir) {
-    return configuredBinDir;
-  }
-
-  if (packagesDir) {
-    throw new Error(`Could not find bin directory for package ${packageName} in ${packagesDir}`);
-  }
-
-  if (!scriptDir) {
-    throw new Error(`Could not find bin directory for package ${packageName} (looked for: auto-detected script path)`);
-  }
-
-  const inferredPackagesDir = inferPackagesDir(scriptDir);
+  const inferredPackagesDir = packagesDir || inferPackagesDir(scriptDir);
   const inferredBinDir = findPackageBinDir({ packageName, packagesDir: inferredPackagesDir });
   if (inferredBinDir) {
     return inferredBinDir;

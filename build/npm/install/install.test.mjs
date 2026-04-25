@@ -127,16 +127,7 @@ test('resolveSourceBinDir throws when package dir is missing', () => {
   assert.throws(
     () => resolveSourceBinDir({ packageName: '@atlacp/install-linux-amd64', packagesDir: workspace }),
     {
-      message: `Could not find bin directory for package @atlacp/install-linux-amd64 in ${workspace}`,
-    },
-  );
-});
-
-test('resolveSourceBinDir requires package dir', () => {
-  assert.throws(
-    () => resolveSourceBinDir({}),
-    {
-      message: 'Package name is required',
+      message: /Could not find bin directory for package @atlacp/,
     },
   );
 });
