@@ -2,6 +2,7 @@ import { accessSync } from 'node:fs';
 import {
   chmod,
   copyFile,
+  access,
   mkdir,
   readFile,
   readdir,
@@ -108,7 +109,7 @@ export function detectShellConfigFiles() {
   }
 
   if (shell.endsWith('bash')) {
-    return ['~/.bashrc'];
+    return ['~/.bashrc', '~/.profile'];
   }
 
   return ['~/.profile'];
@@ -138,11 +139,15 @@ export async function appendToPath(configFile, binDir) {
 
   let existingContent = '';
   try {
+    await access(configFilePath);
     existingContent = await readFile(configFilePath, 'utf8');
   } catch (err) {
     if (err?.code !== 'ENOENT') {
       throw err;
     }
+
+    console.log(`Skipping ${configFilePath}: file not found`);
+    return false;
   }
 
   if (isPathAlreadyConfigured(existingContent, binDir)) {
@@ -162,7 +167,7 @@ export async function appendToPath(configFile, binDir) {
 
   newContent += `${ATLACP_INSTALL_COMMENT}\n${SOURCE_ENV_LINE}\n\n`;
 
-  await ensureDir(path.dirname(configFilePath));
+  console.log(`Adding atlacp shell setup to ${configFilePath}`);
   await writeFile(configFilePath, newContent, 'utf8');
 
   return true;
@@ -208,7 +213,7 @@ export async function run() {
     await appendToPath(shellConfigFile, destinationBinDir);
   }
 
-  console.log(`Restart your shell or run: source ${SOURCE_ENV_LINE}`);
+  console.log(`Restart your shell or run: ${SOURCE_ENV_LINE}`);
 }
 
 if (process.argv[1] && import.meta.url === pathToFileURL(process.argv[1]).href) {
