@@ -24,33 +24,76 @@ export function detectPlatformPackage(platform = process.platform, arch = proces
   return mapping[`${platform}:${arch}`] ?? null;
 }
 
-export function findPlatformBinDir(packageName, baseDir = path.dirname(fileURLToPath(import.meta.url))) {
-  if (!packageName) {
-    throw new Error('Platform package name is required');
+export function findPackageBinDir(
+  {
+    packageName,
+    packagesDir,
+  },
+) {
+  if (!packagesDir || !packageName) {
+    return null;
   }
 
-  let currentDir = path.resolve(baseDir);
-  const packagePathParts = packageName.split('/');
+  const packageRoot = path.isAbsolute(packagesDir) ? packagesDir : path.resolve(process.cwd(), packagesDir);
+  const candidate = path.join(path.resolve(packageRoot), ...packageName.split('/'), 'bin');
+  try {
+    accessSync(candidate);
+    return candidate;
+  } catch {
+    return null;
+  }
+}
 
-  while (true) {
-    const binDir = path.join(currentDir, 'node_modules', ...packagePathParts, 'bin');
+function inferPackagesDir(scriptDir) {
+  const candidates = [
+    path.resolve(scriptDir, '..', 'packages'),
+    path.resolve(scriptDir, '..', '..'),
+  ];
 
+  for (const candidate of candidates) {
+    const markerPath = path.join(candidate, '@atlacp');
     try {
-      accessSync(binDir);
-      return binDir;
+      accessSync(markerPath);
+      return candidate;
     } catch {
-      // continue searching parent dirs
+      // continue
     }
-
-    const parentDir = path.dirname(currentDir);
-    if (parentDir === currentDir) {
-      break;
-    }
-
-    currentDir = parentDir;
   }
 
-  throw new Error(`Could not find bin directory for package ${packageName}`);
+  return candidates[0];
+}
+
+export function resolveSourceBinDir(
+  {
+    packageName,
+    packagesDir,
+    scriptDir,
+  },
+) {
+  if (!packageName) {
+    throw new Error('Package name is required');
+  }
+
+  const configuredBinDir = findPackageBinDir({ packageName, packagesDir });
+  if (configuredBinDir) {
+    return configuredBinDir;
+  }
+
+  if (packagesDir) {
+    throw new Error(`Could not find bin directory for package ${packageName} in ${packagesDir}`);
+  }
+
+  if (!scriptDir) {
+    throw new Error(`Could not find bin directory for package ${packageName} (looked for: auto-detected script path)`);
+  }
+
+  const inferredPackagesDir = inferPackagesDir(scriptDir);
+  const inferredBinDir = findPackageBinDir({ packageName, packagesDir: inferredPackagesDir });
+  if (inferredBinDir) {
+    return inferredBinDir;
+  }
+
+  throw new Error(`Could not find bin directory for package ${packageName} (looked for: ${inferredPackagesDir})`);
 }
 
 export async function ensureDir(dirPath) {
@@ -128,13 +171,19 @@ export async function appendToPath(configFile, binDir) {
 }
 
 export async function run() {
+  console.log(`Installing atlacp tools for ${process.platform}/${process.arch}`);
   const packageName = detectPlatformPackage();
   if (!packageName) {
     throw new Error(`Unsupported platform/architecture: ${process.platform}/${process.arch}`);
   }
+  console.log(`Detected platform package: ${packageName}`)
 
   const scriptDir = path.dirname(fileURLToPath(import.meta.url));
-  const sourceBinDir = findPlatformBinDir(packageName, scriptDir);
+  const sourceBinDir = resolveSourceBinDir({
+    packageName,
+    packagesDir: process.env.ATLACP_PACKAGES_DIR,
+    scriptDir,
+  });
   const installBaseDir = path.join(os.homedir(), '.atlacp');
   const destinationBinDir = path.join(installBaseDir, 'bin');
 

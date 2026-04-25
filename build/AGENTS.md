@@ -7,10 +7,17 @@
 ## Quick Setup
 - Install crane tool (auto): `make install-crane`
 - Optional (iterate Python scripts): `python -m venv .venv && source .venv/bin/activate && pip install -r ../requirements.txt`
+- To test installer script against local package workspaces: `ATLACP_PACKAGES_DIR=build/npm/packages node build/npm/install/install.mjs`
+- If running via non-interactive shells, direnv is not auto-sourced; use:
+  - `direnv allow .`
+  - `direnv exec . <command>` (example: `direnv exec . make test/npm-install`)
 
 ## Build Artifacts
 - Build multi-platform binaries (from this dir): `make dist`
 - Populate npm packages with built binaries and versions: `make npm/packages VERSION=1.2.3` (compat alias: `make npm-packages VERSION=1.2.3`; requires `jq` and `npm`)
+- Generated npm package workspaces are now under `build/npm/packages/@atlacp/`:
+  - `@atlacp/install-*` for platform packages
+  - `@atlacp/install` for installer package
 - Publish npm packages: `make npm/publish VERSION=1.2.3` (requires npm auth)
 - Package artifacts tarball: `make build-artifacts.tar.bz2`
 - Clean outputs: `make clean`
@@ -42,6 +49,14 @@
 - Global guidance: [../AGENTS.md](../AGENTS.md)
 
 ## Task Completion Protocol
+
+If changing any script, always run this command:
+```bash
+# From project root
+make -C build test
+```
+
+Then always report: "Tests (build/tests) passed."
 
 ### Npm contents or npm build process
 

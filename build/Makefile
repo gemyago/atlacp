@@ -89,25 +89,28 @@ dist: FORCE
 	@make -j4 $(dist_platforms)
 
 # npm package generation (template-driven, generated under build/npm/packages/)
+npm_platform_package_name = @atlacp/install-$(subst /,-,$(1))
+
 npm_templates_dir := npm/templates
 npm_packages_dir := npm/packages
 npm_packs_dir := npm/packages/packs
 npm_install_src_dir := npm/install
-npm_platform_package_json := $(patsubst %,npm/packages/%/package.json,$(subst $(comma), ,$(platforms)))
-npm_install_package_json := npm/packages/install/package.json
+npm_platform_package_json := $(foreach p,$(subst $(comma), ,$(platforms)),$(npm_packages_dir)/$(call npm_platform_package_name,$(p))/package.json)
+npm_install_package_json := npm/packages/@atlacp/install/package.json
 npm_publish_flags_file := npm/.publish-flags
 npm_pack_targets := $(foreach p,$(subst $(comma), ,$(platforms)),npm/packages/packs/atlacp-install-$(subst /,-,$(p))-$(VERSION).tgz) \
 	npm/packages/packs/atlacp-install-$(VERSION).tgz
 npm_pack_published := $(addsuffix .published,$(npm_pack_targets))
 npm_pack_unpublish := $(addsuffix .unpublished,$(npm_pack_targets))
 npm_install_sources := $(wildcard $(npm_install_src_dir)/*.mjs)
-npm_generated_install_sources := $(patsubst $(npm_install_src_dir)/%,$(npm_packages_dir)/install/%,$(npm_install_sources))
+npm_generated_install_sources := $(patsubst $(npm_install_src_dir)/%,$(npm_packages_dir)/@atlacp/install/%,$(npm_install_sources))
 NPM_PRERELEASE_TAG ?= alpha
 NPM_PUBLISH_DEFAULT_FLAGS_NO_CI := --access public --provenance=false
 NPM_PUBLISH_DEFAULT_FLAGS_CI := --access public --provenance
 NPM_PUBLISH_NOOP ?= true
 NPM_UNPUBLISH_NOOP ?= true
-.SECONDARY: $(npm_platform_package_json) npm/packages/install/package.json
+.SECONDARY: $(npm_platform_package_json) $(npm_install_package_json)
+.SECONDARY: npm/packages/@atlacp/install/package.json
 
 # Convert platform tuple to template suffix (linux/amd64 -> linux-amd64)
 define platform_template_suffix
@@ -115,10 +118,10 @@ $(subst /,-,$(1))
 endef
 
 define npm_platform_pack_rule
-$(2): $(npm_packages_dir)/$1/package.json $(npm_packages_dir)/.version
+$(2): $(npm_packages_dir)/@atlacp/install-$(call platform_template_suffix,$1)/package.json $(npm_packages_dir)/.version
 	@mkdir -p "$(npm_packs_dir)"
-	@cd "$(npm_packages_dir)/$1" && npm pack --json > "$(abspath $(2)).json"
-	@mv "$(npm_packages_dir)/$1/`cat "$(abspath $(2)).json" | jq -r '.[0].filename'`" "$(2)"; \
+	@cd "$(npm_packages_dir)/@atlacp/install-$(call platform_template_suffix,$1)" && npm pack --json > "$(abspath $(2)).json"
+	@mv "$(npm_packages_dir)/@atlacp/install-$(call platform_template_suffix,$1)/`cat "$(abspath $(2)).json" | jq -r '.[0].filename'`" "$(2)"; \
 	rm -f "$(abspath $(2)).json"
 	@touch "$(2)"
 endef
@@ -129,8 +132,8 @@ $(foreach platform,$(subst $(comma), ,$(platforms)),$(eval $(call npm_platform_p
 # Install package tarball.
 $(npm_packs_dir)/atlacp-install-$(VERSION).tgz: $(npm_install_package_json) $(npm_packages_dir)/.version
 	@mkdir -p "$(npm_packs_dir)"
-	@cd "$(npm_packages_dir)/install" && npm pack --json > "$(abspath $@).json"
-	@mv "$(npm_packages_dir)/install/`cat "$(abspath $@).json" | jq -r '.[0].filename'`" "$@"; \
+	@cd "$(npm_packages_dir)/@atlacp/install" && npm pack --json > "$(abspath $@).json"
+	@mv "$(npm_packages_dir)/@atlacp/install/`cat "$(abspath $@).json" | jq -r '.[0].filename'`" "$@"; \
 	rm -f "$(abspath $@).json"
 	@touch "$@"
 
@@ -147,32 +150,33 @@ npm/packages/.version: FORCE
 		echo "New version detected: $(VERSION)"; \
 		mv $@.tmp $@; \
 	fi
- 
+
 # Generate and pack one platform package workspace.
-# Example: make npm/packages/linux/amd64/package.json VERSION=1.2.3
-npm/packages/%/package.json: dist/% npm/packages/.version
-	$(eval GOOS := $(word 1,$(subst /, ,$*)))
-	$(eval GOARCH := $(word 2,$(subst /, ,$*)))
-	$(eval TEMPLATE := $(npm_templates_dir)/package-$(call platform_template_suffix,$*).json)
+# Example: make npm/packages/@atlacp/install-linux-amd64/package.json VERSION=1.2.3
+$(npm_packages_dir)/@atlacp/install-%/package.json: npm/packages/.version
+	$(eval PLATFORM_KEY := $(patsubst install-%,%,$(notdir $(patsubst %/,%,$(dir $@)))))
+	$(eval GOOS := $(word 1,$(subst -, ,$(PLATFORM_KEY))))
+	$(eval GOARCH := $(word 2,$(subst -, ,$(PLATFORM_KEY))))
+	$(eval TEMPLATE := $(npm_templates_dir)/package-$(PLATFORM_KEY).json)
 	@test -f "$(TEMPLATE)" || (echo "Missing template: $(TEMPLATE)"; exit 1)
 	mkdir -p $(dir $@)
 	jq '.version = "$(VERSION)"' "$(TEMPLATE)" > $@
-	rm -rf $(npm_packages_dir)/$*/bin
-	mkdir -p $(npm_packages_dir)/$*/bin
-	cp dist/$(GOOS)/$(GOARCH)/* $(npm_packages_dir)/$*/bin/
-	chmod +x $(npm_packages_dir)/$*/bin/*
+	rm -rf $(dir $@)bin
+	mkdir -p $(dir $@)bin
+	cp dist/$(GOOS)/$(GOARCH)/* $(dir $@)bin/
+	chmod +x $(dir $@)bin/*
 	cd $(dir $@) && npm pack
 
-$(npm_packages_dir)/install/%: $(npm_install_src_dir)/%
+$(npm_packages_dir)/@atlacp/install/%: $(npm_install_src_dir)/%
 	mkdir -p $(dir $@)
 	cp $< $@
 
-npm/packages/install/package.json: $(npm_templates_dir)/package-install.json $(npm_generated_install_sources) npm/packages/.version
+$(npm_packages_dir)/@atlacp/install/package.json: $(npm_templates_dir)/package-install.json $(npm_generated_install_sources) npm/packages/.version
 	mkdir -p $(dir $@)
 	jq '.version = "$(VERSION)" | .optionalDependencies |= with_entries(.value = "$(VERSION)")' \
 		$< > $@
 
-npm/packages/install/.packed: npm/packages/install/package.json $(npm_generated_install_sources)
+$(npm_packages_dir)/@atlacp/install/.packed: npm/packages/@atlacp/install/package.json $(npm_generated_install_sources)
 	cd $(dir $<) && npm pack
 	touch $@
 
@@ -194,12 +198,13 @@ $(npm_publish_flags_file): FORCE npm/packages/.version
 	}
 
 .PHONY: npm/packages npm-packages
-npm/packages: npm/packages/check-version $(npm_platform_packages) npm/packages/install/.packed
+npm/packages: npm/packages/.version $(npm_platform_package_json) npm/packages/@atlacp/install/.packed
 npm-packages: npm/packages
 
 	cd $(dir $@) && npm pack
 
-npm/packs.txt: npm/packages/.version $(npm_pack_targets)
+npm/packages/packs/packs.txt: npm/packages/.version $(npm_pack_targets)
+	@mkdir -p "$(npm_packs_dir)"
 	echo "$(npm_pack_targets)" | tr " " "\n" | sort > $@
 
 $(npm_packs_dir)/%.tgz.published: $(npm_packs_dir)/%.tgz $(npm_publish_flags_file)
