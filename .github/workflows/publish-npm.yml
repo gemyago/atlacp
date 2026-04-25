@@ -53,3 +53,16 @@ jobs:
 
           VERSION="${VERSION#v}"
           NPM_PUBLISH_NOOP=false make -C build npm/publish VERSION="$VERSION"
+
+      - name: Upload publish logs on failure
+        if: ${{ failure() }}
+        uses: actions/upload-artifact@v4
+        with:
+          name: npm-publish-logs-${{ github.run_id }}-${{ github.run_attempt }}
+          if-no-files-found: warn
+          retention-days: 7
+          path: |
+            build/npm/.publish-flags
+            build/npm/packs.txt
+            build/npm/packages/packs/*.published
+            /home/runner/.npm/_logs/*
