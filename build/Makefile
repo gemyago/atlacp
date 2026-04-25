@@ -95,13 +95,16 @@ npm_packs_dir := npm/packages/packs
 npm_install_src_dir := npm/install
 npm_platform_package_json := $(patsubst %,npm/packages/%/package.json,$(subst $(comma), ,$(platforms)))
 npm_install_package_json := npm/packages/install/package.json
+npm_publish_flags_file := npm/.publish-flags
 npm_pack_targets := $(foreach p,$(subst $(comma), ,$(platforms)),npm/packages/packs/atlacp-install-$(subst /,-,$(p))-$(VERSION).tgz) \
 	npm/packages/packs/atlacp-install-$(VERSION).tgz
 npm_pack_published := $(addsuffix .published,$(npm_pack_targets))
 npm_pack_unpublish := $(addsuffix .unpublished,$(npm_pack_targets))
 npm_install_sources := $(wildcard $(npm_install_src_dir)/*.mjs)
 npm_generated_install_sources := $(patsubst $(npm_install_src_dir)/%,$(npm_packages_dir)/install/%,$(npm_install_sources))
-npm_publish_flags ?= --provenance --access public
+NPM_PRERELEASE_TAG ?= alpha
+NPM_PUBLISH_DEFAULT_FLAGS_NO_CI := --access public --provenance=false
+NPM_PUBLISH_DEFAULT_FLAGS_CI := --access public --provenance
 NPM_PUBLISH_NOOP ?= true
 NPM_UNPUBLISH_NOOP ?= true
 .SECONDARY: $(npm_platform_package_json) npm/packages/install/package.json
@@ -173,6 +176,23 @@ npm/packages/install/.packed: npm/packages/install/package.json $(npm_generated_
 	cd $(dir $<) && npm pack
 	touch $@
 
+$(npm_publish_flags_file): FORCE npm/packages/.version
+	@mkdir -p "$(dir $@)"
+	@{ \
+	  if [ "$(CI)" = "true" ]; then \
+		flags="$(NPM_PUBLISH_DEFAULT_FLAGS_CI)"; \
+	  else \
+		flags="$(NPM_PUBLISH_DEFAULT_FLAGS_NO_CI)"; \
+	  fi; \
+	  if [ -n "$(npm_publish_flags)" ]; then \
+		flags="$(npm_publish_flags)"; \
+	  fi; \
+	  case "$(VERSION)" in \
+		*"-"*) flags="$$flags --tag $(NPM_PRERELEASE_TAG)";; \
+	  esac; \
+	  echo "$$flags" > "$@"; \
+	}
+
 .PHONY: npm/packages npm-packages
 npm/packages: npm/packages/check-version $(npm_platform_packages) npm/packages/install/.packed
 npm-packages: npm/packages
@@ -182,12 +202,14 @@ npm-packages: npm/packages
 npm/packs.txt: npm/packages/.version $(npm_pack_targets)
 	echo "$(npm_pack_targets)" | tr " " "\n" | sort > $@
 
-$(npm_packs_dir)/%.tgz.published: $(npm_packs_dir)/%.tgz
-ifeq ($(NPM_PUBLISH_NOOP),false)
-	npm publish $(npm_publish_flags) $<
-else
-	@echo "NPM_PUBLISH_NOOP=true: skipping publish for $<"
-endif
+$(npm_packs_dir)/%.tgz.published: $(npm_packs_dir)/%.tgz $(npm_publish_flags_file)
+	@echo "Publishing $(npm_packs_dir)/$*.tgz with flags: $$(cat $(npm_publish_flags_file))"
+	@flags=$$(cat $(npm_publish_flags_file)); \
+	if [ "$(NPM_PUBLISH_NOOP)" = "false" ]; then \
+		npm publish $$flags "$<"; \
+	else \
+		echo "NPM_PUBLISH_NOOP=true: skipping publish for $<"; \
+	fi
 	touch $@
 
 .PHONY: npm/publish
@@ -394,6 +416,7 @@ dist/clean:
 clean: docker/clean dist/clean
 	rm -rf .git-meta
 	rm -f .build-artifacts
+	rm -f npm/.publish-flags
 	rm -rf npm/packages
 	rm -f build-artifacts.tar.*
 	# Clean crane artifacts

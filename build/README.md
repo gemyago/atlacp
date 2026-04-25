@@ -33,10 +33,23 @@ make npm/publish VERSION=1.2.3
 `make npm/publish` runs with no-op publish behavior by default and writes:
 - `build/npm/packs.txt`
 - `build/npm/packages/packs/*.published`
+- effective publish args to `build/npm/.publish-flags` (for CI detection + prerelease tagging)
 
 To perform real publish actions, pass:
 ```sh
 NPM_PUBLISH_NOOP=false make npm/publish VERSION=1.2.3
+# for prerelease versions (for example, 1.2.3-dev0), this also uses:
+# --tag $(NPM_PRERELEASE_TAG), defaulting to --tag alpha
+```
+
+Inspect resolved flags before publishing:
+```sh
+cat build/npm/.publish-flags
+```
+
+You can override them explicitly:
+```sh
+NPM_PUBLISH_DEFAULT_FLAGS_NO_CI="--access public --tag next --dry-run" NPM_PUBLISH_NOOP=false make npm/publish VERSION=0.0.0-dev0
 ```
 
 To revert previously published artifacts in the same list:
