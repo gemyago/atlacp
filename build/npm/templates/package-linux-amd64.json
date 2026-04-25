@@ -1,6 +1,10 @@
 {
   "name": "@atlacp/install-linux-amd64",
   "version": "0.0.0",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/gemyago/atlacp.git"
+  },
   "os": ["linux"],
   "cpu": ["x64"],
   "files": ["bin/"],

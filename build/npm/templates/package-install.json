@@ -2,6 +2,10 @@
   "name": "@atlacp/install",
   "version": "0.0.0",
   "description": "Install atlacp tools (bbcp, bbmd)",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/gemyago/atlacp.git"
+  },
   "files": ["install.mjs"],
   "scripts": {
     "postinstall": "node install.mjs"
