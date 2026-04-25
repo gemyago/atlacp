@@ -53,4 +53,4 @@ jobs:
           fi
 
           VERSION="${VERSION#v}"
-          make -C build npm/publish VERSION="$VERSION"
+          NPM_PUBLISH_NOOP=false make -C build npm/publish VERSION="$VERSION"
