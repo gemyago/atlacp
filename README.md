@@ -12,53 +12,7 @@ The project provides two entrypoints:
 
 Most users should start with `bbmd`. It does not require a long-running service and prints JSON for easy piping into scripts or agents.
 
-## Features
-
-### CLI Commands
-
-- `bbmd auth status` - list configured Atlassian accounts with redacted tokens.
-- `bbmd auth add` - add or replace an account in the local accounts file.
-- `bbmd auth remove` - remove an account by name.
-- `bbmd auth set-default` - choose the default account.
-- `bbmd pr create` - create a pull request.
-- `bbmd pr read` - read pull request details.
-- `bbmd pr update` - update pull request title, description, or draft state.
-- `bbmd pr approve` - approve a pull request.
-- `bbmd pr request-changes` - remove approval / request changes.
-- `bbmd pr merge` - merge a pull request.
-- `bbmd pr diffstat` - list changed files summary.
-- `bbmd pr diff` - get raw diff text.
-- `bbmd pr add-comment` - add a general or inline pull request comment.
-- `bbmd pr list-comments` - list pull request comments.
-- `bbmd pr resolve-comment` - resolve a pull request comment thread.
-- `bbmd pr list-tasks` - list pull request tasks.
-- `bbmd pr create-task` - create a pull request task.
-- `bbmd pr update-task` - update a pull request task.
-- `bbmd file content` - get file content at a commit.
-
-### MCP Tools
-
-- `bitbucket_add_pr_comment` - add a comment to a pull request.
-- `bitbucket_approve_pr` - approve a pull request.
-- `bitbucket_create_pr` - create a pull request.
-- `bitbucket_create_pr_task` - create a task on a pull request.
-- `bitbucket_get_file_content` - get the content of a file in a pull request.
-- `bitbucket_get_pr_diff` - get the diff of a pull request.
-- `bitbucket_get_pr_diffstat` - get the diffstat of a pull request.
-- `bitbucket_list_pr_tasks` - list tasks on a pull request.
-- `bitbucket_merge_pr` - merge a pull request.
-- `bitbucket_read_pr` - read a pull request.
-- `bitbucket_request_pr_changes` - request changes on a pull request.
-- `bitbucket_update_pr` - update a pull request.
-- `bitbucket_update_pr_task` - update a task on a pull request.
-
-### MCP Transports
-
-- Streamable HTTP at `http://localhost:8080`.
-- SSE at `http://localhost:8080/sse`.
-- STDIO via `bbcp stdio`.
-
-## Quick Start: CLI
+## Quick Install
 
 Install the binaries:
 
@@ -67,6 +21,8 @@ npm install -g @atlacp/install
 ```
 
 The installer places `bbmd` and `bbcp` in `~/.atlacp/bin` and updates your shell profile. Restart the shell, or source the updated profile before continuing.
+
+## Account Setup
 
 Configure a Bitbucket account:
 
@@ -124,7 +80,47 @@ bbmd file content \
 
 Use `--account <name>` on `pr` and `file` commands when you need a non-default account.
 
-## Account Configuration
+## Supported Commands
+
+### bbmd (CLI)
+
+- `bbmd auth status` - list configured Atlassian accounts with redacted tokens.
+- `bbmd auth add` - add or replace an account in the local accounts file.
+- `bbmd auth remove` - remove an account by name.
+- `bbmd auth set-default` - choose the default account.
+- `bbmd pr create` - create a pull request.
+- `bbmd pr read` - read pull request details.
+- `bbmd pr update` - update pull request title, description, or draft state.
+- `bbmd pr approve` - approve a pull request.
+- `bbmd pr request-changes` - remove approval / request changes.
+- `bbmd pr merge` - merge a pull request.
+- `bbmd pr diffstat` - list changed files summary.
+- `bbmd pr diff` - get raw diff text.
+- `bbmd pr add-comment` - add a general or inline pull request comment.
+- `bbmd pr list-comments` - list pull request comments.
+- `bbmd pr resolve-comment` - resolve a pull request comment thread.
+- `bbmd pr list-tasks` - list pull request tasks.
+- `bbmd pr create-task` - create a pull request task.
+- `bbmd pr update-task` - update a pull request task.
+- `bbmd file content` - get file content at a commit.
+
+### bbcp (MCP tools)
+
+- `bitbucket_add_pr_comment` - add a comment to a pull request.
+- `bitbucket_approve_pr` - approve a pull request.
+- `bitbucket_create_pr` - create a pull request.
+- `bitbucket_create_pr_task` - create a task on a pull request.
+- `bitbucket_get_file_content` - get the content of a file in a pull request.
+- `bitbucket_get_pr_diff` - get the diff of a pull request.
+- `bitbucket_get_pr_diffstat` - get the diffstat of a pull request.
+- `bitbucket_list_pr_tasks` - list tasks on a pull request.
+- `bitbucket_merge_pr` - merge a pull request.
+- `bitbucket_read_pr` - read a pull request.
+- `bitbucket_request_pr_changes` - request changes on a pull request.
+- `bitbucket_update_pr` - update a pull request.
+- `bitbucket_update_pr_task` - update a task on a pull request.
+
+### bbcp transport endpoints
 
 `bbmd auth add` writes the default accounts file to `~/.atlacp/accounts.json`. `bbmd` and `bbcp` both use this file by default.
 
@@ -155,6 +151,12 @@ More on Atlassian tokens:
 
 - [Personal API Tokens](https://support.atlassian.com/atlassian-account/docs/manage-api-tokens-for-your-atlassian-account/#Create-an-API-token) - use a `Basic` token value created from `email:api-token`, for example `printf '%s' '<email>:<api-token>' | base64`.
 - [Bitbucket Access Tokens](https://support.atlassian.com/bitbucket-cloud/docs/access-tokens/) - useful for bots and automation; commonly used with `--token-type Bearer`.
+
+Streamable HTTP at `http://localhost:8080`.
+
+SSE at `http://localhost:8080/sse`.
+
+STDIO via `bbcp stdio`.
 
 ## MCP Server
 
