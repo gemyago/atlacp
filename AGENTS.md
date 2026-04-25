@@ -46,6 +46,9 @@ AI must **always** use `--noop` flag to dry-run startup checks without external 
 - Render chart: `helm template deploy/helm/api-service --debug --name-template api-service -f deploy/helm/api-service/values.yaml`
 - Install/upgrade (dry-run): `helm upgrade api-service deploy/helm/api-service --install --namespace atlacp -f deploy/helm/api-service/values.yaml --create-namespace --dry-run`
 
+## Release Workflows
+- GitHub release publishing workflows should use GitHub Actions OIDC/provenance directly and avoid `actions/setup-node` registry auth injection unless a token-based publish path is explicitly required.
+
 ## Configuration & Environment
 - Embedded configs: `internal/config/default.json`, `<env>.json`, optional `<env>-user.json`
 - Common flags on all binaries: `--env`, `--log-level`, `--json-logs`, `--logs-file`
