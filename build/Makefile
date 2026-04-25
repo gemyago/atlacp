@@ -175,7 +175,6 @@ $(npm_packages_dir)/@atlacp/install/package.json: $(npm_templates_dir)/package-i
 	mkdir -p $(dir $@)
 	jq '.version = "$(VERSION)" | .optionalDependencies |= with_entries(.value = "$(VERSION)")' \
 		$< > $@
-	cd $(dir $<) && npm pack
 	touch $@
 
 $(npm_publish_flags_file): FORCE npm/packages/.version
@@ -197,7 +196,6 @@ $(npm_publish_flags_file): FORCE npm/packages/.version
 
 .PHONY: npm/packages npm-packages
 npm/packages: npm/packages/.version $(npm_platform_package_json) $(npm_packages_dir)/@atlacp/install/package.json
-	cd $(dir $@) && npm pack
 
 npm/packages/packs/packs.txt: npm/packages/.version $(npm_pack_targets)
 	@mkdir -p "$(npm_packs_dir)"
