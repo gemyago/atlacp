@@ -4,7 +4,7 @@
   "description": "Install atlacp tools (bbcp, bbmd)",
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/gemyago/atlacp.git"
+    "url": "https://github.com/gemyago/atlacp"
   },
   "files": ["install.mjs"],
   "scripts": {

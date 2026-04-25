@@ -3,7 +3,7 @@
   "version": "0.0.0",
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/gemyago/atlacp.git"
+    "url": "https://github.com/gemyago/atlacp"
   },
   "os": ["darwin"],
   "cpu": ["x64"],
