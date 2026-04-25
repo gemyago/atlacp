@@ -13,12 +13,6 @@ Generate npm installer packages from templates and compiled binaries:
 ```sh
 # Builds required `dist/<goos>/<goarch>` outputs and creates packed npm artifacts
 make npm/packages VERSION=1.2.3
-
-# Compatibility alias
-make npm-packages VERSION=1.2.3
-
-# Emit the generated pack manifest (paths to all tgz artifacts)
-make npm/packs.txt VERSION=1.2.3
 ```
 
 Generated package workspaces are written to `build/npm/packages/`.
