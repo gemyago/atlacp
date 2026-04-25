@@ -1,6 +1,10 @@
 {
   "name": "@atlacp/install-darwin-arm64",
   "version": "0.0.0",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/gemyago/atlacp"
+  },
   "os": ["darwin"],
   "cpu": ["arm64"],
   "files": ["bin/"],
