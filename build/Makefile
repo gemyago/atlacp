@@ -1,5 +1,9 @@
 .PHONY: FORCE
 .SECONDEXPANSION:
+.SECONDARY:
+
+# Prevent Make from deleting built platform directories after packaging succeeds.
+.PRECIOUS: dist/%
 
 app_name:=$(shell basename `git rev-parse --show-toplevel`)
 
@@ -22,6 +26,9 @@ ifeq ($(os_lower),darwin)
 else
 	detected_os ?= Linux
 endif
+
+# All Go sources participating in binary builds (across the repository tree).
+GO_SOURCES := $(strip $(shell find .. -name '*.go' -type f))
 
 detected_arch ?= $(shell uname -m)
 ifeq ($(detected_arch),x86_64)
@@ -71,7 +78,7 @@ dist_platforms:=$(patsubst %,dist/%,$(subst $(comma), ,$(platforms)))
 # If you care of the size, add -ldflags="-s -w"
 # but keep in mind that profiling will be challenging.
 # Disabled CGO explicitly speeds up the build. Remove if you need CGO.
-dist/%: FORCE
+dist/%: $(GO_SOURCES) ../go.mod ../go.sum
 	$(eval GOOS:=$(word 1,$(subst /, ,$*)))
 	$(eval GOARCH:=$(word 2,$(subst /, ,$*)))
 	CGO_ENABLED=0 GOOS=$(GOOS) GOARCH=$(GOARCH) go build -C .. \
@@ -84,13 +91,19 @@ dist: FORCE
 # npm package generation (template-driven, generated under build/npm/packages/)
 npm_templates_dir := npm/templates
 npm_packages_dir := npm/packages
+npm_packs_dir := npm/packages/packs
 npm_install_src_dir := npm/install
 npm_platform_package_json := $(patsubst %,npm/packages/%/package.json,$(subst $(comma), ,$(platforms)))
-npm_platform_packages := $(patsubst %,npm/packages/%/.packed,$(subst $(comma), ,$(platforms)))
-npm_platform_published := $(patsubst %,npm/packages/%/.published,$(subst $(comma), ,$(platforms)))
+npm_install_package_json := npm/packages/install/package.json
+npm_pack_targets := $(foreach p,$(subst $(comma), ,$(platforms)),npm/packages/packs/atlacp-install-$(subst /,-,$(p))-$(VERSION).tgz) \
+	npm/packages/packs/atlacp-install-$(VERSION).tgz
+npm_pack_published := $(addsuffix .published,$(npm_pack_targets))
+npm_pack_unpublish := $(addsuffix .unpublished,$(npm_pack_targets))
 npm_install_sources := $(wildcard $(npm_install_src_dir)/*.mjs)
 npm_generated_install_sources := $(patsubst $(npm_install_src_dir)/%,$(npm_packages_dir)/install/%,$(npm_install_sources))
 npm_publish_flags ?= --provenance --access public
+NPM_PUBLISH_NOOP ?= true
+NPM_UNPUBLISH_NOOP ?= true
 .SECONDARY: $(npm_platform_package_json) npm/packages/install/package.json
 
 # Convert platform tuple to template suffix (linux/amd64 -> linux-amd64)
@@ -98,13 +111,43 @@ define platform_template_suffix
 $(subst /,-,$(1))
 endef
 
-.PHONY: npm/packages/check-version
-npm/packages/check-version:
-	@test -n "$(VERSION)" || (echo "VERSION is required. Usage: make npm/packages VERSION=1.2.3"; exit 1)
+define npm_platform_pack_rule
+$(2): $(npm_packages_dir)/$1/package.json $(npm_packages_dir)/.version
+	@mkdir -p "$(npm_packs_dir)"
+	@cd "$(npm_packages_dir)/$1" && npm pack --json > "$(abspath $(2)).json"
+	@mv "$(npm_packages_dir)/$1/`cat "$(abspath $(2)).json" | jq -r '.[0].filename'`" "$(2)"; \
+	rm -f "$(abspath $(2)).json"
+	@touch "$(2)"
+endef
 
+$(foreach platform,$(subst $(comma), ,$(platforms)),$(eval $(call npm_platform_pack_rule,$(platform),$(npm_packs_dir)/atlacp-install-$(subst /,-,$(platform))-$(VERSION).tgz)))
+
+
+# Install package tarball.
+$(npm_packs_dir)/atlacp-install-$(VERSION).tgz: $(npm_install_package_json) $(npm_packages_dir)/.version
+	@mkdir -p "$(npm_packs_dir)"
+	@cd "$(npm_packages_dir)/install" && npm pack --json > "$(abspath $@).json"
+	@mv "$(npm_packages_dir)/install/`cat "$(abspath $@).json" | jq -r '.[0].filename'`" "$@"; \
+	rm -f "$(abspath $@).json"
+	@touch "$@"
+
+npm/packages/.version: FORCE
+	@if [ -z "$(VERSION)" ]; then \
+		echo "VERSION is required. Usage: make npm/packages VERSION=1.2.3"; exit 1; \
+	fi
+	@mkdir -p $(dir $@)
+	@printf "$(VERSION)" > $@.tmp
+	@if cmp -s $@ $@.tmp; then \
+		echo "Using cached version: $(VERSION)"; \
+		rm $@.tmp; \
+	else \
+		echo "New version detected: $(VERSION)"; \
+		mv $@.tmp $@; \
+	fi
+ 
 # Generate and pack one platform package workspace.
-# Example: make npm/packages/linux/amd64/.packed VERSION=1.2.3
-npm/packages/%/package.json: dist/% npm/packages/check-version FORCE
+# Example: make npm/packages/linux/amd64/package.json VERSION=1.2.3
+npm/packages/%/package.json: dist/% npm/packages/.version
 	$(eval GOOS := $(word 1,$(subst /, ,$*)))
 	$(eval GOARCH := $(word 2,$(subst /, ,$*)))
 	$(eval TEMPLATE := $(npm_templates_dir)/package-$(call platform_template_suffix,$*).json)
@@ -115,16 +158,13 @@ npm/packages/%/package.json: dist/% npm/packages/check-version FORCE
 	mkdir -p $(npm_packages_dir)/$*/bin
 	cp dist/$(GOOS)/$(GOARCH)/* $(npm_packages_dir)/$*/bin/
 	chmod +x $(npm_packages_dir)/$*/bin/*
-
-npm/packages/%/.packed: npm/packages/%/package.json
-	cd $(dir $<) && npm pack
-	touch $@
+	cd $(dir $@) && npm pack
 
 $(npm_packages_dir)/install/%: $(npm_install_src_dir)/%
 	mkdir -p $(dir $@)
 	cp $< $@
 
-npm/packages/install/package.json: $(npm_templates_dir)/package-install.json npm/packages/check-version FORCE
+npm/packages/install/package.json: $(npm_templates_dir)/package-install.json $(npm_generated_install_sources) npm/packages/.version
 	mkdir -p $(dir $@)
 	jq '.version = "$(VERSION)" | .optionalDependencies |= with_entries(.value = "$(VERSION)")' \
 		$< > $@
@@ -137,16 +177,37 @@ npm/packages/install/.packed: npm/packages/install/package.json $(npm_generated_
 npm/packages: npm/packages/check-version $(npm_platform_packages) npm/packages/install/.packed
 npm-packages: npm/packages
 
-npm/packages/%/.published: npm/packages/%/.packed
-	cd $(dir $<) && npm publish $(npm_publish_flags)
-	touch $@
+	cd $(dir $@) && npm pack
 
-npm/packages/install/.published: npm/packages/install/.packed $(npm_platform_published)
-	cd $(dir $<) && npm publish $(npm_publish_flags)
+npm/packs.txt: npm/packages/.version $(npm_pack_targets)
+	echo "$(npm_pack_targets)" | tr " " "\n" | sort > $@
+
+$(npm_packs_dir)/%.tgz.published: $(npm_packs_dir)/%.tgz
+ifeq ($(NPM_PUBLISH_NOOP),false)
+	npm publish $(npm_publish_flags) $<
+else
+	@echo "NPM_PUBLISH_NOOP=true: skipping publish for $<"
+endif
 	touch $@
 
 .PHONY: npm/publish
-npm/publish: npm/packages/check-version $(npm_platform_published) npm/packages/install/.published
+npm/publish: npm/packages/.version $(npm_pack_published)
+
+.PHONY: npm/unpublish
+npm/unpublish: npm/packages/.version $(npm_pack_unpublish)
+
+$(npm_packs_dir)/%.tgz.unpublished: $(npm_packs_dir)/%.tgz
+	@spec_and_version=$$(tar -xOf "$<" package/package.json | jq -r '.name + "@" + .version'); \
+	if [ "$(NPM_UNPUBLISH_NOOP)" = "false" ]; then \
+		npm unpublish "$${spec_and_version}"; \
+	else \
+		echo "NPM_UNPUBLISH_NOOP=true: skipping unpublish for $< ($${spec_and_version})"; \
+	fi
+	@touch "$@"
+
+.PHONY: npm/clean-published
+npm/clean-published:
+	rm -f $(npm_packs_dir)/*.published
 
 .build-artifacts: dist
 	@echo ./dist > $@
