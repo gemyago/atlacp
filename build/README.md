@@ -11,19 +11,56 @@ Golang binaries are build for platforms defined in [build.cfg](build.cfg) file (
 Generate npm installer packages from templates and compiled binaries:
 
 ```sh
-# Builds required dist/<goos>/<goarch> outputs and creates packed npm artifacts
+# Builds required `dist/<goos>/<goarch>` outputs and creates packed npm artifacts
 make npm/packages VERSION=1.2.3
 
 # Compatibility alias
 make npm-packages VERSION=1.2.3
+
+# Emit the generated pack manifest (paths to all tgz artifacts)
+make npm/packs.txt VERSION=1.2.3
 ```
 
-Generated npm package workspaces and tarballs are written to `build/npm/packages/`.
+Generated package workspaces are written to `build/npm/packages/`.
+Packed `.tgz` artifacts and publish markers are written to `build/npm/packages/packs/`.
 
-Publish all platform packages first, then the root installer package:
+Publish all platform packages and installer package:
 
 ```sh
 make npm/publish VERSION=1.2.3
+```
+
+`make npm/publish` runs with no-op publish behavior by default and writes:
+- `build/npm/packs.txt`
+- `build/npm/packages/packs/*.published`
+- effective publish args to `build/npm/.publish-flags` (for CI detection + prerelease tagging)
+
+To perform real publish actions, pass:
+```sh
+NPM_PUBLISH_NOOP=false make npm/publish VERSION=1.2.3
+# for prerelease versions (for example, 1.2.3-dev0), this also uses:
+# --tag $(NPM_PRERELEASE_TAG), defaulting to --tag alpha
+```
+
+Inspect resolved flags before publishing:
+```sh
+cat build/npm/.publish-flags
+```
+
+You can override them explicitly:
+```sh
+NPM_PUBLISH_DEFAULT_FLAGS_NO_CI="--access public --tag next --dry-run" NPM_PUBLISH_NOOP=false make npm/publish VERSION=0.0.0-dev0
+```
+
+To revert previously published artifacts in the same list:
+```sh
+make npm/unpublish VERSION=1.2.3        # no-op by default
+NPM_UNPUBLISH_NOOP=false make npm/unpublish VERSION=1.2.3
+```
+
+Clear local publish markers:
+```sh
+make npm/clean-published
 ```
 
 ## Docker

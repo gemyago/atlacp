@@ -40,3 +40,29 @@
 ## References
 - Build details: [build/README.md](README.md)
 - Global guidance: [../AGENTS.md](../AGENTS.md)
+
+## Task Completion Protocol
+
+### Npm contents or npm build process
+
+If changing anything related to npm building and packaging, always test like this before reporting as done:
+```bash
+make clean
+make npm/publish VERSION=0.0.0-dev0
+make npm/unpublish VERSION=0.0.0-dev0
+make npm/clean-published
+```
+
+This command defaults to no-op publish and still verifies generated artifacts.
+To perform real operations, pass:
+- `NPM_PUBLISH_NOOP=false`
+- `NPM_UNPUBLISH_NOOP=false`
+
+Review output of the above, make sure no errors. Verify these outputs:
+- `build/npm/packs.txt` exists and contains all expected tgz paths
+- `build/npm/packages/packs/*.published` files exist for each generated pack
+- Command output shows no accidental publish/unpublish when in noop mode
+- `NPM_PUBLISH_NOOP=false` and/or `NPM_UNPUBLISH_NOOP=false` are required for real actions
+- `npm/clean-published` removes all `.published` markers
+Report:
+- Run make: no errors
