@@ -141,6 +141,7 @@ export async function appendToPath(configFile, binDir) {
   }
 
   if (isPathAlreadyConfigured(existingContent, binDir)) {
+    console.log(`Atlacp PATH already configured in ${configFilePath}`);
     return false;
   }
 
@@ -170,15 +171,17 @@ export async function run() {
   const installBaseDir = path.join(os.homedir(), '.atlacp');
   const destinationBinDir = path.join(installBaseDir, 'bin');
 
+  console.log(`Copying ${sourceBinDir} to ${destinationBinDir}`)
   await ensureDir(destinationBinDir);
   await copyBinaries(sourceBinDir, destinationBinDir);
+  console.log('Binaries installed to ~/.atlacp/bin');
 
+  console.log(`Updating shell config files`);
   const shellConfigFiles = detectShellConfigFiles();
   for (const shellConfigFile of shellConfigFiles) {
     await appendToPath(shellConfigFile, destinationBinDir);
   }
 
-  console.log('atlacp binaries installed to ~/.atlacp/bin');
   console.log('Restart your shell or run: source ~/.profile (or your shell config file)');
 }
 
