@@ -12,6 +12,8 @@ import path from 'node:path';
 import { fileURLToPath, pathToFileURL } from 'node:url';
 
 const EXPORT_PATH_LINE = 'export PATH="$HOME/.atlacp/bin:$PATH"';
+const ATLACP_INSTALL_COMMENT = '# Added by @atlacp/install';
+const SOURCE_ENV_LINE = 'source ~/.atlacp/env.sh';
 
 export function detectPlatformPackage(platform = process.platform, arch = process.arch) {
   const mapping = {
@@ -117,7 +119,10 @@ export function isPathAlreadyConfigured(configFileContent, binDir) {
     return false;
   }
 
-  return configFileContent.includes('/.atlacp/bin') || configFileContent.includes(binDir);
+  return (
+    configFileContent.includes('source ~/.atlacp/env.sh')
+    || configFileContent.includes('source ~/.atlacp/env.sh;')
+  );
 }
 
 function expandHome(filePath) {
@@ -145,13 +150,31 @@ export async function appendToPath(configFile, binDir) {
     return false;
   }
 
-  const separator = existingContent.length > 0 && !existingContent.endsWith('\n') ? '\n' : '';
-  const newContent = `${existingContent}${separator}${EXPORT_PATH_LINE}\n`;
+  let newContent = existingContent;
+
+  if (newContent.length > 0 && !newContent.endsWith('\n')) {
+    newContent += '\n';
+  }
+
+  if (newContent.length > 0 && !newContent.endsWith('\n\n')) {
+    newContent += '\n';
+  }
+
+  newContent += `${ATLACP_INSTALL_COMMENT}\n${SOURCE_ENV_LINE}\n\n`;
 
   await ensureDir(path.dirname(configFilePath));
   await writeFile(configFilePath, newContent, 'utf8');
 
   return true;
+}
+
+async function writeEnvFile(installBaseDir) {
+  const envFilePath = path.join(installBaseDir, 'env.sh');
+  await writeFile(envFilePath, `${EXPORT_PATH_LINE}\n`, 'utf8');
+
+  console.log(`Created environment file ${envFilePath}`);
+
+  return envFilePath;
 }
 
 export async function run() {
@@ -176,13 +199,16 @@ export async function run() {
   await copyBinaries(sourceBinDir, destinationBinDir);
   console.log('Binaries installed to ~/.atlacp/bin');
 
+  console.log(`Writing Atlacp shell env file to ${installBaseDir}`);
+  await writeEnvFile(installBaseDir);
+
   console.log(`Updating shell config files`);
   const shellConfigFiles = detectShellConfigFiles();
   for (const shellConfigFile of shellConfigFiles) {
     await appendToPath(shellConfigFile, destinationBinDir);
   }
 
-  console.log('Restart your shell or run: source ~/.profile (or your shell config file)');
+  console.log(`Restart your shell or run: source ${SOURCE_ENV_LINE}`);
 }
 
 if (process.argv[1] && import.meta.url === pathToFileURL(process.argv[1]).href) {
