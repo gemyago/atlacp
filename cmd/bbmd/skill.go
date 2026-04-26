@@ -141,13 +141,10 @@ func renderSkillFlags(out *strings.Builder, heading string, fs *pflag.FlagSet) {
 		return
 	}
 	_, _ = out.WriteString("### " + heading + "\n\n")
-	fs.VisitAll(func(flag *pflag.Flag) {
-		if !shouldRenderFlag(flag) {
-			return
-		}
-		_, _ = out.WriteString("- " + renderFlag(flag) + "\n")
-	})
-	_, _ = out.WriteString("\n")
+
+	requiredFlags, optionalFlags := splitRenderableFlags(fs)
+	renderFlagGroup(out, "Required Parameters", requiredFlags)
+	renderFlagGroup(out, "Optional Parameters", optionalFlags)
 }
 
 func renderFlag(flag *pflag.Flag) string {
@@ -158,11 +155,19 @@ func renderFlag(flag *pflag.Flag) string {
 		name = fmt.Sprintf("`--%s`", flag.Name)
 	}
 
-	desc := strings.TrimSpace(flag.Usage)
-	if flag.NoOptDefVal != "" {
-		desc = strings.TrimSpace(desc + " (optional)")
+	return name + ": " + strings.TrimSpace(flag.Usage)
+}
+
+func renderFlagGroup(out *strings.Builder, heading string, flags []*pflag.Flag) {
+	if len(flags) == 0 {
+		return
 	}
-	return name + ": " + desc
+
+	_, _ = out.WriteString("#### " + heading + "\n\n")
+	for _, flag := range flags {
+		_, _ = out.WriteString("- " + renderFlag(flag) + "\n")
+	}
+	_, _ = out.WriteString("\n")
 }
 
 func containsRenderableFlags(fs *pflag.FlagSet) bool {
@@ -175,6 +180,36 @@ func containsRenderableFlags(fs *pflag.FlagSet) bool {
 
 func shouldRenderFlag(flag *pflag.Flag) bool {
 	return !flag.Hidden && flag.Name != commandHelpName
+}
+
+func splitRenderableFlags(fs *pflag.FlagSet) ([]*pflag.Flag, []*pflag.Flag) {
+	var required []*pflag.Flag
+	var optional []*pflag.Flag
+
+	fs.VisitAll(func(flag *pflag.Flag) {
+		if !shouldRenderFlag(flag) {
+			return
+		}
+		if isRequiredFlag(flag) {
+			required = append(required, flag)
+			return
+		}
+		optional = append(optional, flag)
+	})
+	return required, optional
+}
+
+func isRequiredFlag(flag *pflag.Flag) bool {
+	if flag == nil || flag.Annotations == nil {
+		return false
+	}
+
+	values, ok := flag.Annotations[cobra.BashCompOneRequiredFlag]
+	if !ok {
+		return false
+	}
+
+	return len(values) > 0 && values[0] == "true"
 }
 
 func shouldRenderInSkill(cmd *cobra.Command) bool {

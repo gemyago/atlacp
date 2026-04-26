@@ -67,6 +67,7 @@ func TestSkillCommand(t *testing.T) {
 		assert.Equal(t, root.Long, frontmatter["description"])
 		assert.True(t, strings.HasPrefix(body, "\n# bbmd CLI Skill\n\n"))
 		assert.Contains(t, body, "## Global Flags")
+		assert.Contains(t, body, "#### Optional Parameters")
 		assert.Contains(t, body, "### `bbmd pr`")
 		assert.Contains(t, body, "## `bbmd`")
 		assert.Contains(t, body, "bbmd pr add-comment")
@@ -81,6 +82,20 @@ func TestSkillCommand(t *testing.T) {
 		assert.NotContains(t, body, "bbmd auth remove")
 		assert.NotContains(t, body, "bbmd auth set-default")
 		assert.NotContains(t, body, "### `bbmd skill`")
+
+		createSection := strings.Split(strings.Split(body, "#### `bbmd pr create`\n\n")[1], "#### `bbmd pr create-task`\n\n")[0]
+		assert.Contains(t, createSection, "#### Required Parameters")
+		assert.Contains(t, createSection, "#### Optional Parameters")
+		assert.Less(
+			t,
+			strings.Index(createSection, "#### Required Parameters"),
+			strings.Index(createSection, "#### Optional Parameters"),
+		)
+		assert.Less(t, strings.Index(createSection, "--repo-owner"), strings.Index(createSection, "--account"))
+
+		statusSection := strings.Split(strings.Split(body, "#### `bbmd auth status`\n\n")[1], "### `bbmd file`\n\n")[0]
+		assert.NotContains(t, statusSection, "#### Required Parameters")
+		assert.NotContains(t, statusSection, "#### Optional Parameters")
 	})
 
 	t.Run("skill command skips bootstrap while operational commands still bootstrap", func(t *testing.T) {
@@ -211,21 +226,54 @@ func TestSkillCommandMetadataHelpers(t *testing.T) {
 		assert.Empty(t, strings.TrimSpace(out.String()))
 	})
 
-	t.Run("renders rendered flags and shorthand formatting", func(t *testing.T) {
+	t.Run("renders grouped flags and shorthand formatting", func(t *testing.T) {
 		t.Parallel()
 
 		var out strings.Builder
-		fs := pflag.NewFlagSet("test", pflag.ContinueOnError)
-		_ = fs.Int("count", 0, "count")
+		cmd := &cobra.Command{Use: "test"}
+		fs := cmd.Flags()
+		fs.String("repo", "", "repo")
+		fs.Int("count", 0, "count")
+		fs.BoolP("help", "h", false, "help")
+		fs.String("repo-hidden", "", "hidden")
 		fs.Lookup("count").Shorthand = "c"
-		fs.Lookup("count").NoOptDefVal = "optional"
-		_ = fs.BoolP("help", "h", false, "help")
+		require.NoError(t, fs.MarkHidden("help"))
+		require.NoError(t, fs.MarkHidden("repo-hidden"))
+		require.NoError(t, cmd.MarkFlagRequired("repo"))
 
 		renderSkillFlags(&out, "Flags", fs)
 		outStr := out.String()
 		assert.Contains(t, outStr, "### Flags")
-		assert.Contains(t, outStr, "`--count`, `-c`: count (optional)")
+		assert.Contains(t, outStr, "#### Required Parameters")
+		assert.Contains(t, outStr, "#### Optional Parameters")
+		assert.Contains(t, outStr, "`--repo`: repo")
+		assert.Contains(t, outStr, "`--count`, `-c`: count")
+		assert.Less(t, strings.Index(outStr, "`--repo`: repo"), strings.Index(outStr, "`--count`, `-c`: count"))
+		assert.NotContains(t, outStr, "(optional)")
 		assert.NotContains(t, outStr, "`--help`")
+		assert.NotContains(t, outStr, "repo-hidden")
+	})
+
+	t.Run("omits empty required or optional flag groups", func(t *testing.T) {
+		t.Parallel()
+
+		var out strings.Builder
+		requiredOnlyCmd := &cobra.Command{Use: "required-only"}
+		requiredOnly := requiredOnlyCmd.Flags()
+		requiredOnly.String("repo", "", "repo")
+		require.NoError(t, requiredOnlyCmd.MarkFlagRequired("repo"))
+
+		renderSkillFlags(&out, "Flags", requiredOnly)
+		assert.Contains(t, out.String(), "#### Required Parameters")
+		assert.NotContains(t, out.String(), "#### Optional Parameters")
+
+		out.Reset()
+		optionalOnly := pflag.NewFlagSet("optional-only", pflag.ContinueOnError)
+		_ = optionalOnly.String("account", "", "account")
+
+		renderSkillFlags(&out, "Flags", optionalOnly)
+		assert.NotContains(t, out.String(), "#### Required Parameters")
+		assert.Contains(t, out.String(), "#### Optional Parameters")
 	})
 
 	t.Run("renders command descriptions and nested examples", func(t *testing.T) {
@@ -313,5 +361,24 @@ func TestSkillCommandMetadataHelpers(t *testing.T) {
 		assert.True(t, shouldSkipBootstrap(parent))
 		assert.True(t, hasCommandAnnotation(parent, commandSkipBootstrapAnnotation))
 		assert.False(t, hasCommandAnnotation(&cobra.Command{Use: "cmd"}, commandSkipBootstrapAnnotation))
+	})
+
+	t.Run("detects required flags from cobra annotations", func(t *testing.T) {
+		t.Parallel()
+
+		cmd := &cobra.Command{Use: "test"}
+		fs := cmd.Flags()
+		fs.String("repo", "", "repo")
+		require.NoError(t, cmd.MarkFlagRequired("repo"))
+		fs.String("account", "", "account")
+
+		required, optional := splitRenderableFlags(fs)
+		require.Len(t, required, 1)
+		require.Len(t, optional, 1)
+		assert.Equal(t, "repo", required[0].Name)
+		assert.Equal(t, "account", optional[0].Name)
+		assert.True(t, isRequiredFlag(required[0]))
+		assert.False(t, isRequiredFlag(optional[0]))
+		assert.False(t, isRequiredFlag(nil))
 	})
 }
