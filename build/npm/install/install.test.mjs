@@ -1,13 +1,15 @@
 import assert from 'node:assert/strict';
-import { mkdtemp, mkdir, readFile, writeFile } from 'node:fs/promises';
+import { mkdtemp, mkdir, readFile, symlink, writeFile } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import path from 'node:path';
 import test from 'node:test';
+import { pathToFileURL } from 'node:url';
 
 import {
   appendToPath,
   detectPlatformPackage,
   findPackageBinDir,
+  isDirectExecution,
   resolveSourceBinDir,
   detectShellConfigFiles,
   isPathAlreadyConfigured,
@@ -19,6 +21,18 @@ test('detectPlatformPackage maps supported and unsupported platforms', () => {
   assert.equal(detectPlatformPackage('darwin', 'x64'), '@atlacp/install-darwin-amd64');
   assert.equal(detectPlatformPackage('darwin', 'arm64'), '@atlacp/install-darwin-arm64');
   assert.equal(detectPlatformPackage('win32', 'x64'), null);
+});
+
+test('isDirectExecution returns true for the same file and symlinked entrypoint', async () => {
+  const tempDir = await mkdtemp(path.join(tmpdir(), 'atlacp-install-entry-'));
+  const actualFile = path.join(tempDir, 'install.mjs');
+  const symlinkPath = path.join(tempDir, 'atlacp-install');
+
+  await writeFile(actualFile, 'console.log("test");\n', 'utf8');
+  await symlink(actualFile, symlinkPath);
+
+  assert.equal(isDirectExecution(pathToFileURL(actualFile).href, actualFile), true);
+  assert.equal(isDirectExecution(pathToFileURL(actualFile).href, symlinkPath), true);
 });
 
 test('isPathAlreadyConfigured returns true when atlacp env file is sourced', () => {

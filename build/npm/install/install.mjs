@@ -1,6 +1,6 @@
 #!/usr/bin/env node
 
-import { accessSync } from 'node:fs';
+import { accessSync, realpathSync } from 'node:fs';
 import {
   chmod,
   copyFile,
@@ -12,7 +12,7 @@ import {
 } from 'node:fs/promises';
 import os from 'node:os';
 import path from 'node:path';
-import { fileURLToPath, pathToFileURL } from 'node:url';
+import { fileURLToPath } from 'node:url';
 
 const EXPORT_PATH_LINE = 'export PATH="$HOME/.atlacp/bin:$PATH"';
 const ATLACP_INSTALL_COMMENT = '# Added by @atlacp/install';
@@ -185,6 +185,18 @@ async function writeEnvFile(installBaseDir) {
   return envFilePath;
 }
 
+export function isDirectExecution(moduleUrl = import.meta.url, executedPath = process.argv[1]) {
+  if (!executedPath) {
+    return false;
+  }
+
+  try {
+    return realpathSync(fileURLToPath(moduleUrl)) === realpathSync(executedPath);
+  } catch {
+    return false;
+  }
+}
+
 export async function run() {
   console.log(`Installing atlacp tools for ${process.platform}/${process.arch}`);
   const packageName = detectPlatformPackage();
@@ -219,7 +231,7 @@ export async function run() {
   console.log(`Restart your shell or run: ${SOURCE_ENV_LINE}`);
 }
 
-if (process.argv[1] && import.meta.url === pathToFileURL(process.argv[1]).href) {
+if (isDirectExecution()) {
   run().catch((err) => {
     console.error(`Failed to install atlacp binaries: ${err.message}`);
     process.exitCode = 1;
