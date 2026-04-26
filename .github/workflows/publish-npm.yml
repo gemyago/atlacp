@@ -38,6 +38,9 @@ jobs:
       - name: Install Go dependencies
         run: go mod download && go install tool
 
+      - name: Build dist artifacts
+        run: make -C build dist
+
       - name: Publish npm packages
         env:
           VERSION_INPUT: ${{ github.event.inputs.version }}
