@@ -22,7 +22,7 @@ npm install -g @atlacp/install
 
 The installer places `bbmd` and `bbcp` in `~/.atlacp/bin` and updates your shell profile. Restart the shell, or source the updated profile before continuing. Follow [accounts setup](#account-setup) to configure Bitbucket account(s).
 
-Use `bbmd skill` to teach your agent to use the cli. You can then write it to the agent relevant skill folder or add it somewhere in AGENTS.md.
+Use `bbmd skill` to teach your agent to use the cli. You can either write it to the agent relevant skill folder or add it somewhere in AGENTS.md.
 
 ```markdown
 ### Bitbucket integration
@@ -49,17 +49,13 @@ Configure a Bitbucket account:
 bbmd auth add \
   --name user \
   --default \
-  --token-type Basic \
-  --token-value "<base64-email-colon-api-token>"
+  --token-type Bearer|Basic \
+  --token-value "<token>"
 ```
 
-More on Atlassian tokens:
-
-- [Personal API Tokens](https://support.atlassian.com/atlassian-account/docs/manage-api-tokens-for-your-atlassian-account/#Create-an-API-token) - use a `Basic` token value created from `email:api-token`, for example `printf '%s' '<email>:<api-token>' | base64`.
-- [Bitbucket Access Tokens](https://support.atlassian.com/bitbucket-cloud/docs/access-tokens/) - useful for bots and automation; commonly used with `--token-type Bearer`.
+See [Bitbucket Access Tokens](#bitbucket-access-tokens) for more details on creating tokens.
 
 Check the configured accounts:
-
 ```bash
 bbmd auth status
 ```
@@ -155,6 +151,66 @@ Check titbucket pull request https://bitbucket.org/workspace/repo-slug/pull-requ
 ```
 
 You should see a response with PR details.
+
+## Bitbucket Access Tokens
+
+Please review the official documentation:
+- [Personal API Tokens](https://support.atlassian.com/atlassian-account/docs/manage-api-tokens-for-your-atlassian-account/#Create-an-API-token) 
+ (keep in mind to create a basic token for API use). When using personal access tokens, all requests will be made on behalf of the user.
+- [Bitbucket Access Tokens](https://support.atlassian.com/bitbucket-cloud/docs/access-tokens/) - good for bots and other automation tools.
+
+### User API Token
+
+* Go to https://id.atlassian.com/manage-profile/security/api-tokens
+* Create a new token, with at least below scopes:
+  ```text
+  read:account
+  read:issue:bitbucket
+  read:me
+  read:pipeline:bitbucket
+  read:project:bitbucket
+  read:pullrequest:bitbucket
+  read:repository:bitbucket
+  read:runner:bitbucket
+  read:snippet:bitbucket
+  read:user:bitbucket
+  write:issue:bitbucket
+  write:pullrequest:bitbucket
+  ```
+* Create a Basic token from it using shell command below:
+  ```bash
+  echo -n "<your-email>:<your-api-token>" | base64
+  ```
+* Add user account to the local accounts file:
+  ```bash
+  bbmd auth add \
+    --name user \
+    --default \
+    --token-type Basic \
+    --token-value "<base64-email-colon-api-token>"
+  ```
+
+### Bot API Token
+
+If you plan your AI agent to operate as a bot, best option is to create "Access token" instead of "User API token".
+
+* Go your repository or workspace settings, click on "Access tokens"
+* Create a new token with below permissions:
+  ```text
+  pullrequest
+  pipeline
+  repository:write
+  repository
+  pullrequest:write
+  ```
+* Add bot account to the local accounts file:
+  ```bash
+  bbmd auth add \
+    --name bot \
+    --token-type Bearer \
+    --token-value "<your-bot-api-token>"
+  ```
+  Note: You may use any name in place of `bot` in above command. It's just a label.
 
 ## Contribute
 

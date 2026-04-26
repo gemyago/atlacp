@@ -13,16 +13,16 @@ import (
 )
 
 func TestPrepareMCPLogsOutputFile(t *testing.T) {
-	newCmd := func(t *testing.T) *cobra.Command {
+	newCmd := func(t *testing.T, use string) *cobra.Command {
 		t.Helper()
-		cmd := &cobra.Command{Use: "bbcp"}
+		cmd := &cobra.Command{Use: use}
 		cmd.Flags().String("logs-file", "", "")
 		return cmd
 	}
 
-	t.Run("uses resolver default and creates parent directory", func(t *testing.T) {
+	t.Run("stdio uses resolver default and creates parent directory", func(t *testing.T) {
 		home := t.TempDir()
-		cmd := newCmd(t)
+		cmd := newCmd(t, "stdio")
 		resolver := &services.AtlacpPathResolver{
 			Home:           home,
 			ExecutablePath: filepath.Join(home, ".atlacp", "bin", "bbcp"),
@@ -37,8 +37,21 @@ func TestPrepareMCPLogsOutputFile(t *testing.T) {
 		require.NoError(t, statErr)
 	})
 
+	t.Run("http keeps stdout mode by default", func(t *testing.T) {
+		cmd := newCmd(t, "http")
+		logsOutputFile := ""
+		resolver := &services.AtlacpPathResolver{
+			Home:           t.TempDir(),
+			ExecutablePath: filepath.Join(t.TempDir(), ".atlacp", "bin", "bbcp"),
+		}
+
+		err := prepareMCPLogsOutputFile(cmd, resolver, &logsOutputFile)
+		require.NoError(t, err)
+		assert.Empty(t, logsOutputFile)
+	})
+
 	t.Run("explicit empty logs path keeps stdout mode", func(t *testing.T) {
-		cmd := newCmd(t)
+		cmd := newCmd(t, "stdio")
 		require.NoError(t, cmd.Flags().Set("logs-file", ""))
 
 		logsOutputFile := ""
@@ -57,7 +70,7 @@ func TestPrepareMCPLogsOutputFile(t *testing.T) {
 		blockingPath := filepath.Join(base, "not-a-dir")
 		require.NoError(t, os.WriteFile(blockingPath, []byte("x"), 0o600))
 
-		cmd := newCmd(t)
+		cmd := newCmd(t, "stdio")
 		logsOutputFile := filepath.Join(blockingPath, "bbcp.log")
 		require.NoError(t, cmd.Flags().Set("logs-file", logsOutputFile))
 

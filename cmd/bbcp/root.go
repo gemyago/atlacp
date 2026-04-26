@@ -48,11 +48,14 @@ func prepareMCPLogsOutputFile(
 	logsOutputFile *string,
 ) error {
 	resolvedLogsPath := *logsOutputFile
-	if cmd.Flags().Changed("logs-file") {
+	switch {
+	case cmd.Flags().Changed("logs-file"):
 		if resolvedLogsPath != "" {
 			resolvedLogsPath = filepath.Clean(resolvedLogsPath)
 		}
-	} else {
+	case cmd.Name() != "stdio":
+		resolvedLogsPath = ""
+	default:
 		defaultPath, pathErr := pathResolver.DefaultLogPath("bbcp.log")
 		if pathErr != nil {
 			return fmt.Errorf("resolve default logs output file path: %w", pathErr)
@@ -86,7 +89,7 @@ func newRootCmd(container *dig.Container) *cobra.Command {
 		&logsOutputFile,
 		"logs-file",
 		"",
-		"Write logs to this file. If omitted, bbcp uses its default log path.",
+		"Write logs to this file. If omitted, stdio uses its default log path and http logs to stdout.",
 	)
 	cmd.PersistentFlags().Bool(
 		"json-logs",

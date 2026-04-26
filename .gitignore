@@ -4,8 +4,7 @@ bin
 tmp
 .DS_Store
 .cover
-test.log
-bbmd.log
+*.log
 .venv
 openspec/
 build/npm/packages/

@@ -12,7 +12,7 @@ import (
 )
 
 func TestMain(t *testing.T) {
-	t.Run("default logs file path", func(t *testing.T) {
+	t.Run("stdio default logs file path", func(t *testing.T) {
 		dir := t.TempDir()
 		t.Chdir(dir)
 		accountsPath := filepath.Join(dir, "accounts.json")
