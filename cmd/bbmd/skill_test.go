@@ -2,6 +2,7 @@ package main
 
 import (
 	"bytes"
+	"encoding/json"
 	"errors"
 	"io"
 	"os"
@@ -19,6 +20,27 @@ type errorWriter struct{}
 
 func (errorWriter) Write(_ []byte) (int, error) {
 	return 0, errors.New("write failed")
+}
+
+func parseSkillFrontmatter(t *testing.T, guide string) (map[string]string, string) {
+	t.Helper()
+
+	parts := strings.SplitN(guide, "\n---\n", 2)
+	require.Len(t, parts, 2)
+	require.True(t, strings.HasPrefix(parts[0], "---\n"))
+
+	lines := strings.Split(strings.TrimPrefix(parts[0], "---\n"), "\n")
+	frontmatter := make(map[string]string, len(lines))
+	for _, line := range lines {
+		key, value, ok := strings.Cut(line, ": ")
+		require.Truef(t, ok, "frontmatter line missing separator: %q", line)
+
+		var decoded string
+		require.NoError(t, json.Unmarshal([]byte(value), &decoded))
+		frontmatter[key] = decoded
+	}
+
+	return frontmatter, parts[1]
 }
 
 func TestSkillCommand(t *testing.T) {
@@ -39,23 +61,26 @@ func TestSkillCommand(t *testing.T) {
 
 		require.NoError(t, root.Execute())
 		guide := out.String()
+		frontmatter, body := parseSkillFrontmatter(t, guide)
 
-		assert.Contains(t, guide, "# bbmd CLI Skill")
-		assert.Contains(t, guide, "## Global Flags")
-		assert.Contains(t, guide, "### `bbmd pr`")
-		assert.Contains(t, guide, "## `bbmd`")
-		assert.Contains(t, guide, "bbmd pr add-comment")
-		assert.Contains(t, guide, "bbmd auth status --atlassian-accounts-file")
-		assert.Contains(t, guide, "--reviewer")
-		assert.Contains(t, guide, "--close-source-branch")
-		assert.Contains(t, guide, "--pending")
-		assert.Contains(t, guide, "#### `bbmd auth status`")
-		assert.Contains(t, guide, "Examples:")
-		assert.NotContains(t, guide, "### `bbmd completion`")
-		assert.NotContains(t, guide, "bbmd auth add")
-		assert.NotContains(t, guide, "bbmd auth remove")
-		assert.NotContains(t, guide, "bbmd auth set-default")
-		assert.NotContains(t, guide, "### `bbmd skill`")
+		assert.Equal(t, root.Short, frontmatter["name"])
+		assert.Equal(t, root.Long, frontmatter["description"])
+		assert.True(t, strings.HasPrefix(body, "\n# bbmd CLI Skill\n\n"))
+		assert.Contains(t, body, "## Global Flags")
+		assert.Contains(t, body, "### `bbmd pr`")
+		assert.Contains(t, body, "## `bbmd`")
+		assert.Contains(t, body, "bbmd pr add-comment")
+		assert.Contains(t, body, "bbmd auth status --atlassian-accounts-file")
+		assert.Contains(t, body, "--reviewer")
+		assert.Contains(t, body, "--close-source-branch")
+		assert.Contains(t, body, "--pending")
+		assert.Contains(t, body, "#### `bbmd auth status`")
+		assert.Contains(t, body, "Examples:")
+		assert.NotContains(t, body, "### `bbmd completion`")
+		assert.NotContains(t, body, "bbmd auth add")
+		assert.NotContains(t, body, "bbmd auth remove")
+		assert.NotContains(t, body, "bbmd auth set-default")
+		assert.NotContains(t, body, "### `bbmd skill`")
 	})
 
 	t.Run("skill command skips bootstrap while operational commands still bootstrap", func(t *testing.T) {
@@ -111,6 +136,57 @@ func TestWriteSkillGuide(t *testing.T) {
 		require.ErrorContains(t, err, "write skill output")
 		require.ErrorContains(t, err, "write failed")
 	})
+
+	t.Run("renders frontmatter from root cobra metadata", func(t *testing.T) {
+		t.Parallel()
+
+		var out bytes.Buffer
+		cmd := &cobra.Command{
+			Use:   "custom-root",
+			Short: "frontmatter name",
+			Long:  "frontmatter description used in markdown body",
+		}
+
+		require.NoError(t, writeSkillGuide(cmd, &out))
+
+		guide := out.String()
+		frontmatter, body := parseSkillFrontmatter(t, guide)
+		assert.Equal(t, cmd.Short, frontmatter["name"])
+		assert.Equal(t, cmd.Long, frontmatter["description"])
+		assert.Contains(t, body, "## `custom-root`")
+		assert.Contains(t, body, cmd.Long)
+	})
+
+	t.Run(
+		"falls back to command identity and remaining description metadata when short or long are empty",
+		func(t *testing.T) {
+			t.Parallel()
+
+			var out bytes.Buffer
+			cmd := &cobra.Command{
+				Use:  "custom-root",
+				Long: "fallback long description",
+			}
+
+			require.NoError(t, writeSkillGuide(cmd, &out))
+			frontmatter, _ := parseSkillFrontmatter(t, out.String())
+
+			assert.Equal(t, cmd.Name(), frontmatter["name"])
+			assert.Equal(t, cmd.Long, frontmatter["description"])
+
+			out.Reset()
+			cmd = &cobra.Command{
+				Use:   "custom-root",
+				Short: "fallback short name",
+			}
+
+			require.NoError(t, writeSkillGuide(cmd, &out))
+			frontmatter, _ = parseSkillFrontmatter(t, out.String())
+
+			assert.Equal(t, cmd.Short, frontmatter["name"])
+			assert.Equal(t, cmd.Short, frontmatter["description"])
+		},
+	)
 }
 
 func TestSkillCommandMetadataHelpers(t *testing.T) {

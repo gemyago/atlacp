@@ -81,8 +81,8 @@ func prepareBBMDLogsOutputFile(
 func newRootCmd(container *dig.Container, rootParams *rootCommandParams) *cobra.Command {
 	cmd := &cobra.Command{
 		Use:   "bbmd",
-		Short: "Bitbucket CLI — cli interface to Bitbucket",
-		Long:  "bbmd is a Bitbucket CLI for account management, pull request operations, and file access.\nUse it directly for API workflows or run `bbmd skill` to generate this command reference as markdown for AI agents.",
+		Short: "CLI to work with Bitbucket",
+		Long:  "bbmd is a CLI to work with Bitbucket pull requests and not only.",
 	}
 	cmd.SilenceUsage = true
 	cmd.PersistentFlags().StringP("log-level", "l", "", "Produce logs with given level. Default is env specific.")

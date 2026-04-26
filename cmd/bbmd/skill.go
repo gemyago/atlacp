@@ -4,6 +4,7 @@ import (
 	"errors"
 	"fmt"
 	"io"
+	"strconv"
 	"strings"
 
 	"github.com/samber/lo"
@@ -50,6 +51,7 @@ func writeSkillGuide(root *cobra.Command, out io.Writer) error {
 	}
 
 	var b strings.Builder
+	b.WriteString(renderSkillFrontmatter(root))
 	b.WriteString("# bbmd CLI Skill\n\n")
 	b.WriteString("The following instructions are generated from the live Cobra command tree.\n\n")
 
@@ -66,6 +68,34 @@ func writeSkillGuide(root *cobra.Command, out io.Writer) error {
 		return fmt.Errorf("write skill output: %w", err)
 	}
 	return nil
+}
+
+func renderSkillFrontmatter(cmd *cobra.Command) string {
+	var b strings.Builder
+	b.WriteString("---\n")
+	b.WriteString("name: ")
+	b.WriteString(strconv.Quote(skillFrontmatterName(cmd)))
+	b.WriteString("\n")
+	b.WriteString("description: ")
+	b.WriteString(strconv.Quote(skillFrontmatterDescription(cmd)))
+	b.WriteString("\n---\n\n")
+	return b.String()
+}
+
+func skillFrontmatterName(cmd *cobra.Command) string {
+	name := strings.TrimSpace(cmd.Short)
+	if name != "" {
+		return name
+	}
+	return strings.TrimSpace(cmd.Name())
+}
+
+func skillFrontmatterDescription(cmd *cobra.Command) string {
+	desc := strings.TrimSpace(cmd.Long)
+	if desc != "" {
+		return desc
+	}
+	return commandDescription(cmd)
 }
 
 func commandDescription(cmd *cobra.Command) string {
