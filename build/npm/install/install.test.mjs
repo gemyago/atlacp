@@ -146,3 +146,17 @@ test('resolveSourceBinDir infers package dir from script location', async () => 
   });
   assert.equal(resolved, localBinDir);
 });
+
+test('resolveSourceBinDir infers package dir from npm dependency layout', async () => {
+  const workspace = await mkdtemp(path.join(tmpdir(), 'atlacp-install-script-'));
+  const scriptDir = path.join(workspace, 'build', 'npm', 'install');
+  const dependencyBinDir = path.join(scriptDir, 'node_modules', '@atlacp', 'install-linux-amd64', 'bin');
+  await mkdir(dependencyBinDir, { recursive: true });
+  await writeFile(path.join(dependencyBinDir, 'bbcp'), '#!/bin/sh\necho local', 'utf8');
+
+  const resolved = resolveSourceBinDir({
+    packageName: '@atlacp/install-linux-amd64',
+    scriptDir,
+  });
+  assert.equal(resolved, dependencyBinDir);
+});

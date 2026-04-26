@@ -49,6 +49,7 @@ export function findPackageBinDir(
 
 function inferPackagesDir(scriptDir) {
   const candidates = [
+    path.resolve(scriptDir, 'node_modules'),
     path.resolve(scriptDir, '..', 'packages'),
     path.resolve(scriptDir, '..', '..'),
   ];
