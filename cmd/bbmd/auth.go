@@ -50,7 +50,7 @@ func newAuthStatusCmd(container *dig.Container, rootParams *rootCommandParams) *
 			return runAuthStatus(cmd, container, rootParams)
 		},
 		Example: `bbmd auth status
-bbmd auth status --account <name>`,
+bbmd auth status --atlassian-accounts-file /path/to/accounts.json`,
 	}
 }
 
