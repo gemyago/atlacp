@@ -4,11 +4,11 @@ bin
 tmp
 .DS_Store
 .cover
-test.log
-bbmd.log
+*.log
 .venv
 openspec/
 build/npm/packages/
+build/npm/.publish-flags
 
 # Ignore agents configs for now
 .cursor/

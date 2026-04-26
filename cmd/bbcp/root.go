@@ -19,11 +19,14 @@ import (
 	"go.uber.org/dig"
 )
 
-func prepareMCPAccountsFilePath(cfg *viper.Viper, accountsFile string) error {
-	pathResolver := services.NewAccountsFilePathResolver()
+func prepareMCPAccountsFilePath(
+	cfg *viper.Viper,
+	pathResolver *services.AtlacpPathResolver,
+	accountsFile string,
+) error {
 	var resolved string
 	if accountsFile == "" {
-		defaultPath, pathErr := pathResolver.DefaultPath()
+		defaultPath, pathErr := pathResolver.DefaultAccountsFilePath()
 		if pathErr != nil {
 			return fmt.Errorf("resolve default atlassian accounts file path: %w", pathErr)
 		}
@@ -36,6 +39,39 @@ func prepareMCPAccountsFilePath(cfg *viper.Viper, accountsFile string) error {
 	if mkdirErr := pathResolver.EnsureParentDirsForFile(resolved); mkdirErr != nil {
 		return fmt.Errorf("ensure atlassian accounts file parent directories: %w", mkdirErr)
 	}
+	return nil
+}
+
+func prepareMCPLogsOutputFile(
+	cmd *cobra.Command,
+	pathResolver *services.AtlacpPathResolver,
+	logsOutputFile *string,
+) error {
+	resolvedLogsPath := *logsOutputFile
+	switch {
+	case cmd.Flags().Changed("logs-file"):
+		if resolvedLogsPath != "" {
+			resolvedLogsPath = filepath.Clean(resolvedLogsPath)
+		}
+	case cmd.Name() != "stdio":
+		resolvedLogsPath = ""
+	default:
+		defaultPath, pathErr := pathResolver.DefaultLogPath("bbcp.log")
+		if pathErr != nil {
+			return fmt.Errorf("resolve default logs output file path: %w", pathErr)
+		}
+		resolvedLogsPath = defaultPath
+	}
+
+	*logsOutputFile = resolvedLogsPath
+	if resolvedLogsPath == "" {
+		return nil
+	}
+
+	if mkdirErr := pathResolver.EnsureParentDirsForFile(resolvedLogsPath); mkdirErr != nil {
+		return fmt.Errorf("ensure logs output file parent directories: %w", mkdirErr)
+	}
+
 	return nil
 }
 
@@ -53,11 +89,11 @@ func newRootCmd(container *dig.Container) *cobra.Command {
 		&logsOutputFile,
 		"logs-file",
 		"",
-		"Produce logs to file instead of stdout. Used for tests only.",
+		"Write logs to this file. If omitted, stdio uses its default log path and http logs to stdout.",
 	)
 	cmd.PersistentFlags().Bool(
 		"json-logs",
-		false,
+		true,
 		"Indicates if logs should be in JSON format or text (default)",
 	)
 	cmd.PersistentFlags().StringP(
@@ -83,11 +119,15 @@ func newRootCmd(container *dig.Container) *cobra.Command {
 			return err
 		}
 
+		pathResolver := services.NewAtlacpPathResolver()
 		accountsFile, err := cmd.Flags().GetString("atlassian-accounts-file")
 		if err != nil {
 			return fmt.Errorf("get atlassian-accounts-file flag: %w", err)
 		}
-		if prepErr := prepareMCPAccountsFilePath(cfg, accountsFile); prepErr != nil {
+		if prepErr := prepareMCPAccountsFilePath(cfg, pathResolver, accountsFile); prepErr != nil {
+			return prepErr
+		}
+		if prepErr := prepareMCPLogsOutputFile(cmd, pathResolver, &logsOutputFile); prepErr != nil {
 			return prepErr
 		}
 

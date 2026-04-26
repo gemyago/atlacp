@@ -9,8 +9,10 @@ import (
 
 func newFileCmd(container *dig.Container, rootParams *rootCommandParams) *cobra.Command {
 	file := &cobra.Command{
-		Use:   "file",
-		Short: "Bitbucket file operations",
+		Use:     "file",
+		Short:   "Bitbucket file operations",
+		Long:    "Read file-level data from Bitbucket repositories and commits.",
+		Example: `bbmd file content --repo-owner <workspace> --repo-name <repo> --commit <sha> --path <file-path>`,
 	}
 	file.AddCommand(newFileContentCmd(container, rootParams))
 	return file
@@ -27,8 +29,10 @@ type fileContentOpts struct {
 func newFileContentCmd(container *dig.Container, rootParams *rootCommandParams) *cobra.Command {
 	var opts fileContentOpts
 	cmd := &cobra.Command{
-		Use:   "content",
-		Short: "Get file content at a commit",
+		Use:     "content",
+		Short:   "Get file content at a commit",
+		Long:    "Read file content from a repository at a specific commit hash.",
+		Example: `bbmd file content --repo-owner <workspace> --repo-name <repo> --commit <sha> --path <file path>`,
 		RunE: func(cmd *cobra.Command, _ []string) error {
 			return runFileContent(cmd, container, rootParams, app.BitbucketGetFileContentParams{
 				AccountName: opts.Account,

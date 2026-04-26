@@ -13,12 +13,6 @@ Generate npm installer packages from templates and compiled binaries:
 ```sh
 # Builds required `dist/<goos>/<goarch>` outputs and creates packed npm artifacts
 make npm/packages VERSION=1.2.3
-
-# Compatibility alias
-make npm-packages VERSION=1.2.3
-
-# Emit the generated pack manifest (paths to all tgz artifacts)
-make npm/packs.txt VERSION=1.2.3
 ```
 
 Generated package workspaces are written to `build/npm/packages/`.
@@ -42,16 +36,6 @@ NPM_PUBLISH_NOOP=false make npm/publish VERSION=1.2.3
 # --tag $(NPM_PRERELEASE_TAG), defaulting to --tag alpha
 ```
 
-Inspect resolved flags before publishing:
-```sh
-cat build/npm/.publish-flags
-```
-
-You can override them explicitly:
-```sh
-NPM_PUBLISH_DEFAULT_FLAGS_NO_CI="--access public --tag next --dry-run" NPM_PUBLISH_NOOP=false make npm/publish VERSION=0.0.0-dev0
-```
-
 To revert previously published artifacts in the same list:
 ```sh
 make npm/unpublish VERSION=1.2.3        # no-op by default
@@ -62,6 +46,20 @@ Clear local publish markers:
 ```sh
 make npm/clean-published
 ```
+
+## Testing installer scripts
+
+Build packages first:
+```sh
+make dist
+make npm/packages VERSION=1.2.3
+```
+
+Run the script:
+```sh
+node npm/install/install.mjs
+```
+
 
 ## Docker
 

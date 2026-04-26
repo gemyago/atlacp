@@ -1,5 +1,5 @@
 import assert from 'node:assert/strict';
-import { mkdtemp, readFile, writeFile } from 'node:fs/promises';
+import { mkdtemp, mkdir, readFile, writeFile } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import path from 'node:path';
 import test from 'node:test';
@@ -7,6 +7,8 @@ import test from 'node:test';
 import {
   appendToPath,
   detectPlatformPackage,
+  findPackageBinDir,
+  resolveSourceBinDir,
   detectShellConfigFiles,
   isPathAlreadyConfigured,
 } from './install.mjs';
@@ -97,4 +99,50 @@ test('detectShellConfigFiles returns profile config for unknown shell', () => {
       process.env.SHELL = originalShell;
     }
   }
+});
+
+test('resolveSourceBinDir resolves package bin from provided packages dir', async () => {
+  const workspace = await mkdtemp(path.join(tmpdir(), 'atlacp-install-dist-'));
+  const packagesBase = path.join(workspace, 'build', 'npm', 'packages');
+  const localBinDir = path.join(packagesBase, '@atlacp', 'install-linux-amd64', 'bin');
+  await mkdir(localBinDir, { recursive: true });
+  await writeFile(path.join(localBinDir, 'bbcp'), '#!/bin/sh\necho local', 'utf8');
+
+  const resolved = resolveSourceBinDir({ packageName: '@atlacp/install-linux-amd64', packagesDir: packagesBase });
+  assert.equal(resolved, localBinDir);
+});
+
+test('findPackageBinDir returns null when packages dir missing', () => {
+  const workspace = '/tmp/non-existing-atlacp-packages-root';
+  const resolved = findPackageBinDir({
+    packageName: '@atlacp/install-linux-amd64',
+    packagesDir: path.join(workspace, 'build/npm/packages'),
+  });
+  assert.equal(resolved, null);
+});
+
+test('resolveSourceBinDir throws when package dir is missing', () => {
+  const workspace = '/tmp/non-existing-atlacp-packages-root';
+
+  assert.throws(
+    () => resolveSourceBinDir({ packageName: '@atlacp/install-linux-amd64', packagesDir: workspace }),
+    {
+      message: /Could not find bin directory for package @atlacp/,
+    },
+  );
+});
+
+test('resolveSourceBinDir infers package dir from script location', async () => {
+  const workspace = await mkdtemp(path.join(tmpdir(), 'atlacp-install-script-'));
+  const scriptDir = path.join(workspace, 'build', 'npm', 'install');
+  const packagesBase = path.join(workspace, 'build', 'npm', 'packages');
+  const localBinDir = path.join(packagesBase, '@atlacp', 'install-linux-amd64', 'bin');
+  await mkdir(localBinDir, { recursive: true });
+  await writeFile(path.join(localBinDir, 'bbcp'), '#!/bin/sh\necho local', 'utf8');
+
+  const resolved = resolveSourceBinDir({
+    packageName: '@atlacp/install-linux-amd64',
+    scriptDir,
+  });
+  assert.equal(resolved, localBinDir);
 });

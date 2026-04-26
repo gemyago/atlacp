@@ -11,7 +11,10 @@ This is a golang backend project with OpenTelemetry integration for observabilit
 - **ALWAYS** follow "Task Completion Protocol" prior to reporting task completion
 
 ## Quick Setup
-- direnv is assumed to be already configured
+- direnv is assumed to be already configured.
+- In this environment, commands do not automatically source `.envrc`; run with:
+  - `direnv allow .`
+  - `direnv exec . go test ./...` (or any other command)
 - gobrew is used to manage Go versions
 - Install deps/tools: `go mod download && go install tool`
 - Lint: `make lint`

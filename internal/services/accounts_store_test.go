@@ -478,7 +478,7 @@ func TestAccountsStore(t *testing.T) {
 
 			base := t.TempDir()
 			outPath := filepath.Join(base, "deep", "nested", "accounts.json")
-			require.NoError(t, NewAccountsFilePathResolver().EnsureParentDirsForFile(outPath))
+			require.NoError(t, NewAtlacpPathResolver().EnsureParentDirsForFile(outPath))
 			require.NoError(t, store.SaveToFile(outPath))
 
 			reloaded := &AccountsStore{}

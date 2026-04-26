@@ -1,6 +1,6 @@
-# Atlassian MCP Integration Examples
+# Atlassian MCP Quick Start
 
-This directory contains examples and test scripts for the Atlassian MCP Integration.
+This directory contains setup examples for connecting `bbcp` to MCP-compatible clients.
 
 ## Prepare accounts file
 
@@ -53,7 +53,19 @@ Skip this step if you don't plan to perform any actions on behalf of the bot.
 
 ## Run MCP Server
 
-Simplest way to run the MCP server is to use docker. Pre-built docker images are publicly available on ghcr.io (ghcr.io/gemyago/atlacp-mcp).
+If you installed atlacp locally, start the MCP server directly:
+
+```bash
+bbcp http
+```
+
+Or use STDIO transport:
+
+```bash
+bbcp stdio
+```
+
+Docker is optional. If you prefer containers, published images follow the per-binary naming pattern, so the MCP server image is `ghcr.io/gemyago/atlacp-bbcp`.
 
 **Note**
 Due to ghcr constraints, if you are logged in to ghcr, you may have to run `docker logout ghcr.io` to avoid authentication errors when pulling public images.
@@ -65,7 +77,7 @@ docker run -d --name atlacp-mcp \
   --restart=always \
   -p 8080:8080 \
   -v $(pwd)/atlassian-accounts.json:/app/atlassian-accounts.json \
-  ghcr.io/gemyago/atlacp-mcp:latest \
+  ghcr.io/gemyago/atlacp-bbcp:latest \
   -a /app/atlassian-accounts.json \
   http
 ```
@@ -77,7 +89,7 @@ Use example `docker-compose.yml` file to run the MCP server:
 services:
   # MCP Server for testing HTTP transport
   atlacp-http:
-    image: ghcr.io/gemyago/atlacp-mcp:latest
+    image: ghcr.io/gemyago/atlacp-bbcp:latest
     command:
       - http
       - --atlassian-accounts-file=/app/config/atlassian-accounts.json
@@ -91,7 +103,7 @@ services:
 Run the MCP server with HTTP transport:
 
 ```bash
-docker-compose up atlacp-mcp
+docker compose up atlacp-http
 ```
 
 **Note**

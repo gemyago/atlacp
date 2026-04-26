@@ -2,6 +2,7 @@ import { accessSync } from 'node:fs';
 import {
   chmod,
   copyFile,
+  access,
   mkdir,
   readFile,
   readdir,
@@ -12,6 +13,8 @@ import path from 'node:path';
 import { fileURLToPath, pathToFileURL } from 'node:url';
 
 const EXPORT_PATH_LINE = 'export PATH="$HOME/.atlacp/bin:$PATH"';
+const ATLACP_INSTALL_COMMENT = '# Added by @atlacp/install';
+const SOURCE_ENV_LINE = 'source ~/.atlacp/env.sh';
 
 export function detectPlatformPackage(platform = process.platform, arch = process.arch) {
   const mapping = {
@@ -24,33 +27,59 @@ export function detectPlatformPackage(platform = process.platform, arch = proces
   return mapping[`${platform}:${arch}`] ?? null;
 }
 
-export function findPlatformBinDir(packageName, baseDir = path.dirname(fileURLToPath(import.meta.url))) {
-  if (!packageName) {
-    throw new Error('Platform package name is required');
+export function findPackageBinDir(
+  {
+    packageName,
+    packagesDir,
+  },
+) {
+  if (!packagesDir || !packageName) {
+    return null;
   }
 
-  let currentDir = path.resolve(baseDir);
-  const packagePathParts = packageName.split('/');
+  const packageRoot = path.isAbsolute(packagesDir) ? packagesDir : path.resolve(process.cwd(), packagesDir);
+  const candidate = path.join(path.resolve(packageRoot), ...packageName.split('/'), 'bin');
+  try {
+    accessSync(candidate);
+    return candidate;
+  } catch {
+    return null;
+  }
+}
 
-  while (true) {
-    const binDir = path.join(currentDir, 'node_modules', ...packagePathParts, 'bin');
+function inferPackagesDir(scriptDir) {
+  const candidates = [
+    path.resolve(scriptDir, '..', 'packages'),
+    path.resolve(scriptDir, '..', '..'),
+  ];
 
+  for (const candidate of candidates) {
+    const markerPath = path.join(candidate, '@atlacp');
     try {
-      accessSync(binDir);
-      return binDir;
+      accessSync(markerPath);
+      return candidate;
     } catch {
-      // continue searching parent dirs
+      // continue
     }
-
-    const parentDir = path.dirname(currentDir);
-    if (parentDir === currentDir) {
-      break;
-    }
-
-    currentDir = parentDir;
   }
 
-  throw new Error(`Could not find bin directory for package ${packageName}`);
+  return candidates[0];
+}
+
+export function resolveSourceBinDir(
+  {
+    packageName,
+    packagesDir,
+    scriptDir,
+  },
+) {
+  const inferredPackagesDir = packagesDir || inferPackagesDir(scriptDir);
+  const inferredBinDir = findPackageBinDir({ packageName, packagesDir: inferredPackagesDir });
+  if (inferredBinDir) {
+    return inferredBinDir;
+  }
+
+  throw new Error(`Could not find bin directory for package ${packageName} (looked for: ${inferredPackagesDir})`);
 }
 
 export async function ensureDir(dirPath) {
@@ -80,7 +109,7 @@ export function detectShellConfigFiles() {
   }
 
   if (shell.endsWith('bash')) {
-    return ['~/.bashrc'];
+    return ['~/.bashrc', '~/.profile'];
   }
 
   return ['~/.profile'];
@@ -91,7 +120,10 @@ export function isPathAlreadyConfigured(configFileContent, binDir) {
     return false;
   }
 
-  return configFileContent.includes('/.atlacp/bin') || configFileContent.includes(binDir);
+  return (
+    configFileContent.includes('source ~/.atlacp/env.sh')
+    || configFileContent.includes('source ~/.atlacp/env.sh;')
+  );
 }
 
 function expandHome(filePath) {
@@ -107,47 +139,81 @@ export async function appendToPath(configFile, binDir) {
 
   let existingContent = '';
   try {
+    await access(configFilePath);
     existingContent = await readFile(configFilePath, 'utf8');
   } catch (err) {
     if (err?.code !== 'ENOENT') {
       throw err;
     }
-  }
 
-  if (isPathAlreadyConfigured(existingContent, binDir)) {
+    console.log(`Skipping ${configFilePath}: file not found`);
     return false;
   }
 
-  const separator = existingContent.length > 0 && !existingContent.endsWith('\n') ? '\n' : '';
-  const newContent = `${existingContent}${separator}${EXPORT_PATH_LINE}\n`;
+  if (isPathAlreadyConfigured(existingContent, binDir)) {
+    console.log(`Atlacp PATH already configured in ${configFilePath}`);
+    return false;
+  }
 
-  await ensureDir(path.dirname(configFilePath));
+  let newContent = existingContent;
+
+  if (newContent.length > 0 && !newContent.endsWith('\n')) {
+    newContent += '\n';
+  }
+
+  if (newContent.length > 0 && !newContent.endsWith('\n\n')) {
+    newContent += '\n';
+  }
+
+  newContent += `${ATLACP_INSTALL_COMMENT}\n${SOURCE_ENV_LINE}\n\n`;
+
+  console.log(`Adding atlacp shell setup to ${configFilePath}`);
   await writeFile(configFilePath, newContent, 'utf8');
 
   return true;
 }
 
+async function writeEnvFile(installBaseDir) {
+  const envFilePath = path.join(installBaseDir, 'env.sh');
+  await writeFile(envFilePath, `${EXPORT_PATH_LINE}\n`, 'utf8');
+
+  console.log(`Created environment file ${envFilePath}`);
+
+  return envFilePath;
+}
+
 export async function run() {
+  console.log(`Installing atlacp tools for ${process.platform}/${process.arch}`);
   const packageName = detectPlatformPackage();
   if (!packageName) {
     throw new Error(`Unsupported platform/architecture: ${process.platform}/${process.arch}`);
   }
+  console.log(`Detected platform package: ${packageName}`)
 
   const scriptDir = path.dirname(fileURLToPath(import.meta.url));
-  const sourceBinDir = findPlatformBinDir(packageName, scriptDir);
+  const sourceBinDir = resolveSourceBinDir({
+    packageName,
+    packagesDir: process.env.ATLACP_PACKAGES_DIR,
+    scriptDir,
+  });
   const installBaseDir = path.join(os.homedir(), '.atlacp');
   const destinationBinDir = path.join(installBaseDir, 'bin');
 
+  console.log(`Copying ${sourceBinDir} to ${destinationBinDir}`)
   await ensureDir(destinationBinDir);
   await copyBinaries(sourceBinDir, destinationBinDir);
+  console.log('Binaries installed to ~/.atlacp/bin');
 
+  console.log(`Writing Atlacp shell env file to ${installBaseDir}`);
+  await writeEnvFile(installBaseDir);
+
+  console.log(`Updating shell config files`);
   const shellConfigFiles = detectShellConfigFiles();
   for (const shellConfigFile of shellConfigFiles) {
     await appendToPath(shellConfigFile, destinationBinDir);
   }
 
-  console.log('atlacp binaries installed to ~/.atlacp/bin');
-  console.log('Restart your shell or run: source ~/.profile (or your shell config file)');
+  console.log(`Restart your shell or run: ${SOURCE_ENV_LINE}`);
 }
 
 if (process.argv[1] && import.meta.url === pathToFileURL(process.argv[1]).href) {
