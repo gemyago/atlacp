@@ -17,7 +17,7 @@ The `bbmd` cli should be the superior to MCP when used by AI agents.
 Install the binaries:
 
 ```bash
-npm install -g @atlacp/install
+npx --yes @atlacp/install
 ```
 
 The installer places `bbmd` and `bbcp` in `~/.atlacp/bin` and updates your shell profile. Restart the shell, or source the updated profile before continuing. Follow [accounts setup](#account-setup) to configure Bitbucket account(s).
