@@ -471,7 +471,27 @@ func TestBBMD(t *testing.T) {
 				{
 					name: "add-comment",
 					args: append(
-						[]string{"pr", "add-comment", "--content", "hi", "--line", "10", "--parent-comment-id", "9"},
+						[]string{
+							"pr", "add-comment",
+							"--content", "hi",
+							"--line-from", "10",
+							"--line-to", "10",
+							"--parent-comment-id", "9",
+						},
+						repoPR...,
+					),
+				},
+				{
+					name: "add-comment range",
+					args: append(
+						[]string{
+							"pr", "add-comment",
+							"--content", "hi",
+							"--file-path", "a.go",
+							"--line-from", "10",
+							"--line-to", "12",
+							"--parent-comment-id", "9",
+						},
 						repoPR...,
 					),
 				},

@@ -347,7 +347,7 @@ Update the report per [Test Results Reporting](#test-results-reporting).
    bbmd pr add-comment --repo-owner "<workspace>" --repo-name "<slug>" --pr-id <PR_ID> \
      --content "inline marker line <N> {timestamp}" \
      --file-path "integration-tests/bitbucket/test-files/ts-examples-{timestamp}/example1.ts" \
-     --line <N>
+     --line-from <N> --line-to <N>
    ```
 
 6. **List comments** — `bbmd pr list-comments ...`; for each TS comment, re-fetch file with `bbmd file content`, save copy under workspace `tmp/example1-<timestamp>.ts`, run `cat -n` and compare line numbers.

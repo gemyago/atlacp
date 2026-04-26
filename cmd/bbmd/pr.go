@@ -559,7 +559,8 @@ func newPRAddCommentCmd(container *dig.Container, rootParams *rootCommandParams)
 	var cmt struct {
 		Content  string
 		FilePath string
-		Line     int
+		FromLine int
+		ToLine   int
 		ParentID int64
 	}
 	cmd := &cobra.Command{
@@ -567,7 +568,7 @@ func newPRAddCommentCmd(container *dig.Container, rootParams *rootCommandParams)
 		Short: "Post a comment on a pull request (general or inline)",
 		Long:  "Post a top-level or inline comment on a pull request.",
 		Example: `bbmd pr add-comment --repo-owner <workspace> --repo-name <repo> --pr-id <id> --content "<comment>"
-bbmd pr add-comment --repo-owner <workspace> --repo-name <repo> --pr-id <id> --content "<comment>" --file-path <path> --line <line> --parent-comment-id <id>`,
+bbmd pr add-comment --repo-owner <workspace> --repo-name <repo> --pr-id <id> --content "<comment>" --file-path <path> --line-from <line> --line-to <line> --parent-comment-id <id>`,
 		RunE: func(cmd *cobra.Command, _ []string) error {
 			params := app.BitbucketAddPRCommentParams{
 				RepoOwner:     core.RepoOwner,
@@ -578,9 +579,11 @@ bbmd pr add-comment --repo-owner <workspace> --repo-name <repo> --pr-id <id> --c
 				AccountName:   core.Account,
 				ParentID:      cmt.ParentID,
 			}
-			if cmd.Flags().Changed("line") {
-				params.LineFrom = cmt.Line
-				params.LineTo = cmt.Line
+			if cmd.Flags().Changed("line-from") {
+				params.LineFrom = cmt.FromLine
+			}
+			if cmd.Flags().Changed("line-to") {
+				params.LineTo = cmt.ToLine
 			}
 			return runPRAddComment(cmd, container, rootParams, params)
 		},
@@ -589,7 +592,8 @@ bbmd pr add-comment --repo-owner <workspace> --repo-name <repo> --pr-id <id> --c
 	requirePRCoreFlags(cmd)
 	cmd.Flags().StringVar(&cmt.Content, "content", "", "Comment content (raw)")
 	cmd.Flags().StringVar(&cmt.FilePath, "file-path", "", "File path for inline comments")
-	cmd.Flags().IntVar(&cmt.Line, "line", 0, "Line number for inline comments (sets from/to)")
+	cmd.Flags().IntVar(&cmt.FromLine, "line-from", 0, "Line start for inline comments")
+	cmd.Flags().IntVar(&cmt.ToLine, "line-to", 0, "Line end for inline comments")
 	cmd.Flags().Int64Var(&cmt.ParentID, "parent-comment-id", 0, "Parent comment ID for replies (optional)")
 	_ = cmd.MarkFlagRequired("content")
 	return cmd
