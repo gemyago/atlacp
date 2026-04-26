@@ -84,7 +84,7 @@ func newStdioCmd(container *dig.Container) *cobra.Command {
 	cmd.Flags().BoolVar(
 		&noop,
 		"noop",
-		true,
+		noop,
 		"Run in noop mode. Useful for testing if setup is all working.",
 	)
 	cmd.RunE = func(_ *cobra.Command, _ []string) error {
