@@ -32,12 +32,19 @@ Run `bbmd skill` to learn how to work with bitbucket.
 
 Or write the skill:
 ```bash
+# Opencode
+mkdir -p .opencode/skills/bitbucket && bbmd skill > .opencode/skills/bitbucket/SKILL.md
+
 # Claude
 mkdir -p .claude/skills/bitbucket && bbmd skill > .claude/skills/bitbucket/SKILL.md
+
+# Codex
+mkdir -p .codex/skills/bitbucket && bbmd skill > .codex/skills/bitbucket/SKILL.md
 
 # Cursor
 mkdir -p .cursor/skills/bitbucket && bbmd skill > .cursor/skills/bitbucket/SKILL.md
 ```
+__I'm so tired to have 20 folders with AI stuff...__
 
 ## Account Setup
 
