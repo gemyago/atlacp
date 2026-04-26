@@ -92,7 +92,7 @@ This test verifies the PR creation, reading, updating, approval, and merging usi
    - Push the changes to the branch
 
 2. **Create a Pull Request**
-   - Use the `mcp.bitbucket_create_pr` tool with the following parameters:
+   - Use the `create Bitbucket pull request` action with the following parameters:
      - title: "PR Lifecycle Test {timestamp}"
      - source_branch: "feature/pr-lifecycle-test-{timestamp}"
      - target_branch: "main"
@@ -102,7 +102,7 @@ This test verifies the PR creation, reading, updating, approval, and merging usi
    - Extract and save the PR ID for subsequent steps
 
 3. **Read the Pull Request details**
-   - Use the `mcp.bitbucket_read_pr` tool with the PR ID from the previous step
+   - Use the `read Bitbucket pull request` action with the PR ID from the previous step
    - Verify that:
      - The PR ID matches the one from the creation step
      - The PR title matches what was set in the creation step
@@ -110,19 +110,19 @@ This test verifies the PR creation, reading, updating, approval, and merging usi
      - The PR is not a draft
 
 4. **Update the Pull Request**
-   - Use the `mcp.bitbucket_update_pr` tool to change:
+   - Use the `update Bitbucket pull request` action to change:
      - title to "Updated PR Lifecycle Test {timestamp}"
      - description to "This PR has been updated as part of the PR lifecycle test (Test 1) {timestamp}"
    - Read the PR again to verify the changes were applied
    - Verify the title and description match what was set
 
 5. **Approve the Pull Request**
-   - Use the `mcp.bitbucket_approve_pr` tool
+   - Use the `approve Bitbucket pull request` action
    - Read the PR again to verify it shows as approved
    - Verify the "approved" status is true in participants list
 
 6. **Merge the Pull Request**
-   - Use the `mcp.bitbucket_merge_pr` tool with:
+   - Use the `merge Bitbucket pull request` action with:
      - merge_strategy: "squash"
      - merge_message: "Squash merged PR Lifecycle Test (Test 1) {timestamp}"
      - close_source_branch: "true"
@@ -151,7 +151,7 @@ This test verifies the PR tasks creation, listing, and updating functionality.
    - Commit and push the changes
 
 2. **Create a Pull Request**
-   - Use the `mcp.bitbucket_create_pr` tool with the following parameters:
+   - Use the `create Bitbucket pull request` action with the following parameters:
      - title: "PR Tasks Test {timestamp}"
      - source_branch: "feature/pr-tasks-test-{timestamp}"
      - target_branch: "main"
@@ -161,7 +161,7 @@ This test verifies the PR tasks creation, listing, and updating functionality.
    - Extract and save the PR ID for subsequent steps
 
 3. **Create multiple PR tasks**
-   - Use the `mcp.bitbucket_create_pr_task` tool with:
+   - Use the `create Bitbucket pull request task` action with:
      - pr_id: the PR ID from step 2
      - content: "Task 1: Verify integration test {timestamp}"
      - repo_owner and repo_name: same as previous steps
@@ -171,21 +171,21 @@ This test verifies the PR tasks creation, listing, and updating functionality.
    - Extract and save at least one task ID for the next steps
 
 4. **List PR tasks**
-   - Use the `mcp.bitbucket_list_pr_tasks` tool for the PR
+   - Use the `list Bitbucket pull request tasks` action for the PR
    - Verify that all three tasks created in step 3 appear in the list
    - Verify that total number of tasks corresponds to the number of tasks created in step 3
 
 5. **Update PR tasks**
-   - Use the `mcp.bitbucket_update_pr_task` tool to mark "Task 1" as "RESOLVED"
-   - Use the `mcp.bitbucket_update_pr_task` tool to update the content of "Task 2" to "Task 2: Code review completed {timestamp}"
+   - Use the `update Bitbucket pull request task` action to mark "Task 1" as "RESOLVED"
+   - Use the `update Bitbucket pull request task` action to update the content of "Task 2" to "Task 2: Code review completed {timestamp}"
    - List the tasks again to verify:
      - "Task 1" is now marked as "RESOLVED"
      - "Task 2" content has been updated
      - "Task 3" remains unchanged
 
 6. **Clean up**
-   - Approve the PR using the `mcp.bitbucket_approve_pr` tool
-   - Merge the PR using the `mcp.bitbucket_merge_pr` tool with:
+   - Approve the PR using the `approve Bitbucket pull request` action
+   - Merge the PR using the `merge Bitbucket pull request` action with:
      - merge_strategy: "squash"
      - close_source_branch: "true"
    - Make sure the main branch is checked out again
@@ -207,17 +207,19 @@ This test verifies that different accounts can be used for different PR operatio
    - Note the commit hash
 
 2. **Create a Pull Request as default user**
-   - Use the `mcp.bitbucket_create_pr` tool (with no account parameter)
-   - Set title to "Multi-Account Test PR (Test 2) {timestamp}"
+   - Use the `create Bitbucket pull request` action with the following parameters:
+     - title: "Multi-Account Test PR (Test 2) {timestamp}"
    - Extract and save the PR ID for subsequent steps
 
 3. **Approve the Pull Request as bot user**
-   - Use the `mcp.bitbucket_approve_pr` tool with `account: "bot"`
+   - Use the `approve Bitbucket pull request` action with the following parameters:
+     - account: "bot"
    - Read the PR again (with bot account) to verify approval status
    - Verify that the PR shows as approved and note the approver username
 
 4. **Merge the Pull Request as default user**
-   - Use the `mcp.bitbucket_merge_pr` tool with `account: "user"`
+   - Use the `merge Bitbucket pull request` action with the following parameters:
+     - account: "user"
    - Read the PR again to verify it was merged
    - Verify the PR state is "MERGED"
 
@@ -241,7 +243,7 @@ This test verifies that a Pull Request can be created in draft mode and that its
    - Commit and push the changes. Note the commit hash.
 
 2. **Create a Draft Pull Request**
-   - Use the `mcp.bitbucket_create_pr` tool with the following parameters:
+   - Use the `create Bitbucket pull request` action with the following parameters:
      - title: "Draft PR Test (Test 3) {timestamp}"
      - source_branch: "feature/draft-pr-test-{timestamp}"
      - target_branch: "main"
@@ -252,7 +254,7 @@ This test verifies that a Pull Request can be created in draft mode and that its
    - Extract and save the PR ID for subsequent steps
 
 3. **Read the Pull Request details**
-   - Use the `mcp.bitbucket_read_pr` tool with the PR ID from the previous step
+   - Use the `read Bitbucket pull request` action with the PR ID from the previous step
    - Verify that:
      - The PR ID matches the one from the creation step
      - The PR title matches what was set in the creation step
@@ -260,15 +262,18 @@ This test verifies that a Pull Request can be created in draft mode and that its
      - The PR is marked as a draft (check the draft status field)
 
 4. **Update the Pull Request Draft Status**
-   - Use the `mcp.bitbucket_update_pr` with just draft parameter set to false
+   - Use the `update Bitbucket pull request` action with the following parameters:
+     - draft: false
    - Read the PR again to verify the draft status is now false
-   - Use the `mcp.bitbucket_update_pr` with just draft parameter set to true again
+   - Use the `update Bitbucket pull request` action with the following parameters:
+     - draft: true
    - Read the PR again to verify the draft status is now true
-   - Use the `mcp.bitbucket_update_pr` with just draft parameter set to false
+   - Use the `update Bitbucket pull request` action with the following parameters:
+     - draft: false
    - Read the PR again to verify the draft status is now false
 
 5. **Merge the Pull Request**
-   - Use the `mcp.bitbucket_merge_pr` tool with:
+   - Use the `merge Bitbucket pull request` action with:
      - merge_strategy: "fast_forward"
    - Read the PR again to verify it was merged
    - Verify the PR state is "MERGED"
@@ -296,7 +301,7 @@ This test verifies the end-to-end functionality of the Bitbucket PR review tools
    - Note the commit hash.
 
 2. **Create a Pull Request**
-   - Use the `mcp.bitbucket_create_pr` tool with the following parameters:
+   - Use the `create Bitbucket pull request` action with the following parameters:
      - title: "PR Review Tools Test {timestamp}"
      - source_branch: "feature/pr-review-tools-test-{timestamp}"
      - target_branch: "main"
@@ -307,19 +312,19 @@ This test verifies the end-to-end functionality of the Bitbucket PR review tools
    - Ensure the PR includes the two TypeScript files and the three text files.
 
 3. **Check diffs**
-   - Use the PR diff stat tool to get a list of files that are changed in the PR. Check if all expected files are present.
-   - Use PR diff tool to get a diff for two files at once. Check if the diff is correct and expected.
+   - Use the pull request diff statistics action to get a list of files that are changed in the PR. Check if all expected files are present.
+   - Use the pull request diff action to get a diff for two files at once. Check if the diff is correct and expected.
 
 4. **Check file contents and create inline comments**
    - For each file (example1.ts and example2.ts):
-     - Use get file content tool. Make sure it succeeds. Ensure the content is correct and expected.
+     - Use the get Bitbucket file content action. Make sure it succeeds. Ensure the content is correct and expected.
      - **IMPORTANT**: Using the **file content**, identify line numbers with update markers. Use `cat -n` to understand the line numbers.
      - Add inline comments for each marker in the file. Include used line number in the comment message for better visibility.
 
 5. **List and verify PR comments and line numbers**
-   - Use the `mcp.bitbucket_list_pr_comments` tool to list all comments for the PR.
+   - Use the `list Bitbucket pull request comments` action to list all comments for the PR.
    - For each comment on a TypeScript file:
-     - Use the `mcp.bitbucket_get_file_content` tool to fetch the full file content.
+     - Use the `get Bitbucket file content` action to fetch the full file content.
      - Write the fetched file content to a uniquely named file in the `tmp/` directory in the current workspace, including a timestamp in the filename (e.g., `tmp/example1-<timestamp>.ts`).
      - Use **exactly** the following one-liner script to determine the actual line numbers for all marker comments in the file:
        ```
@@ -330,23 +335,29 @@ This test verifies the end-to-end functionality of the Bitbucket PR review tools
 
 
 6. **Add a general (non-inline) comment to the PR**
-   - Use the `mcp.bitbucket_add_pr_comment` tool to add a general comment (not associated with a file or line) to the PR, such as "General comment for PR review tools test {timestamp}".
+   - Use the `add Bitbucket pull request comment` action with the following parameters:
+     - comment_text: "General comment for PR review tools test {timestamp}"
    - Save the returned comment ID as `PARENT_COMMENT_ID` for the reply check.
    - Verify that the general comment appears in the PR's comment list and is not associated with any file or line number.
 
 7. **Add a reply to the general comment and verify parent linkage**
-   - Use the `mcp.bitbucket_add_pr_comment` tool to add another general comment with:
+   - Use the `add Bitbucket pull request comment` action with the following parameters:
      - comment_text: "Reply comment for PR review tools test {timestamp}"
      - parent_comment_id: `PARENT_COMMENT_ID`
    - Save the returned reply comment ID as `REPLY_COMMENT_ID`.
-   - Use the `mcp.bitbucket_list_pr_comments` tool to list all comments for the PR.
+   - Use the `list Bitbucket pull request comments` action to list all comments for the PR.
    - Verify that the entry with ID `REPLY_COMMENT_ID` includes `parent.id` equal to `PARENT_COMMENT_ID`.
    - Verify that the reply content matches "Reply comment for PR review tools test {timestamp}".
 
 8. **Resolve a PR comment and verify `resolved` in list JSON**
    - Pick a comment ID from step 4 or step 6 (inline thread root or general comment, as supported by Bitbucket for resolve).
-   - Use the `mcp.bitbucket_resolve_pr_comment` tool with `pr_id`, `comment_id`, `repo_owner`, `repo_name`, and optional `account`.
-   - Call `mcp.bitbucket_list_pr_comments` again and verify the JSON payload: the matching comment entry includes `resolved: true` (or document Bitbucket’s behavior if the thread cannot be resolved for that comment type).
+   - Use the `resolve Bitbucket pull request comment` action with the following parameters:
+     - pr_id: the PR ID from step 2
+     - comment_id: the comment ID chosen for resolve
+     - repo_owner: your workspace name
+     - repo_name: your repository name
+     - account: optional
+   - Call `list Bitbucket pull request comments` again and verify the JSON payload: the matching comment entry includes `resolved: true` (or document Bitbucket’s behavior if the thread cannot be resolved for that comment type).
 
 Update a report as per [instruction](#test-results-reporting).
 
@@ -362,7 +373,7 @@ This test verifies that PR comments can be retrieved with pagination parameters 
    - Commit and push the changes
 
 2. **Create a Pull Request**
-   - Use the `mcp.bitbucket_create_pr` tool with the following parameters:
+   - Use the `create Bitbucket pull request` action with the following parameters:
      - title: "PR Comments Pagination Test {timestamp}"
      - source_branch: "feature/pr-comments-pagination-test-{timestamp}"
      - target_branch: "main"
@@ -372,7 +383,7 @@ This test verifies that PR comments can be retrieved with pagination parameters 
    - Extract and save the PR ID for subsequent steps
 
 3. **Post 20+ comments**
-   - Use the `mcp.bitbucket_add_pr_comment` tool to add at least 20 comments to the PR
+   - Use the `add Bitbucket pull request comment` action to add at least 20 comments to the PR
    - Mix general comments and inline comments on the test file:
      - Add at least 15 general comments with content such as "Pagination test comment {n} {timestamp}"
      - Add at least 5 inline comments (specifying a file path and line number from the committed test file)
@@ -380,7 +391,10 @@ This test verifies that PR comments can be retrieved with pagination parameters 
    - Verify that all 20+ comment creation calls succeeded
 
 4. **List comments with default pagelen**
-   - Use the `mcp.bitbucket_list_pr_comments` tool with only `pr_id`, `repo_owner`, and `repo_name` (no `page` or `pagelen`)
+   - Use the `list Bitbucket pull request comments` action with the following parameters:
+     - pr_id: the PR ID from step 2
+     - repo_owner: your workspace name
+     - repo_name: your repository name
    - Verify that:
      - All 20+ comments are returned in a single response (default pagelen is 100)
      - The `size` field in the response is >= 20
@@ -388,7 +402,11 @@ This test verifies that PR comments can be retrieved with pagination parameters 
      - The `page` field in the response is 1
 
 5. **List comments with small pagelen**
-   - Use the `mcp.bitbucket_list_pr_comments` tool with `pagelen: 5` (no `page` specified)
+   - Use the `list Bitbucket pull request comments` action with the following parameters:
+     - pr_id: the PR ID from step 2
+     - repo_owner: your workspace name
+     - repo_name: your repository name
+     - pagelen: 5
    - Verify that:
      - Exactly 5 comments are returned
      - The `pagelen` field in the response is 5
@@ -397,14 +415,21 @@ This test verifies that PR comments can be retrieved with pagination parameters 
      - The `size` field is >= 20
 
 6. **List comments on page 2**
-   - Use the `mcp.bitbucket_list_pr_comments` tool with `pagelen: 5, page: 2`
+   - Use the `list Bitbucket pull request comments` action with the following parameters:
+     - pr_id: the PR ID from step 2
+     - repo_owner: your workspace name
+     - repo_name: your repository name
+     - pagelen: 5
+     - page: 2
    - Verify that:
      - Exactly 5 comments are returned
      - The `page` field in the response is 2
      - The comment IDs on page 2 are different from those on page 1
 
 7. **Iterate through all pages and collect all comment IDs**
-   - Starting from page 1 with `pagelen: 5`, iterate through all pages by incrementing `page` until the `next` field is absent
+   - Starting from page 1, use the following parameters while iterating through all pages:
+     - pagelen: 5
+   - Increment `page` until the `next` field is absent
    - Collect all comment IDs across all pages
    - Verify that:
      - The total number of collected comment IDs matches the `size` reported in the first paginated response
@@ -412,8 +437,8 @@ This test verifies that PR comments can be retrieved with pagination parameters 
      - No duplicate comment IDs appear across pages
 
 8. **Clean up**
-   - Approve the PR using the `mcp.bitbucket_approve_pr` tool
-   - Merge the PR using the `mcp.bitbucket_merge_pr` tool with:
+   - Approve the PR using the `approve Bitbucket pull request` action
+   - Merge the PR using the `merge Bitbucket pull request` action with:
      - merge_strategy: "squash"
      - close_source_branch: "true"
    - Make sure the main branch is checked out again
@@ -464,7 +489,7 @@ When completed all tests, copy the results file from a **current workspace** to 
 2. Create a new branch from main `feature/bitbucket-mcp-integration-tests-results-{timestamp}`
 3. Copy the results file from the **current workspace** to integration tests repository file `bitbucket/results-{timestamp}.md`
 4. Commit and push the branch
-5. Use MCP tool to create, approve and merge the PR:
+5. Use Bitbucket MCP actions to create, approve, and merge the PR:
     - title: "Bitbucket MCP Integration Tests Results {timestamp}"
     - description: "This is an automated integration tests results (Test 1, Test 2, Test 3, Test 4, Test 5, Test 6) {timestamp}"
     - source_branch: "feature/bitbucket-mcp-integration-tests-results-{timestamp}"
