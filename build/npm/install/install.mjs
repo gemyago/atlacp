@@ -1,3 +1,5 @@
+#!/usr/bin/env node
+
 import { accessSync } from 'node:fs';
 import {
   chmod,

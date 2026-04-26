@@ -21,8 +21,8 @@ test('detectPlatformPackage maps supported and unsupported platforms', () => {
   assert.equal(detectPlatformPackage('win32', 'x64'), null);
 });
 
-test('isPathAlreadyConfigured returns true when /.atlacp/bin is present', () => {
-  const content = 'export PATH="$HOME/.atlacp/bin:$PATH"\n';
+test('isPathAlreadyConfigured returns true when atlacp env file is sourced', () => {
+  const content = 'source ~/.atlacp/env.sh\n';
   assert.equal(isPathAlreadyConfigured(content, '/home/user/.atlacp/bin'), true);
 });
 
@@ -31,7 +31,7 @@ test('isPathAlreadyConfigured returns false when /.atlacp/bin is absent', () => 
   assert.equal(isPathAlreadyConfigured(content, '/home/user/.atlacp/bin'), false);
 });
 
-test('appendToPath appends export PATH line', async () => {
+test('appendToPath appends atlacp shell setup', async () => {
   const tempDir = await mkdtemp(path.join(tmpdir(), 'atlacp-install-test-'));
   const configFile = path.join(tempDir, '.zshrc');
 
@@ -39,7 +39,8 @@ test('appendToPath appends export PATH line', async () => {
   await appendToPath(configFile, '/home/user/.atlacp/bin');
 
   const content = await readFile(configFile, 'utf8');
-  assert.match(content, /export PATH="\$HOME\/.atlacp\/bin:\$PATH"/);
+  assert.match(content, /# Added by @atlacp\/install/);
+  assert.match(content, /source ~\/.atlacp\/env\.sh/);
 });
 
 test('appendToPath is idempotent', async () => {
@@ -51,7 +52,7 @@ test('appendToPath is idempotent', async () => {
   await appendToPath(configFile, '/home/user/.atlacp/bin');
 
   const content = await readFile(configFile, 'utf8');
-  const occurrences = content.split('export PATH="$HOME/.atlacp/bin:$PATH"').length - 1;
+  const occurrences = content.split('source ~/.atlacp/env.sh').length - 1;
 
   assert.equal(occurrences, 1);
 });
@@ -76,7 +77,7 @@ test('detectShellConfigFiles returns bash config when shell ends with bash', () 
 
   try {
     process.env.SHELL = '/usr/local/bin/bash';
-    assert.deepEqual(detectShellConfigFiles(), ['~/.bashrc']);
+    assert.deepEqual(detectShellConfigFiles(), ['~/.bashrc', '~/.profile']);
   } finally {
     if (originalShell === undefined) {
       delete process.env.SHELL;
