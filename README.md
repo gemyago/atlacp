@@ -20,7 +20,24 @@ Install the binaries:
 npm install -g @atlacp/install
 ```
 
-The installer places `bbmd` and `bbcp` in `~/.atlacp/bin` and updates your shell profile. Restart the shell, or source the updated profile before continuing.
+The installer places `bbmd` and `bbcp` in `~/.atlacp/bin` and updates your shell profile. Restart the shell, or source the updated profile before continuing. Follow [accounts setup](#account-setup) to configure Bitbucket account(s).
+
+Use `bbmd skill` to teach your agent to use the cli. You can then write it to the agent relevant skill folder or add it somewhere in AGENTS.md.
+
+```markdown
+### Bitbucket integration
+
+Run `bbmd skill` to learn how to work with bitbucket.
+```
+
+Or write the skill:
+```bash
+# Claude
+mkdir -p .claude/skills/bitbucket && bbmd skill > .claude/skills/bitbucket/SKILL.md
+
+# Cursor
+mkdir -p .cursor/skills/bitbucket && bbmd skill > .cursor/skills/bitbucket/SKILL.md
+```
 
 ## Account Setup
 

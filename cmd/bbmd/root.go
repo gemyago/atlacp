@@ -23,11 +23,15 @@ type rootCommandParams struct {
 	LogsOutputFile           string
 }
 
-func prepareBBMDAccountsFilePath(cfg *viper.Viper, rootParams *rootCommandParams, accountsFile string) error {
-	pathResolver := services.NewAccountsFilePathResolver()
+func prepareBBMDAccountsFilePath(
+	cfg *viper.Viper,
+	rootParams *rootCommandParams,
+	pathResolver *services.AtlacpPathResolver,
+	accountsFile string,
+) error {
 	var resolved string
 	if accountsFile == "" {
-		defaultPath, pathErr := pathResolver.DefaultPath()
+		defaultPath, pathErr := pathResolver.DefaultAccountsFilePath()
 		if pathErr != nil {
 			return fmt.Errorf("resolve default atlassian accounts file path: %w", pathErr)
 		}
@@ -44,6 +48,36 @@ func prepareBBMDAccountsFilePath(cfg *viper.Viper, rootParams *rootCommandParams
 	return nil
 }
 
+func prepareBBMDLogsOutputFile(
+	cmd *cobra.Command,
+	rootParams *rootCommandParams,
+	pathResolver *services.AtlacpPathResolver,
+) error {
+	resolvedLogsPath := rootParams.LogsOutputFile
+	if cmd.Flags().Changed("logs-file") {
+		if resolvedLogsPath != "" {
+			resolvedLogsPath = filepath.Clean(resolvedLogsPath)
+		}
+	} else {
+		defaultPath, pathErr := pathResolver.DefaultLogPath("bbmd.log")
+		if pathErr != nil {
+			return fmt.Errorf("resolve default logs output file path: %w", pathErr)
+		}
+		resolvedLogsPath = defaultPath
+	}
+
+	rootParams.LogsOutputFile = resolvedLogsPath
+	if resolvedLogsPath == "" {
+		return nil
+	}
+
+	if mkdirErr := pathResolver.EnsureParentDirsForFile(resolvedLogsPath); mkdirErr != nil {
+		return fmt.Errorf("ensure logs output file parent directories: %w", mkdirErr)
+	}
+
+	return nil
+}
+
 func newRootCmd(container *dig.Container, rootParams *rootCommandParams) *cobra.Command {
 	cmd := &cobra.Command{
 		Use:   "bbmd",
@@ -55,8 +89,8 @@ func newRootCmd(container *dig.Container, rootParams *rootCommandParams) *cobra.
 	cmd.PersistentFlags().StringVar(
 		&rootParams.LogsOutputFile,
 		"logs-file",
-		"bbmd.log",
-		"Write logs to this file (default bbmd.log in the current directory).",
+		"",
+		"Write logs to this file. If omitted, bbmd uses its default log path.",
 	)
 	cmd.PersistentFlags().Bool(
 		"json-logs",
@@ -95,11 +129,15 @@ func newRootCmd(container *dig.Container, rootParams *rootCommandParams) *cobra.
 			return err
 		}
 
+		pathResolver := services.NewAtlacpPathResolver()
 		accountsFile, err := cmd.Flags().GetString("atlassian-accounts-file")
 		if err != nil {
 			return fmt.Errorf("get atlassian-accounts-file flag: %w", err)
 		}
-		if prepErr := prepareBBMDAccountsFilePath(cfg, rootParams, accountsFile); prepErr != nil {
+		if prepErr := prepareBBMDAccountsFilePath(cfg, rootParams, pathResolver, accountsFile); prepErr != nil {
+			return prepErr
+		}
+		if prepErr := prepareBBMDLogsOutputFile(cmd, rootParams, pathResolver); prepErr != nil {
 			return prepErr
 		}
 

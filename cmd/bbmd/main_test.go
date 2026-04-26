@@ -10,6 +10,7 @@ import (
 	"strings"
 	"testing"
 
+	"github.com/gemyago/atlacp/internal/services"
 	"github.com/go-faker/faker/v4"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -23,6 +24,29 @@ func (faultyWriter) Write([]byte) (int, error) {
 }
 
 func TestBBMD(t *testing.T) {
+	t.Run("default logs file path", func(t *testing.T) {
+		dir := t.TempDir()
+		t.Chdir(dir)
+		accountsPath := filepath.Join(dir, "accounts.json")
+
+		rootCmd := setupCommands()
+		rootCmd.SetArgs([]string{
+			"auth", "status",
+			"--noop",
+			"--atlassian-accounts-file", accountsPath,
+		})
+		require.NoError(t, rootCmd.Execute())
+
+		expectedLogPath, err := services.NewAtlacpPathResolver().DefaultLogPath("bbmd.log")
+		require.NoError(t, err)
+		if !filepath.IsAbs(expectedLogPath) {
+			expectedLogPath = filepath.Join(dir, expectedLogPath)
+		}
+
+		_, err = os.Stat(expectedLogPath)
+		require.NoError(t, err)
+	})
+
 	t.Run("auth", func(t *testing.T) {
 		t.Run("status noop exercises DI", func(t *testing.T) {
 			rootCmd := setupCommands()

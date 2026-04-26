@@ -1,14 +1,41 @@
 package main
 
 import (
+	"os"
+	"path/filepath"
 	"testing"
 
+	"github.com/gemyago/atlacp/internal/services"
 	"github.com/go-faker/faker/v4"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
 
 func TestMain(t *testing.T) {
+	t.Run("default logs file path", func(t *testing.T) {
+		dir := t.TempDir()
+		t.Chdir(dir)
+		accountsPath := filepath.Join(dir, "accounts.json")
+
+		rootCmd := setupCommands()
+		rootCmd.SetArgs([]string{
+			"stdio",
+			"--noop",
+			"--atlassian-accounts-file",
+			accountsPath,
+		})
+		require.NoError(t, rootCmd.Execute())
+
+		expectedLogPath, err := services.NewAtlacpPathResolver().DefaultLogPath("bbcp.log")
+		require.NoError(t, err)
+		if !filepath.IsAbs(expectedLogPath) {
+			expectedLogPath = filepath.Join(dir, expectedLogPath)
+		}
+
+		_, err = os.Stat(expectedLogPath)
+		require.NoError(t, err)
+	})
+
 	t.Run("http", func(t *testing.T) {
 		t.Run("should initialize app", func(t *testing.T) {
 			rootCmd := setupCommands()
