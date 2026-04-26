@@ -48,6 +48,9 @@ func newPRCmd(container *dig.Container, rootParams *rootCommandParams) *cobra.Co
 	pr := &cobra.Command{
 		Use:   "pr",
 		Short: "Bitbucket pull request operations",
+		Long:  "Manage Bitbucket pull requests: create, read, update, merge, and comment workflows.",
+		Example: `bbmd pr list-tasks --repo-owner <workspace> --repo-name <repo> --pr-id <id>
+bbmd pr read --repo-owner <workspace> --repo-name <repo> --pr-id <id>`,
 	}
 	pr.AddCommand(
 		newPRCreateCmd(container, rootParams),
@@ -81,8 +84,10 @@ type prCreateOpts struct {
 func newPRCreateCmd(container *dig.Container, rootParams *rootCommandParams) *cobra.Command {
 	var opts prCreateOpts
 	cmd := &cobra.Command{
-		Use:   "create",
-		Short: "Create a pull request",
+		Use:     "create",
+		Short:   "Create a pull request",
+		Long:    "Create a new pull request from a source branch to a target branch.",
+		Example: `bbmd pr create --repo-owner <workspace> --repo-name <repo> --title <title> --source-branch <branch> --target-branch <branch>`,
 		RunE: func(cmd *cobra.Command, _ []string) error {
 			return runPRCreate(cmd, container, rootParams, app.BitbucketCreatePRParams{
 				Title:        opts.Title,
@@ -128,8 +133,10 @@ func runPRCreate(
 func newPRReadCmd(container *dig.Container, rootParams *rootCommandParams) *cobra.Command {
 	var core prCoreIDs
 	cmd := &cobra.Command{
-		Use:   "read",
-		Short: "Get pull request details",
+		Use:     "read",
+		Short:   "Get pull request details",
+		Long:    "Read detailed metadata for a pull request.",
+		Example: `bbmd pr read --repo-owner <workspace> --repo-name <repo> --pr-id <id>`,
 		RunE: func(cmd *cobra.Command, _ []string) error {
 			return runPRRead(cmd, container, rootParams, app.BitbucketReadPRParams{
 				RepoOwner:     core.RepoOwner,
@@ -558,6 +565,9 @@ func newPRAddCommentCmd(container *dig.Container, rootParams *rootCommandParams)
 	cmd := &cobra.Command{
 		Use:   "add-comment",
 		Short: "Post a comment on a pull request (general or inline)",
+		Long:  "Post a top-level or inline comment on a pull request.",
+		Example: `bbmd pr add-comment --repo-owner <workspace> --repo-name <repo> --pr-id <id> --content "<comment>"
+bbmd pr add-comment --repo-owner <workspace> --repo-name <repo> --pr-id <id> --content "<comment>" --file-path <path> --line <line> --parent-comment-id <id>`,
 		RunE: func(cmd *cobra.Command, _ []string) error {
 			params := app.BitbucketAddPRCommentParams{
 				RepoOwner:     core.RepoOwner,
@@ -580,7 +590,7 @@ func newPRAddCommentCmd(container *dig.Container, rootParams *rootCommandParams)
 	cmd.Flags().StringVar(&cmt.Content, "content", "", "Comment content (raw)")
 	cmd.Flags().StringVar(&cmt.FilePath, "file-path", "", "File path for inline comments")
 	cmd.Flags().IntVar(&cmt.Line, "line", 0, "Line number for inline comments (sets from/to)")
-	cmd.Flags().Int64Var(&cmt.ParentID, "parent-comment-id", 0, "Parent comment ID for replies")
+	cmd.Flags().Int64Var(&cmt.ParentID, "parent-comment-id", 0, "Parent comment ID for replies (optional)")
 	_ = cmd.MarkFlagRequired("content")
 	return cmd
 }
@@ -613,6 +623,9 @@ func newPRListCommentsCmd(container *dig.Container, rootParams *rootCommandParam
 	cmd := &cobra.Command{
 		Use:   "list-comments",
 		Short: "List comments on a pull request",
+		Long:  "List comments for a pull request and optionally include resolved comments.",
+		Example: `bbmd pr list-comments --repo-owner <workspace> --repo-name <repo> --pr-id <id>
+bbmd pr list-comments --repo-owner <workspace> --repo-name <repo> --pr-id <id> --include-resolved true`,
 		RunE: func(cmd *cobra.Command, _ []string) error {
 			if cmd.Flags().Changed("page") && page < 0 {
 				return fmt.Errorf("invalid --page: must be non-negative, got %d", page)

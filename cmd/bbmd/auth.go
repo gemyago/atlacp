@@ -14,6 +14,13 @@ func newAuthCmd(container *dig.Container, rootParams *rootCommandParams) *cobra.
 	auth := &cobra.Command{
 		Use:   "auth",
 		Short: "Atlassian account management",
+		Long:  "Manage Atlassian accounts used by bbmd for authenticated Bitbucket and Jira calls.",
+		Example: `bbmd auth add --name <name> --token-value <token>
+bbmd auth status
+bbmd auth set-default --name <name>`,
+	}
+	auth.Annotations = map[string]string{
+		commandExcludeFromSkillAnnotation: "true",
 	}
 	auth.AddCommand(
 		newAuthStatusCmd(container, rootParams),
@@ -35,9 +42,15 @@ func newAuthStatusCmd(container *dig.Container, rootParams *rootCommandParams) *
 	return &cobra.Command{
 		Use:   "status",
 		Short: "List configured accounts (tokens partially redacted)",
+		Long:  "List configured Atlassian accounts. Token values are partially redacted by default.",
+		Annotations: map[string]string{
+			commandIncludeInSkillAnnotation: "true",
+		},
 		RunE: func(cmd *cobra.Command, _ []string) error {
 			return runAuthStatus(cmd, container, rootParams)
 		},
+		Example: `bbmd auth status
+bbmd auth status --account <name>`,
 	}
 }
 
@@ -46,6 +59,9 @@ func newAuthAddCmd(container *dig.Container, rootParams *rootCommandParams) *cob
 	cmd := &cobra.Command{
 		Use:   "add",
 		Short: "Add or replace an account",
+		Long:  "Add or replace a saved account profile. By default, if this is the first account it becomes the default.",
+		Example: `bbmd auth add --name work --default --token-value <token>
+bbmd auth add --name work --token-type Bearer --token-value <token>`,
 		RunE: func(cmd *cobra.Command, _ []string) error {
 			return runAuthAdd(cmd, container, rootParams, opts)
 		},
@@ -62,8 +78,10 @@ func newAuthAddCmd(container *dig.Container, rootParams *rootCommandParams) *cob
 func newAuthRemoveCmd(container *dig.Container, rootParams *rootCommandParams) *cobra.Command {
 	var name string
 	cmd := &cobra.Command{
-		Use:   "remove",
-		Short: "Remove an account by name",
+		Use:     "remove",
+		Short:   "Remove an account by name",
+		Long:    "Remove a saved account profile by name.",
+		Example: `bbmd auth remove --name <name>`,
 		RunE: func(cmd *cobra.Command, _ []string) error {
 			return runAuthRemove(cmd, container, rootParams, name)
 		},
@@ -76,8 +94,10 @@ func newAuthRemoveCmd(container *dig.Container, rootParams *rootCommandParams) *
 func newAuthSetDefaultCmd(container *dig.Container, rootParams *rootCommandParams) *cobra.Command {
 	var name string
 	cmd := &cobra.Command{
-		Use:   "set-default",
-		Short: "Set the default account by name",
+		Use:     "set-default",
+		Short:   "Set the default account by name",
+		Long:    "Set a saved account as the default account used when `--account` is omitted.",
+		Example: `bbmd auth set-default --name <name>`,
 		RunE: func(cmd *cobra.Command, _ []string) error {
 			return runAuthSetDefault(cmd, container, rootParams, name)
 		},

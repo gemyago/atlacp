@@ -47,7 +47,8 @@ func prepareBBMDAccountsFilePath(cfg *viper.Viper, rootParams *rootCommandParams
 func newRootCmd(container *dig.Container, rootParams *rootCommandParams) *cobra.Command {
 	cmd := &cobra.Command{
 		Use:   "bbmd",
-		Short: "Bitbucket CLI — direct access to Bitbucket and account operations",
+		Short: "Bitbucket CLI — cli interface to Bitbucket",
+		Long:  "bbmd is a Bitbucket CLI for account management, pull request operations, and file access.\nUse it directly for API workflows or run `bbmd skill` to generate this command reference as markdown for AI agents.",
 	}
 	cmd.SilenceUsage = true
 	cmd.PersistentFlags().StringP("log-level", "l", "", "Produce logs with given level. Default is env specific.")
@@ -86,6 +87,9 @@ func newRootCmd(container *dig.Container, rootParams *rootCommandParams) *cobra.
 	lo.Must0(cfg.BindPFlag("defaultLogLevel", cmd.PersistentFlags().Lookup("log-level")))
 	lo.Must0(cfg.BindPFlag("env", cmd.PersistentFlags().Lookup("env")))
 	cmd.PersistentPreRunE = func(cmd *cobra.Command, _ []string) error {
+		if shouldSkipBootstrap(cmd) {
+			return nil
+		}
 		err := config.Load(cfg, config.NewLoadOpts().WithEnv(cfg.GetString("env")))
 		if err != nil {
 			return err
@@ -129,6 +133,7 @@ func newRootCmd(container *dig.Container, rootParams *rootCommandParams) *cobra.
 		newPRCmd(container, rootParams),
 		newFileCmd(container, rootParams),
 		newAuthCmd(container, rootParams),
+		newSkillCmd(),
 	)
 
 	return cmd
