@@ -62,6 +62,11 @@ bbmd auth add \
 
 See [Bitbucket Access Tokens](#bitbucket-access-tokens) for more details on creating tokens.
 
+Note: If you already have `atlassian-accounts.json`, just copy it to ~/.atlacp/accounts.json as follows:
+```sh
+cp your/path/to/atlassian-accounts.json ~/.atlacp/accounts.json
+```
+
 Check the configured accounts:
 ```bash
 bbmd auth status
