@@ -30,19 +30,31 @@ Use `bbmd skill` to teach your agent to use the cli. You can either write it to 
 Run `bbmd skill` to learn how to work with bitbucket.
 ```
 
-Or write the skill:
+Or write the skill in either project-local scope or global scope:
 ```bash
 # Opencode
+# Project-local
 mkdir -p .opencode/skills/bitbucket && bbmd skill > .opencode/skills/bitbucket/SKILL.md
+# Global
+mkdir -p ~/.opencode/skills/bitbucket && bbmd skill > ~/.opencode/skills/bitbucket/SKILL.md
 
 # Claude
+# Project-local
 mkdir -p .claude/skills/bitbucket && bbmd skill > .claude/skills/bitbucket/SKILL.md
+# Global
+mkdir -p ~/.claude/skills/bitbucket && bbmd skill > ~/.claude/skills/bitbucket/SKILL.md
 
 # Codex
+# Project-local
 mkdir -p .codex/skills/bitbucket && bbmd skill > .codex/skills/bitbucket/SKILL.md
+# Global
+mkdir -p ~/.codex/skills/bitbucket && bbmd skill > ~/.codex/skills/bitbucket/SKILL.md
 
 # Cursor
+# Project-local
 mkdir -p .cursor/skills/bitbucket && bbmd skill > .cursor/skills/bitbucket/SKILL.md
+# Global
+mkdir -p ~/.cursor/skills/bitbucket && bbmd skill > ~/.cursor/skills/bitbucket/SKILL.md
 ```
 __I'm so tired to have 20 folders with AI stuff...__
 
