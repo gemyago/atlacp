@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"log/slog"
+	"math"
 	"strconv"
 	"strings"
 
@@ -32,6 +33,65 @@ type BitbucketControllerDeps struct {
 
 	RootLogger       *slog.Logger
 	BitbucketService bitbucketService
+}
+
+func requirePositivePRID(request mcp.CallToolRequest) (int, error) {
+	const name = "pr_id"
+
+	value, ok := request.GetArguments()[name]
+	if !ok || value == nil {
+		return 0, fmt.Errorf("%s is required", name)
+	}
+
+	const maxInt = int(^uint(0) >> 1)
+	validateSigned := func(id int64) (int, error) {
+		if id <= 0 || id > int64(maxInt) {
+			return 0, fmt.Errorf("%s must be a positive integer", name)
+		}
+		return int(id), nil
+	}
+	validateUnsigned := func(id uint64) (int, error) {
+		if id == 0 || id > uint64(maxInt) {
+			return 0, fmt.Errorf("%s must be a positive integer", name)
+		}
+		return int(id), nil
+	}
+	validateFloat := func(id float64) (int, error) {
+		firstUnrepresentableInt := math.Ldexp(1, strconv.IntSize-1)
+		if math.IsNaN(id) || math.IsInf(id, 0) || id <= 0 || id != math.Trunc(id) || id >= firstUnrepresentableInt {
+			return 0, fmt.Errorf("%s must be a positive integer", name)
+		}
+		return int(id), nil
+	}
+
+	switch id := value.(type) {
+	case int:
+		return validateSigned(int64(id))
+	case int8:
+		return validateSigned(int64(id))
+	case int16:
+		return validateSigned(int64(id))
+	case int32:
+		return validateSigned(int64(id))
+	case int64:
+		return validateSigned(id)
+	case uint:
+		return validateUnsigned(uint64(id))
+	case uint8:
+		return validateUnsigned(uint64(id))
+	case uint16:
+		return validateUnsigned(uint64(id))
+	case uint32:
+		return validateUnsigned(uint64(id))
+	case uint64:
+		return validateUnsigned(id)
+	case float32:
+		return validateFloat(float64(id))
+	case float64:
+		return validateFloat(id)
+	default:
+		return 0, fmt.Errorf("%s must be a positive integer", name)
+	}
 }
 
 // BitbucketController provides MCP Bitbucket tool functionality.
@@ -397,6 +457,68 @@ func (bc *BitbucketController) newApprovePRServerTool() server.ServerTool {
 		Tool:    tool,
 		Handler: handler,
 	}
+}
+
+// newDeclinePRServerTool returns a server tool for declining pull requests.
+func (bc *BitbucketController) newDeclinePRServerTool() server.ServerTool {
+	tool := mcp.NewTool(
+		"bitbucket_decline_pr",
+		mcp.WithDescription("Decline a pull request in Bitbucket"),
+		mcp.WithNumber(
+			"pr_id",
+			mcp.Description("Positive integral pull request ID"),
+			mcp.Min(1),
+			mcp.MultipleOf(1),
+			mcp.Required(),
+		),
+		mcp.WithString("repo_owner", mcp.Description("Repository owner (username/workspace)"), mcp.Required()),
+		mcp.WithString("repo_name", mcp.Description("Repository name (slug)"), mcp.Required()),
+		mcp.WithString(
+			"account",
+			mcp.Description("Atlassian account name to use (optional, uses default if not specified)"),
+		),
+	)
+
+	handler := func(ctx context.Context, request mcp.CallToolRequest) (*mcp.CallToolResult, error) {
+		bc.logger.Debug("Received bitbucket_decline_pr request", "params", request.Params)
+
+		prID, err := requirePositivePRID(request)
+		if err != nil {
+			return mcp.NewToolResultErrorFromErr("Missing or invalid pr_id parameter", err), nil
+		}
+		repoOwner, err := request.RequireString("repo_owner")
+		if err != nil {
+			return mcp.NewToolResultErrorFromErr("Missing or invalid repo_owner parameter", err), nil
+		}
+		repoName, err := request.RequireString("repo_name")
+		if err != nil {
+			return mcp.NewToolResultErrorFromErr("Missing or invalid repo_name parameter", err), nil
+		}
+
+		pullRequest, err := bc.bitbucketService.DeclinePR(ctx, app.BitbucketDeclinePRParams{
+			PullRequestID: prID,
+			RepoOwner:     repoOwner,
+			RepoName:      repoName,
+			AccountName:   request.GetString("account", ""),
+		})
+		if err != nil {
+			return nil, fmt.Errorf("failed to decline pull request: %w", err)
+		}
+
+		pullRequestJSON, err := json.MarshalIndent(pullRequest, "", "  ")
+		if err != nil {
+			return nil, fmt.Errorf("failed to marshal declined pull request to JSON: %w", err)
+		}
+		return &mcp.CallToolResult{Content: []mcp.Content{
+			mcp.TextContent{
+				Type: "text",
+				Text: fmt.Sprintf("Declined pull request #%d: %s", pullRequest.ID, pullRequest.Title),
+			},
+			mcp.NewTextContent(string(pullRequestJSON)),
+		}}, nil
+	}
+
+	return server.ServerTool{Tool: tool, Handler: handler}
 }
 
 // newMergePRServerTool returns a server tool for merging pull requests.
@@ -869,6 +991,7 @@ func (bc *BitbucketController) NewTools() []server.ServerTool {
 		bc.newReadPRServerTool(),
 		bc.newUpdatePRServerTool(),
 		bc.newApprovePRServerTool(),
+		bc.newDeclinePRServerTool(),
 		bc.newMergePRServerTool(),
 		bc.newListPRTasksServerTool(),
 		bc.newUpdatePRTaskServerTool(),

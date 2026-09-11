@@ -96,6 +96,7 @@ bbmd auth status
 - `bbmd pr read` - get pull request details.
 - `bbmd pr update` - update pull request title, description, or draft state.
 - `bbmd pr approve` - approve a pull request.
+- `bbmd pr decline` - decline a pull request.
 - `bbmd pr request-changes` - remove approval / request changes.
 - `bbmd pr merge` - merge a pull request.
 - `bbmd pr diffstat` - list changed files summary for a pull request.
@@ -112,6 +113,7 @@ bbmd auth status
 
 - `bitbucket_add_pr_comment` - add a comment to a pull request.
 - `bitbucket_approve_pr` - approve a pull request.
+- `bitbucket_decline_pr` - decline a pull request.
 - `bitbucket_create_pr` - create a pull request.
 - `bitbucket_create_pr_task` - create a task on a pull request.
 - `bitbucket_get_file_content` - get file content from a repository at a specific commit.

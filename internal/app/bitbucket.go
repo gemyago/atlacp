@@ -145,6 +145,21 @@ type BitbucketApprovePRParams struct {
 	PullRequestID int `json:"pull_request_id"`
 }
 
+// BitbucketDeclinePRParams contains parameters for declining a pull request.
+type BitbucketDeclinePRParams struct {
+	// Account name to use for authentication (optional, uses default if empty)
+	AccountName string `json:"account_name,omitempty"`
+
+	// Repository owner (username/workspace)
+	RepoOwner string `json:"repo_owner"`
+
+	// Repository name (slug)
+	RepoName string `json:"repo_name"`
+
+	// Pull request ID
+	PullRequestID int `json:"pull_request_id"`
+}
+
 type BitbucketRequestPRChangesParams struct {
 	// Account name to use for authentication (optional, uses default if empty)
 	AccountName string `json:"account_name,omitempty"`
@@ -476,6 +491,32 @@ func (s *BitbucketService) ApprovePR(
 	}
 
 	return participant, nil
+}
+
+// DeclinePR declines a pull request and returns Bitbucket's updated pull request response.
+func (s *BitbucketService) DeclinePR(
+	ctx context.Context,
+	params BitbucketDeclinePRParams,
+) (*bitbucket.PullRequest, error) {
+	s.logger.InfoContext(ctx, "Declining pull request",
+		slog.String("repo", params.RepoOwner+"/"+params.RepoName),
+		slog.Int("pr_id", params.PullRequestID))
+
+	if err := validateBitbucketRepoAndPRID(params.RepoOwner, params.RepoName, params.PullRequestID); err != nil {
+		return nil, err
+	}
+
+	tokenProvider := s.authFactory.getTokenProvider(ctx, params.AccountName)
+	pullRequest, err := s.client.DeclinePR(ctx, tokenProvider, bitbucket.DeclinePRParams{
+		Username:      params.RepoOwner,
+		RepoSlug:      params.RepoName,
+		PullRequestID: params.PullRequestID,
+	})
+	if err != nil {
+		return nil, fmt.Errorf("failed to decline pull request: %w", err)
+	}
+
+	return pullRequest, nil
 }
 
 // RequestPRChanges requests changes on a pull request.

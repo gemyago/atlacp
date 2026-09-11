@@ -4,7 +4,9 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"math"
 	"math/rand/v2"
+	"strconv"
 	"testing"
 	"time"
 
@@ -42,6 +44,44 @@ func TestBitbucketController(t *testing.T) {
 		require.NotNil(t, controller)
 		require.NotNil(t, controller.logger)
 		require.NotNil(t, controller.bitbucketService)
+	})
+
+	t.Run("strict positive integral tool arguments", func(t *testing.T) {
+		requestWithID := func(id any) mcp.CallToolRequest {
+			return mcp.CallToolRequest{Params: mcp.CallToolParams{Arguments: map[string]any{"pr_id": id}}}
+		}
+
+		for _, id := range []any{
+			int(1), int8(1), int16(1), int32(1), int64(1),
+			uint(1), uint8(1), uint16(1), uint32(1), uint64(1), float32(1), float64(1),
+		} {
+			t.Run(fmt.Sprintf("accepts %T", id), func(t *testing.T) {
+				actualID, err := requirePositivePRID(requestWithID(id))
+				require.NoError(t, err)
+				assert.Equal(t, 1, actualID)
+			})
+		}
+
+		for _, id := range []any{
+			nil,
+			false,
+			int(-1),
+			uint(0),
+			uint64(^uint(0)>>1) + 1,
+			float64(1.5),
+			math.Ldexp(1, strconv.IntSize-1),
+			math.Inf(1),
+		} {
+			t.Run(fmt.Sprintf("rejects %v", id), func(t *testing.T) {
+				actualID, err := requirePositivePRID(requestWithID(id))
+				require.Error(t, err)
+				assert.Zero(t, actualID)
+			})
+		}
+
+		actualID, err := requirePositivePRID(mcp.CallToolRequest{})
+		require.Error(t, err)
+		assert.Zero(t, actualID)
 	})
 
 	t.Run("tool definitions", func(t *testing.T) {
@@ -91,6 +131,28 @@ func TestBitbucketController(t *testing.T) {
 			assert.Equal(t, "Approve a pull request in Bitbucket", serverTool.Tool.Description)
 			assert.NotNil(t, serverTool.Tool.InputSchema)
 			assert.NotNil(t, serverTool.Handler)
+		})
+
+		t.Run("should define DeclinePR tool correctly", func(t *testing.T) {
+			deps := makeMockDeps(t)
+			controller := NewBitbucketController(deps)
+
+			serverTool := controller.newDeclinePRServerTool()
+
+			assert.Equal(t, "bitbucket_decline_pr", serverTool.Tool.Name)
+			assert.Equal(t, "Decline a pull request in Bitbucket", serverTool.Tool.Description)
+			assert.NotNil(t, serverTool.Tool.InputSchema)
+			assert.NotNil(t, serverTool.Handler)
+			assert.Contains(t, serverTool.Tool.InputSchema.Required, "pr_id")
+			prIDSchema, ok := serverTool.Tool.InputSchema.Properties["pr_id"].(map[string]any)
+			require.True(t, ok)
+			assert.Equal(t, "number", prIDSchema["type"])
+			minimum, ok := prIDSchema["minimum"].(float64)
+			require.True(t, ok)
+			assert.InDelta(t, 1, minimum, 0)
+			multipleOf, ok := prIDSchema["multipleOf"].(float64)
+			require.True(t, ok)
+			assert.InDelta(t, 1, multipleOf, 0)
 		})
 
 		t.Run("should define MergePR tool correctly", func(t *testing.T) {
@@ -196,9 +258,9 @@ func TestBitbucketController(t *testing.T) {
 
 		tools := controller.NewTools()
 
-		// 15 tools: create, read, update, approve, merge, list, update, create task,
+		// 16 tools: create, read, update, approve, decline, merge, list, update, create task,
 		// get diffstat, get diff, get file content, add comment, request changes, list comments, resolve comment
-		require.Len(t, tools, 15)
+		require.Len(t, tools, 16)
 		toolNames := make([]string, len(tools))
 		for i, tool := range tools {
 			toolNames[i] = tool.Tool.Name
@@ -207,6 +269,7 @@ func TestBitbucketController(t *testing.T) {
 		assert.Contains(t, toolNames, "bitbucket_read_pr")
 		assert.Contains(t, toolNames, "bitbucket_update_pr")
 		assert.Contains(t, toolNames, "bitbucket_approve_pr")
+		assert.Contains(t, toolNames, "bitbucket_decline_pr")
 		assert.Contains(t, toolNames, "bitbucket_merge_pr")
 		assert.Contains(t, toolNames, "bitbucket_list_pr_tasks")
 		assert.Contains(t, toolNames, "bitbucket_update_pr_task")
@@ -1694,6 +1757,92 @@ func TestBitbucketController(t *testing.T) {
 				// Assert
 				require.Error(t, err)
 				assert.Contains(t, err.Error(), expectedError.Error())
+				assert.Nil(t, result)
+			})
+		})
+
+		t.Run("bitbucket_decline_pr", func(t *testing.T) {
+			t.Run("forwards the declined pull request response", func(t *testing.T) {
+				deps := makeMockDeps(t)
+				mockService := mocks.GetMock[*MockbitbucketService](t, deps.BitbucketService)
+				controller := NewBitbucketController(deps)
+				prID := rand.IntN(1000000) + 1
+				expectedParams := app.BitbucketDeclinePRParams{
+					PullRequestID: prID,
+					AccountName:   "account-" + faker.Username(),
+					RepoOwner:     "workspace-" + faker.Username(),
+					RepoName:      "repo-" + faker.Word(),
+				}
+				expectedPR := bitbucket.NewRandomPullRequest(
+					bitbucket.WithPullRequestID(prID),
+					bitbucket.WithPullRequestState("DECLINED"),
+				)
+				mockService.EXPECT().DeclinePR(mock.Anything, expectedParams).Return(expectedPR, nil)
+
+				result, err := controller.newDeclinePRServerTool().Handler(t.Context(), mcp.CallToolRequest{
+					Params: mcp.CallToolParams{Name: "bitbucket_decline_pr", Arguments: map[string]any{
+						"pr_id":      float64(prID),
+						"account":    expectedParams.AccountName,
+						"repo_owner": expectedParams.RepoOwner,
+						"repo_name":  expectedParams.RepoName,
+					}},
+				})
+
+				require.NoError(t, err)
+				require.False(t, result.IsError)
+				require.Len(t, result.Content, 2)
+				text, ok := result.Content[0].(mcp.TextContent)
+				require.True(t, ok)
+				assert.Contains(t, text.Text, fmt.Sprintf("Declined pull request #%d", prID))
+				jsonContent, ok := result.Content[1].(mcp.TextContent)
+				require.True(t, ok)
+				var actualPR bitbucket.PullRequest
+				require.NoError(t, json.Unmarshal([]byte(jsonContent.Text), &actualPR))
+				assert.Equal(t, expectedPR, &actualPR)
+			})
+
+			t.Run("rejects invalid PR IDs without calling the service", func(t *testing.T) {
+				for _, prID := range []any{0, -1, 1.5, "1", math.Inf(1), math.NaN(), math.Ldexp(1, strconv.IntSize-1)} {
+					t.Run(fmt.Sprintf("pr_id=%v", prID), func(t *testing.T) {
+						deps := makeMockDeps(t)
+						mockService := mocks.GetMock[*MockbitbucketService](t, deps.BitbucketService)
+						controller := NewBitbucketController(deps)
+						result, err := controller.newDeclinePRServerTool().Handler(t.Context(), mcp.CallToolRequest{
+							Params: mcp.CallToolParams{Name: "bitbucket_decline_pr", Arguments: map[string]any{
+								"pr_id": prID, "repo_owner": faker.Word(), "repo_name": faker.Word(),
+							}},
+						})
+
+						require.NoError(t, err)
+						require.True(t, result.IsError)
+						content, ok := result.Content[0].(mcp.TextContent)
+						require.True(t, ok)
+						assert.Contains(t, content.Text, "Missing or invalid pr_id parameter")
+						assert.Empty(t, mockService.Calls)
+					})
+				}
+			})
+
+			t.Run("returns service errors", func(t *testing.T) {
+				deps := makeMockDeps(t)
+				mockService := mocks.GetMock[*MockbitbucketService](t, deps.BitbucketService)
+				controller := NewBitbucketController(deps)
+				prID := rand.IntN(1000000) + 1
+				params := app.BitbucketDeclinePRParams{
+					PullRequestID: prID,
+					RepoOwner:     faker.Word(),
+					RepoName:      faker.Word(),
+				}
+				expectedErr := errors.New(faker.Sentence())
+				mockService.EXPECT().DeclinePR(mock.Anything, params).Return(nil, expectedErr)
+
+				result, err := controller.newDeclinePRServerTool().Handler(t.Context(), mcp.CallToolRequest{
+					Params: mcp.CallToolParams{Name: "bitbucket_decline_pr", Arguments: map[string]any{
+						"pr_id": prID, "repo_owner": params.RepoOwner, "repo_name": params.RepoName,
+					}},
+				})
+
+				require.ErrorIs(t, err, expectedErr)
 				assert.Nil(t, result)
 			})
 		})
