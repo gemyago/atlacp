@@ -4,6 +4,7 @@
 - [x] GET /repositories/{workspace}/{repo_slug}/pullrequests/{pull_request_id} (get_pr.go)
 - [x] POST /repositories/{workspace}/{repo_slug}/pullrequests (create_pr.go)
 - [x] POST /repositories/{workspace}/{repo_slug}/pullrequests/{pull_request_id}/approve (approve_pr.go)
+- [x] POST /repositories/{workspace}/{repo_slug}/pullrequests/{pull_request_id}/decline (decline_pr.go)
 - [x] POST /repositories/{workspace}/{repo_slug}/pullrequests/{pull_request_id}/merge (merge_pr.go)
 - [x] PUT /repositories/{workspace}/{repo_slug}/pullrequests/{pull_request_id} (update_pr.go)
 
@@ -23,4 +24,4 @@
 1. Parameter name inconsistencies between code and OpenAPI spec (see model-differences.md)
 2. Some response fields might be missing in our models compared to the full OpenAPI specification
 3. Error handling needs standardization across all API calls
-4. Authentication mechanisms need to be unified 
+4. Authentication mechanisms need to be unified

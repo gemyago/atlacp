@@ -7,6 +7,9 @@ packages:
   github.com/gemyago/atlacp/internal/api/mcp/controllers:
     interfaces:
       bitbucketService:
+        config:
+          filename: mock_bitbucket_service.go
+          structname: MockbitbucketService
   github.com/gemyago/atlacp/internal/app:
     interfaces:
       AtlassianAccountsRepository:

@@ -12,6 +12,9 @@ Client method: UpdatePR(ctx, tokenProvider, UpdatePRParams)
 POST /repositories/{username}/{repo_slug}/pullrequests/{pull_request_id}/approve
 Client method: ApprovePR(ctx, tokenProvider, ApprovePRParams)
 
+POST /repositories/{username}/{repo_slug}/pullrequests/{pull_request_id}/decline
+Client method: DeclinePR(ctx, tokenProvider, DeclinePRParams)
+
 POST /repositories/{workspace}/{repo_slug}/pullrequests/{pull_request_id}/request-changes
 Client method: RequestPRChanges(ctx, tokenProvider, RequestPRChangesParams)
 
@@ -31,4 +34,4 @@ PUT /repositories/{workspace}/{repo_slug}/pullrequests/{pull_request_id}/tasks/{
 Client method: UpdateTask(ctx, tokenProvider, UpdateTaskParams)
 
 GET /repositories/{workspace}/{repo_slug}/pullrequests/{pull_request_id}/comments
-Client method: ListPRComments(ctx, tokenProvider, ListPRCommentsParams) 
+Client method: ListPRComments(ctx, tokenProvider, ListPRCommentsParams)

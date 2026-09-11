@@ -4,9 +4,13 @@ import (
 	"bytes"
 	"encoding/json"
 	"errors"
+	"fmt"
 	"io"
+	"net/http"
+	"net/http/httptest"
 	"os"
 	"path/filepath"
+	"strconv"
 	"strings"
 	"testing"
 
@@ -422,6 +426,101 @@ func TestBBMD(t *testing.T) {
 		})
 	})
 	t.Run("pr", func(t *testing.T) {
+		t.Run("decline sends authenticated bodyless request and writes updated pull request JSON", func(t *testing.T) {
+			repoOwner := "workspace-" + faker.Username()
+			repoName := "repo-" + faker.Word()
+			prID := 42
+			token := faker.UUIDHyphenated()
+			requests := 0
+			server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+				requests++
+				assert.Equal(t, http.MethodPost, r.Method)
+				assert.Equal(
+					t,
+					fmt.Sprintf("/repositories/%s/%s/pullrequests/%d/decline", repoOwner, repoName, prID),
+					r.URL.Path,
+				)
+				assert.Equal(t, "Bearer "+token, r.Header.Get("Authorization"))
+				body, err := io.ReadAll(r.Body)
+				if !assert.NoError(t, err) {
+					return
+				}
+				assert.Empty(t, body)
+				w.Header().Set("Content-Type", "application/json")
+				_, err = fmt.Fprint(w, `{"id":42,"title":"declined","state":"DECLINED","type":"pullrequest"}`)
+				assert.NoError(t, err)
+			}))
+			defer server.Close()
+
+			t.Setenv("APP_ATLASSIAN_BITBUCKET_BASEURL", server.URL)
+			dir := t.TempDir()
+			accountsPath := filepath.Join(dir, "accounts.json")
+			accountsJSON := fmt.Appendf(
+				nil,
+				`{"accounts":[{"name":"test","default":true,"bitbucket":{"type":"Bearer","value":%q}}]}`,
+				token,
+			)
+			require.NoError(t, os.WriteFile(accountsPath, accountsJSON, 0o600))
+			var stdout bytes.Buffer
+			rootCmd := setupCommands()
+			rootCmd.SetOut(&stdout)
+			rootCmd.SetErr(io.Discard)
+			rootCmd.SetArgs([]string{
+				"pr", "decline",
+				"--env", "test",
+				"--logs-file", filepath.Join(dir, "bbmd.log"),
+				"--atlassian-accounts-file", accountsPath,
+				"--repo-owner", repoOwner,
+				"--repo-name", repoName,
+				"--pr-id", strconv.Itoa(prID),
+			})
+
+			require.NoError(t, rootCmd.Execute())
+			assert.Equal(t, 1, requests)
+			expectedOutput := `{
+  "id": 42,
+  "title": "declined",
+  "state": "DECLINED",
+  "type": "pullrequest"
+}
+`
+			assert.Equal(t, expectedOutput, stdout.String())
+		})
+		t.Run("decline returns a wrapped error without writing success JSON", func(t *testing.T) {
+			server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) {
+				w.WriteHeader(http.StatusBadRequest)
+			}))
+			defer server.Close()
+
+			t.Setenv("APP_ATLASSIAN_BITBUCKET_BASEURL", server.URL)
+			dir := t.TempDir()
+			accountsPath := filepath.Join(dir, "accounts.json")
+			accountsJSON := []byte(`{
+  "accounts": [
+    {"name": "test", "default": true, "bitbucket": {"type": "Bearer", "value": "test-token-value"}}
+  ]
+}`)
+			require.NoError(t, os.WriteFile(accountsPath, accountsJSON, 0o600))
+			var stdout bytes.Buffer
+			rootCmd := setupCommands()
+			rootCmd.SilenceErrors = true
+			rootCmd.SetOut(&stdout)
+			rootCmd.SetErr(io.Discard)
+			rootCmd.SetArgs([]string{
+				"pr", "decline",
+				"--env", "test",
+				"--logs-file", filepath.Join(dir, "bbmd.log"),
+				"--atlassian-accounts-file", accountsPath,
+				"--repo-owner", "workspace",
+				"--repo-name", "repository",
+				"--pr-id", "1",
+			})
+
+			err := rootCmd.Execute()
+			require.Error(t, err)
+			require.ErrorContains(t, err, "failed to decline pull request")
+			assert.Empty(t, stdout.String())
+		})
 		t.Run("read noop exercises DI", func(t *testing.T) {
 			rootCmd := setupCommands()
 			logFile := filepath.Join(t.TempDir(), "bbmd-test.log")
@@ -476,6 +575,7 @@ func TestBBMD(t *testing.T) {
 					}, repoPR...),
 				},
 				{name: "approve", args: append([]string{"pr", "approve"}, repoPR...)},
+				{name: "decline", args: append([]string{"pr", "decline"}, repoPR...)},
 				{name: "request-changes", args: append([]string{"pr", "request-changes"}, repoPR...)},
 				{name: "merge", args: append([]string{"pr", "merge"}, repoPR...)},
 				{name: "list-tasks", args: append([]string{"pr", "list-tasks"}, repoPR...)},

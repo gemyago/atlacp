@@ -86,6 +86,16 @@ func TestCommandParityWithBitbucketAppParams(t *testing.T) {
 			},
 		},
 		{
+			CommandPath: []string{"pr", "decline"},
+			Params:      app.BitbucketDeclinePRParams{},
+			FieldToFlag: map[string]string{
+				"AccountName":   "account",
+				"RepoOwner":     "repo-owner",
+				"RepoName":      "repo-name",
+				"PullRequestID": "pr-id",
+			},
+		},
+		{
 			CommandPath: []string{"pr", "request-changes"},
 			Params:      app.BitbucketRequestPRChangesParams{},
 			FieldToFlag: map[string]string{

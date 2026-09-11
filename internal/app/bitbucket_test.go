@@ -3,6 +3,7 @@ package app
 import (
 	"encoding/json"
 	"errors"
+	"math/rand/v2"
 	"testing"
 	"time"
 
@@ -1006,6 +1007,80 @@ func TestBitbucketService(t *testing.T) {
 			assert.Nil(t, result)
 			require.Error(t, err)
 			assert.Equal(t, expectedErr, errors.Unwrap(err))
+		})
+	})
+
+	t.Run("DeclinePR", func(t *testing.T) {
+		t.Run("forwards the updated pull request using the selected account", func(t *testing.T) {
+			for _, accountName := range []string{"", "account-" + faker.Username()} {
+				t.Run("account="+accountName, func(t *testing.T) {
+					deps := makeMockDeps(t)
+					mockClient := mocks.GetMock[*mockbitbucketClient](t, deps.Client)
+					mockAuth := mocks.GetMock[*mockbitbucketAuthFactory](t, deps.AuthFactory)
+					service := NewBitbucketService(deps)
+					repoOwner := "owner-" + faker.Username()
+					repoName := "repo-" + faker.Username()
+					pullRequestID := rand.IntN(10000) + 1
+					expectedPR := bitbucket.NewRandomPullRequest(bitbucket.WithPullRequestState("DECLINED"))
+					tokenProvider := newStaticTokenProvider("token-" + faker.UUIDHyphenated())
+
+					mockAuth.EXPECT().
+						getTokenProvider(mock.Anything, accountName).
+						Return(tokenProviderFunc(tokenProvider.GetToken))
+					mockClient.EXPECT().
+						DeclinePR(mock.Anything, mock.Anything, bitbucket.DeclinePRParams{
+							Username:      repoOwner,
+							RepoSlug:      repoName,
+							PullRequestID: pullRequestID,
+						}).
+						Return(expectedPR, nil)
+
+					actualPR, err := service.DeclinePR(t.Context(), BitbucketDeclinePRParams{
+						AccountName:   accountName,
+						RepoOwner:     repoOwner,
+						RepoName:      repoName,
+						PullRequestID: pullRequestID,
+					})
+
+					require.NoError(t, err)
+					assert.Equal(t, expectedPR, actualPR)
+				})
+			}
+		})
+
+		t.Run("validates identifiers before selecting an account", func(t *testing.T) {
+			service := NewBitbucketService(makeMockDeps(t))
+			for _, params := range []BitbucketDeclinePRParams{
+				{RepoName: faker.Word(), PullRequestID: 1},
+				{RepoOwner: faker.Word(), PullRequestID: 1},
+				{RepoOwner: faker.Word(), RepoName: faker.Word()},
+			} {
+				actualPR, err := service.DeclinePR(t.Context(), params)
+				require.Error(t, err)
+				assert.Nil(t, actualPR)
+			}
+		})
+
+		t.Run("wraps client errors", func(t *testing.T) {
+			deps := makeMockDeps(t)
+			mockClient := mocks.GetMock[*mockbitbucketClient](t, deps.Client)
+			mockAuth := mocks.GetMock[*mockbitbucketAuthFactory](t, deps.AuthFactory)
+			service := NewBitbucketService(deps)
+			expectedErr := errors.New(faker.Sentence())
+			tokenProvider := newStaticTokenProvider(faker.UUIDHyphenated())
+			mockAuth.EXPECT().
+				getTokenProvider(mock.Anything, "").
+				Return(tokenProviderFunc(tokenProvider.GetToken))
+			mockClient.EXPECT().DeclinePR(mock.Anything, mock.Anything, mock.Anything).Return(nil, expectedErr)
+
+			actualPR, err := service.DeclinePR(t.Context(), BitbucketDeclinePRParams{
+				RepoOwner:     faker.Word(),
+				RepoName:      faker.Word(),
+				PullRequestID: rand.IntN(10000) + 1,
+			})
+
+			require.ErrorIs(t, err, expectedErr)
+			assert.Nil(t, actualPR)
 		})
 	})
 

@@ -58,6 +58,13 @@ type bitbucketClient interface {
 		params bitbucket.ApprovePRParams,
 	) (*bitbucket.Participant, error)
 
+	// DeclinePR declines a pull request.
+	DeclinePR(
+		ctx context.Context,
+		tokenProvider bitbucket.TokenProvider,
+		params bitbucket.DeclinePRParams,
+	) (*bitbucket.PullRequest, error)
+
 	// MergePR merges a pull request.
 	MergePR(
 		ctx context.Context,

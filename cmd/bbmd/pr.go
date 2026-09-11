@@ -48,7 +48,7 @@ func newPRCmd(container *dig.Container, rootParams *rootCommandParams) *cobra.Co
 	pr := &cobra.Command{
 		Use:   "pr",
 		Short: "Bitbucket pull request operations",
-		Long:  "Manage Bitbucket pull requests: create, read, update, merge, and comment workflows.",
+		Long:  "Manage Bitbucket pull requests: create, read, update, approve, decline, merge, and comment workflows.",
 		Example: `bbmd pr list-tasks --repo-owner <workspace> --repo-name <repo> --pr-id <id>
 bbmd pr read --repo-owner <workspace> --repo-name <repo> --pr-id <id>`,
 	}
@@ -57,6 +57,7 @@ bbmd pr read --repo-owner <workspace> --repo-name <repo> --pr-id <id>`,
 		newPRReadCmd(container, rootParams),
 		newPRUpdateCmd(container, rootParams),
 		newPRApproveCmd(container, rootParams),
+		newPRDeclineCmd(container, rootParams),
 		newPRRequestChangesCmd(container, rootParams),
 		newPRMergeCmd(container, rootParams),
 		newPRListTasksCmd(container, rootParams),
@@ -263,6 +264,40 @@ func runPRApprove(
 			rootParams: rootParams,
 			params:     params,
 			target:     svc.ApprovePR,
+		})
+	})
+}
+
+func newPRDeclineCmd(container *dig.Container, rootParams *rootCommandParams) *cobra.Command {
+	var core prCoreIDs
+	cmd := &cobra.Command{
+		Use:   "decline",
+		Short: "Decline a pull request",
+		RunE: func(cmd *cobra.Command, _ []string) error {
+			return runPRDecline(cmd, container, rootParams, app.BitbucketDeclinePRParams{
+				RepoOwner:     core.RepoOwner,
+				RepoName:      core.RepoName,
+				PullRequestID: core.PRID,
+				AccountName:   core.Account,
+			})
+		},
+	}
+	bindPRCoreFlags(cmd, &core)
+	requirePRCoreFlags(cmd)
+	return cmd
+}
+
+func runPRDecline(
+	cmd *cobra.Command,
+	container *dig.Container,
+	rootParams *rootCommandParams,
+	params app.BitbucketDeclinePRParams,
+) error {
+	return container.Invoke(func(deps execDeps, svc *app.BitbucketService) error {
+		return execAndWrite(cmd, deps, execArgs[app.BitbucketDeclinePRParams, *bitbucket.PullRequest]{
+			rootParams: rootParams,
+			params:     params,
+			target:     svc.DeclinePR,
 		})
 	})
 }
